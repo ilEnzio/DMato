@@ -1,0 +1,6 @@
+[0m[[0m[0mdebug[0m] [0m[0mAcquiring lock on file /Users/kellycho/Desktop/Repos/DMato/project/target/.sbt-compilation-infos/dmato-compile/.sbt-idea-lock ...[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/kellycho/Desktop/Repos/DMato/src/main/scala/Card.scala:7:1: expected class or object definition[0m
+[0m[[0m[31merror[0m] [0m[0masdfadf[0m
+[0m[[0m[31merror[0m] [0m[0m^[0m
+[0m[[0m[31merror[0m] [0m[0mone error found[0m
+[0m[[0m[0mdebug[0m] [0m[0mReleasing lock on file /Users/kellycho/Desktop/Repos/DMato/project/target/.sbt-compilation-infos/dmato-compile/.sbt-idea-lock.[0m
