@@ -2,8 +2,10 @@ Some Tasks:
 
 
 
-- Create Deck
+- ~~Create Deck~~
 - ~~Generate random hole cards~~
+- ~~Shuffle Deck~~
+- create starting hands
 - Name/string repr of Card
 - Determine Hand Ranking(winning hand)
 - Calculate the Equity of each player

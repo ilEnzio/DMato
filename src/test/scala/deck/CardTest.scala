@@ -34,7 +34,19 @@ object CardTest extends Properties("CardTest") {
   // every card is unique
   //
 
-  property("52 count prop") = forAll { (deck: Deck) =>
+  property("a starting deck has 52 cards") = forAll { (deck: Deck) =>
     deck.size == 52
   }
+
+  property("a starting deck contains no duplicate cards") = forAll { (deck: Deck) =>
+    deck.size == deck.cards.toSet.size
+  }
+
+  property("can shuffle a full deck") = forAll { (deck: Deck) =>
+    val shuffled = Deck.shuffle(deck)
+    (deck.size == shuffled.size &&
+    deck.size == shuffled.cards.toSet.size &&
+    deck.cards != shuffled.cards)
+  }
+
 }

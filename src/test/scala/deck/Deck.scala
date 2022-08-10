@@ -1,6 +1,6 @@
 package deck
 
-import org.scalacheck.{Arbitrary, Gen}
+import scala.util.Random
 
 case class Deck(cards: List[Card]) {
   def size: Int = cards.length
@@ -9,16 +9,14 @@ case class Deck(cards: List[Card]) {
 
 object Deck {
 
-  val genSuit = Gen.oneOf(Suit.all)
-  val genRank = Gen.oneOf(Rank.all)
-  val genCard = for {
-    rank <- genRank
-    suit <- genSuit
-  } yield Card(rank, suit)
-
   def make: Deck = {
-    val cardList = (for (_ <- 0 until 52) yield genCard.sample.get).toList
+    val cardList = for {
+      rank <- Rank.all
+      suit <- Suit.all
+    } yield Card(rank, suit)
     Deck(cardList)
   }
+
+  def shuffle(deck: Deck): Deck = Deck(Random.shuffle(deck.cards))
 
 }
