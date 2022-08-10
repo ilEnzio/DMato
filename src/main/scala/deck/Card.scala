@@ -1,11 +1,20 @@
+package deck
+
 case class Card(rank: Rank, suit: Suit) {}
 
 object Card {
   //ToDO
-  def name: String = ???
+  def name: String = {
+    // Deck.Ace Spaces = As
+    ???
+  }
+
 }
 
 sealed trait Suit
+object Suit{
+  val all: List[Suit] = List(Spades, Clubs, Diamonds, Hearts)
+}
 case object Spades extends Suit
 case object Clubs extends Suit
 case object Diamonds extends Suit
@@ -15,6 +24,11 @@ sealed trait Rank {
   val value: Int
   val optValue: Option[Int]
 }
+object Rank {
+  val all: List[Rank] = List(Ace, King, Queen, Jack, Ten, Nine, Eight,
+    Seven, Six, Five, Four, Three, Two)
+}
+
 case object Ace extends Rank {
   val value = 13
   val optValue = Some(1)
