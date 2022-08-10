@@ -9,7 +9,7 @@ case class Deck(cards: List[Card]) {
 
 object Deck {
 
-  def make: Deck = {
+  def makeStartingDeck: Deck = {
     val cardList = for {
       rank <- Rank.all
       suit <- Suit.all
@@ -17,6 +17,7 @@ object Deck {
     Deck(cardList)
   }
 
+  def all: List[Card]           = makeStartingDeck.cards
   def shuffle(deck: Deck): Deck = Deck(Random.shuffle(deck.cards))
 
 }
