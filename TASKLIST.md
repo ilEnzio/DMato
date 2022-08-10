@@ -11,3 +11,9 @@ Some Tasks:
 - Calculate the Equity of each player
 - Handle up to 9 players
 - User can select Starting hands
+
+Notes:
+- Some effectful areas
+  - the inital Deck generation
+- Candidates for parallelism:
+  - the board runout/simulation
