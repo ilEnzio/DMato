@@ -8,7 +8,7 @@ import org.scalacheck.{Arbitrary, Gen, Properties}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
-object CardTest extends Properties("CardTest") {
+object DeckTest extends Properties("CardTest") {
 
   // Test the name of various Cards
   // ToDO: move this generator; but where??
