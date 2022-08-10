@@ -2,14 +2,15 @@ package deck
 
 //import deck.Deck._
 //import org.scalacheck.Prop._
-import org.scalacheck.{Arbitrary, Gen}
+//import deck.CardTestProps.property
+import org.scalacheck.Prop.forAll
+import org.scalacheck.{Arbitrary, Gen, Properties}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
-class CardTest extends AnyFunSuite with ScalaCheckDrivenPropertyChecks {
+object CardTest extends Properties("CardTest") {
 
   // Test the name of various Cards
-  //
   // ToDO: move this generator; but where??
   // card companion or data generation object?
 
@@ -33,9 +34,7 @@ class CardTest extends AnyFunSuite with ScalaCheckDrivenPropertyChecks {
   // every card is unique
   //
 
-  test("a deck has 52 cards") {
-    forAll { (deck: Deck) =>
-      assert(deck.size == 52)
-    }
+  property("52 count prop") = forAll { (deck: Deck) =>
+    deck.size == 52
   }
 }
