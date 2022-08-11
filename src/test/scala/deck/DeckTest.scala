@@ -34,15 +34,17 @@ object DeckPropTest extends Properties("CardTest") {
   // every card is unique
   //
 
-  property("can shuffle a full deck") = forAll { (deck: Deck) =>
-    val shuffled = Deck.shuffle(deck)
+  property("can shuffle a deck") = forAll { (deck: Deck) =>
+    val shuffled = deck.shuffle
     (deck.size == shuffled.size &&
-    deck.size == shuffled.cards.toSet.size &&
-    deck.cards != shuffled.cards)
+    deck.size == shuffled.cards.distinct.size &&
+    !deck.cards.corresponds(shuffled.cards)(_ == _))
   }
 
-  property("a starting deck contains one of each card") = forAll(genCard) { card =>
+  property("a starting deck contains only one of any card") = forAll(genCard) { card =>
     startingDeck.cards.count(c => c == card) == 1 && startingDeck.size == 52
   }
 
+  property("a starting deck contains one of every card") =
+    startingDeck.size == 52 && (for (card <- Deck.all) yield startingDeck.cards.count(_ == card) == 1).forall(_ == true)
 }
