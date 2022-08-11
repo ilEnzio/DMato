@@ -6,9 +6,12 @@ case class Deck(cards: List[Card]) {
   def size: Int = cards.length
   // I'm starting to get uncomfortable that outside stuff can reach into
   // cards.  Not sure about this.
-  def shuffle: Deck                   = Deck(Random.shuffle(this.cards))
+  def shuffle: Deck                   = Deck(Random.shuffle(cards))
   def add(card: Card): Deck           = Deck(card +: cards)
   def add(cardList: List[Card]): Deck = Deck(cards ++ cardList)
+
+  def take(n: Int): (List[Card]) = cards.take(n)
+  def drop(n: Int): Deck         = Deck(cards.drop(n))
 }
 
 object Deck {

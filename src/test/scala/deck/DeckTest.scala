@@ -38,10 +38,10 @@ object DeckPropTest extends Properties("CardTest") {
     val shuffled = deck.shuffle
     (deck.size == shuffled.size &&
     deck.size == shuffled.cards.distinct.size &&
-    !deck.cards.corresponds(shuffled.cards)(_ == _))
+    !deck.cards.sameElements(shuffled.cards))
   }
 
-  property("a starting deck contains only one of any card") = forAll(genCard) { card =>
+  property("a starting deck contains only one of any card") = forAll { card: Card =>
     startingDeck.cards.count(c => c == card) == 1 && startingDeck.size == 52
   }
 
