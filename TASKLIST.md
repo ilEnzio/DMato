@@ -23,8 +23,11 @@ Some Tasks:
 - Handle up to 9 players
 - User can select Starting hands
 
+- Start using Cats for better equality
+
 Notes:
 - Some effectful areas
   - the inital Deck generation
 - Candidates for parallelism:
   - the board runout/simulation
+  

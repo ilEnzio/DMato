@@ -8,7 +8,7 @@ import org.scalacheck.{Arbitrary, Gen, Properties}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
-object DeckTest extends Properties("CardTest") {
+object DeckPropTest extends Properties("CardTest") {
 
   // Test the name of various Cards
   // ToDO: move this generator; but where??
@@ -21,10 +21,10 @@ object DeckTest extends Properties("CardTest") {
     suit <- genSuit
   } yield Card(rank, suit)
 
-  val genDeck = Deck.make
+  val startingDeck = Deck.makeStartingDeck //
 
   implicit val arbCard = Arbitrary(genCard)
-  implicit val arbDeck = Arbitrary(genDeck)
+  implicit val arbDeck = Arbitrary(startingDeck)
 //  println(genCard.sample)
 //  println(genCard.sample)
 //  println(genCard.sample)
@@ -34,19 +34,17 @@ object DeckTest extends Properties("CardTest") {
   // every card is unique
   //
 
-  property("a starting deck has 52 cards") = forAll { (deck: Deck) =>
-    deck.size == 52
-  }
-
-  property("a starting deck contains no duplicate cards") = forAll { (deck: Deck) =>
-    deck.size == deck.cards.toSet.size
-  }
-
-  property("can shuffle a full deck") = forAll { (deck: Deck) =>
-    val shuffled = Deck.shuffle(deck)
+  property("can shuffle a deck") = forAll { (deck: Deck) =>
+    val shuffled = deck.shuffle
     (deck.size == shuffled.size &&
-    deck.size == shuffled.cards.toSet.size &&
-    deck.cards != shuffled.cards)
+    deck.size == shuffled.cards.distinct.size &&
+    !deck.cards.corresponds(shuffled.cards)(_ == _))
   }
 
+  property("a starting deck contains only one of any card") = forAll(genCard) { card =>
+    startingDeck.cards.count(c => c == card) == 1 && startingDeck.size == 52
+  }
+
+  property("a starting deck contains one of every card") =
+    startingDeck.size == 52 && (for (card <- Deck.all) yield startingDeck.cards.count(_ == card) == 1).forall(_ == true)
 }
