@@ -7,16 +7,16 @@ Some Tasks:
 - ~~Shuffle Deck~~
 - Name/string repr of Card
 - ~~Fix Card model for Ace!~~
-- CreateModel for hand
+- CreateModel for hand ??
 - create starting hands
 
 - Determine Hand Ranking(winning hand)
   - test for StraightFlush
-  - test for 4 of kind
+  - ~~test for 4 of kind~~
   - test for boat
-  - test for flush
-  - test for straight
-  - test for set
+  - ~~test for flush~~
+  - test for straight (containsSlice)
+  - ~~test for set~~
   - test for pair
 
 - Calculate the Equity of each player
