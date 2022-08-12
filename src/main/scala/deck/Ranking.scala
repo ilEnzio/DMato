@@ -12,6 +12,7 @@ object Ranking {
     hand match {
       case x if isFourOfAKind(x)  => FourOfAKind
       case x if isFlush(x)        => Flush
+      case x if isStraight(x)     => Straight
       case x if isThreeOfAKind(x) => ThreeOfAKind
       case _                      => HighCard
     }
@@ -22,12 +23,22 @@ object Ranking {
     }
 
   def isFlush(hand: Hand): Boolean =
-    // and not a STraight!
+    // and not also Straight!
     hand.cards
       .groupBy(c => c.suit)
       .exists({ case (_, cards) =>
         cards.length >= 5
       })
+
+  // TODO not tested!
+  def isStraight(hand: Hand): Boolean = {
+    // and not also a Flush!
+    // containsSlice??
+    val sorted = hand.cards.map(_.rank.value).distinct.sorted.reverse
+//    println(sorted)
+    sorted.containsSlice(sorted.max to sorted.max - 4) && !isFlush(hand)
+
+  }
 
   def isThreeOfAKind(hand: Hand): Boolean =
     !isFourOfAKind(hand) &&

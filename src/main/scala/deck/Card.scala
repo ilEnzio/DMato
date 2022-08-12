@@ -27,15 +27,14 @@ object Rank {
 }
 
 case object Ace extends Rank {
-  val value    = 13
+  val value    = 14
   val lowValue = 1
 }
-
 case object King extends Rank {
-  val value = 12
+  val value = 13
 }
 case object Queen extends Rank {
-  val value = 11
+  val value = 12
 }
 case object Jack extends Rank {
   val value = 11
