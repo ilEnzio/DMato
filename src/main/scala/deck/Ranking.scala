@@ -30,7 +30,7 @@ object Ranking {
         cards.length >= 5
       })
 
-  // TODO not tested!
+  // TODO not tested! is failing!
   def isStraight(hand: Hand): Boolean = {
     // and not also a Flush!
     // distinctBy, handle Ace, sort

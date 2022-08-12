@@ -2,7 +2,7 @@ package Ranking
 
 import deck.{Card, Deck, Flush, FourOfAKind, Hand, HighCard, Rank, Ranking, Straight, ThreeOfAKind}
 import deck.DeckPropTest.{genCard, genRank, genSuit}
-import org.scalacheck.Prop.{forAll, propBoolean, AnyOperators}
+import org.scalacheck.Prop.{exists, forAll, propBoolean, AnyOperators}
 
 import scala.util.Random
 import org.scalacheck.{Arbitrary, Gen, Properties}
@@ -11,14 +11,14 @@ import org.scalacheck.Gen.pick
 //import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 //import org.scalacheck.Prop.forAll
 
-//object RankingTest extends Properties("RankingTests") {
 object RankingTest extends Properties("RankingTest") {
 
   // a poker hand is 5 cards.  but I think for the purposes of this
   // it is the best 5 cards of 7, and the rank of the hand is determined by
   // the five cards
-
-  val genHand = Hand(Deck.makeStartingDeck.shuffle.take(7))
+  implicit val arbHand = Arbitrary(genHand)
+  implicit val arbRank = Arbitrary(genRank)
+  val genHand          = Hand(Deck.makeStartingDeck.shuffle.take(7))
 
   val genFourOfKind = Gen.oneOf {
     for {
@@ -56,26 +56,31 @@ object RankingTest extends Properties("RankingTest") {
   // 5 is a special case
   // 0-2, 1-3,2-4,3-5,4-6,5-7,6-8,7-9,8-10,9-11,10-12,11-12,12-14
 
-  val genStraightHand: Gen[Hand] = for {
-    rank <- genRank.retryUntil(_.value >= 5)
-  } yield {
-    val grouped = Deck.all.groupBy(_.rank).toList.sortBy(t => t._1.value)
-
+  val genStraightHand: Gen[Hand] = {
+    val rank    = genRank.suchThat(_.value >= 5).sample.get
+    val grouped = Deck.all.groupBy(_.rank).toList.sortBy(_._1.value)
     if (rank.value > 5) {
       val correctSlice: List[(Rank, List[Card])] =
         grouped.slice(rank.value - 6, rank.value - 1)
-      Hand(correctSlice.flatMap(x => pick(1, x._2).sample).flatten.reverse) // TODO ???
+      Gen.oneOf(for {
+        c1 <- correctSlice(0)._2
+        c2 <- correctSlice(1)._2
+        c3 <- correctSlice(2)._2
+        c4 <- correctSlice(3)._2
+        c5 <- correctSlice(4)._2
+      } yield Hand(List(c1, c2, c3, c4, c5)))
     } else {
-      val lowSlice: List[(Rank, List[Card])] = {
+      val lowSlice: List[(Rank, List[Card])] =
         grouped.last :: grouped.slice(rank.value - 5, rank.value - 1)
-      }
-      Hand(lowSlice.flatMap(x => pick(1, x._2).sample).flatten.reverse)
+      Gen.oneOf(for {
+        c1 <- lowSlice(0)._2
+        c2 <- lowSlice(1)._2
+        c3 <- lowSlice(2)._2
+        c4 <- lowSlice(3)._2
+        c5 <- lowSlice(4)._2
+      } yield Hand(List(c1, c2, c3, c4, c5)))
     }
-
   }
-
-  implicit val arbHand = Arbitrary(genHand)
-  implicit val arbRank = Arbitrary(genRank)
 
   property("FourOfAKind must have 4 cards of same rank") = forAll(genFourOfKind) { hand =>
     (Ranking(hand) == FourOfAKind) ==> {
@@ -95,6 +100,7 @@ object RankingTest extends Properties("RankingTest") {
     (Ranking(finalHand) == FourOfAKind) ++ (Ranking(finalHand) != ThreeOfAKind)
   }
 
+  //ToDo: This test some times fails
   property("3 of a kind is NOT 4 of a kind") = forAll(genRank) { rank1 =>
     val (fourCards, remDeck) =
       (
@@ -109,7 +115,7 @@ object RankingTest extends Properties("RankingTest") {
         Deck(remDeck.cards.filterNot(_.rank == rank1))
       )
     val finalHand: Hand = Hand(altFour.head :: threeOfAKind ++ remDeck2.shuffle.take(3))
-    (Ranking(finalHand) != FourOfAKind) ++ (Ranking(finalHand) == ThreeOfAKind)
+    (Ranking(finalHand) =? FourOfAKind) ++ (Ranking(finalHand) == ThreeOfAKind)
   }
   // later on the user will need to be able to choose cards
   // so I might have to implement that for this test...
@@ -124,7 +130,7 @@ object RankingTest extends Properties("RankingTest") {
       hand.cards.groupBy(c => c.suit).size <= 3
     }
   }
-
+// Todo: This test some times fail due to seed issue
   property("value difference between high and low end of Straight is 4") = forAll(genStraightHand) { hand: Hand =>
     // sort the cards
 
