@@ -12,6 +12,7 @@ object Ranking {
     hand match {
       case x if isFourOfAKind(x)  => FourOfAKind
       case x if isFlush(x)        => Flush
+      case x if isStraight(x)     => Straight
       case x if isThreeOfAKind(x) => ThreeOfAKind
       case _                      => HighCard
     }
@@ -22,12 +23,45 @@ object Ranking {
     }
 
   def isFlush(hand: Hand): Boolean =
-    // and not a STraight!
+    // and not also Straight!
     hand.cards
       .groupBy(c => c.suit)
       .exists({ case (_, cards) =>
         cards.length >= 5
       })
+
+  // TODO not tested!
+  def isStraight(hand: Hand): Boolean = {
+    // and not also a Flush!
+    // distinctBy, handle Ace, sort
+    // take 5
+    val culled = hand.cards.distinctBy(c => c.rank.value)
+
+//    println(s"Culled: $culled")
+    //    println(sorted)
+    def isTooShort(cards: List[Card]) = cards.length < 5
+    if (isTooShort(culled)) false
+    else {
+      def handleAce: List[Card] =
+        if (hand.cards.exists { case c => c.rank == Ace })
+          hand.cards.find(_.rank == Ace).get.copy(rank = Ace_L) :: culled
+        else
+          culled
+
+      val checkedForAce = handleAce
+//      println(s"Checked4A: $checkedForAce")
+      val sorted = checkedForAce.sortBy(_.rank.value).reverse
+//      println(s"Sorted: $sorted")
+      def checkStr(cards: List[Card]): Boolean =
+        if (isTooShort(cards)) false
+        else {
+          if (cards(0).rank.value == cards(4).rank.value + 4) !isFlush(hand) && true
+          else checkStr(cards.drop(1))
+        }
+
+      checkStr(sorted)
+    }
+  }
 
   def isThreeOfAKind(hand: Hand): Boolean =
     !isFourOfAKind(hand) &&
