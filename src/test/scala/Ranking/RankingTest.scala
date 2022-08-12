@@ -2,7 +2,7 @@ package Ranking
 
 import deck.{Card, Deck, Flush, FourOfAKind, Hand, HighCard, Rank, Ranking, Straight, ThreeOfAKind}
 import deck.DeckPropTest.{genCard, genRank, genSuit}
-import org.scalacheck.Prop.{forAll, propBoolean}
+import org.scalacheck.Prop.{forAll, propBoolean, AnyOperators}
 
 import scala.util.Random
 import org.scalacheck.{Arbitrary, Gen, Properties}
@@ -19,6 +19,16 @@ object RankingTest extends Properties("RankingTest") {
   // the five cards
 
   val genHand = Hand(Deck.makeStartingDeck.shuffle.take(7))
+
+  val genFourOfKind = Gen.oneOf {
+    for {
+      group <- Deck.all.groupBy(_.rank).toList.map(_._2)
+      rank = group(0).rank
+      card1 <- genCard.suchThat(c => c.rank != rank).sample
+      card2 <- genCard.suchThat(c => c != card1 && c.rank != rank).sample
+      card3 <- genCard.suchThat(c => c != card1 && c != card2 && c.rank != rank).sample
+    } yield Hand(card1 :: card2 :: card3 :: group)
+  }
 
   val genFlushHand = for {
     suit <- genSuit
@@ -54,12 +64,12 @@ object RankingTest extends Properties("RankingTest") {
     if (rank.value > 5) {
       val correctSlice: List[(Rank, List[Card])] =
         grouped.slice(rank.value - 6, rank.value - 1)
-      Hand(correctSlice.flatMap(x => pick(1, x._2).sample).flatten) // TODO ???
+      Hand(correctSlice.flatMap(x => pick(1, x._2).sample).flatten.reverse) // TODO ???
     } else {
       val lowSlice: List[(Rank, List[Card])] = {
         grouped.last :: grouped.slice(rank.value - 5, rank.value - 1)
       }
-      Hand(lowSlice.flatMap(x => pick(1, x._2).sample).flatten)
+      Hand(lowSlice.flatMap(x => pick(1, x._2).sample).flatten.reverse)
     }
 
   }
@@ -67,7 +77,7 @@ object RankingTest extends Properties("RankingTest") {
   implicit val arbHand = Arbitrary(genHand)
   implicit val arbRank = Arbitrary(genRank)
 
-  property("FourOfAKind must have 4 cards of same rank") = forAll { hand: Hand =>
+  property("FourOfAKind must have 4 cards of same rank") = forAll(genFourOfKind) { hand =>
     (Ranking(hand) == FourOfAKind) ==> {
       hand.cards.groupBy(c => c.rank).exists { case (_, cards) =>
         cards.length == 4
@@ -82,7 +92,7 @@ object RankingTest extends Properties("RankingTest") {
         Deck(Deck.makeStartingDeck.cards.filterNot(_.rank == rank))
       )
     val finalHand: Hand = Hand(fourOfKind ++ remDeck.shuffle.take(3))
-    Ranking(finalHand) == FourOfAKind && Ranking(finalHand) != ThreeOfAKind
+    (Ranking(finalHand) == FourOfAKind) ++ (Ranking(finalHand) != ThreeOfAKind)
   }
 
   property("3 of a kind is NOT 4 of a kind") = forAll(genRank) { rank1 =>
@@ -99,7 +109,7 @@ object RankingTest extends Properties("RankingTest") {
         Deck(remDeck.cards.filterNot(_.rank == rank1))
       )
     val finalHand: Hand = Hand(altFour.head :: threeOfAKind ++ remDeck2.shuffle.take(3))
-    Ranking(finalHand) != FourOfAKind && Ranking(finalHand) == ThreeOfAKind
+    (Ranking(finalHand) != FourOfAKind) ++ (Ranking(finalHand) == ThreeOfAKind)
   }
   // later on the user will need to be able to choose cards
   // so I might have to implement that for this test...
@@ -115,26 +125,23 @@ object RankingTest extends Properties("RankingTest") {
     }
   }
 
-  // TODO: This is a bad test!! Fails sometimes ???
   property("value difference between high and low end of Straight is 4") = forAll(genStraightHand) { hand: Hand =>
     // sort the cards
 
     val sortedCards = hand.cards
-//      .foldLeft(List.empty[Card]) { case (s, v) =>
-//        if (s.contains(v)) s
-//        else v :: s
-//      }
       .sortBy(_.rank.value)
       .reverse
     // Create an Ordering So that I don't have to reach into value
 
-    (Ranking(hand) == Straight) && (sortedCards(0).rank.value - sortedCards(4).rank.value == 4 ||
+    (Ranking(hand) ?= Straight) && (sortedCards(0).rank.value - sortedCards(4).rank.value == 4 ||
       sortedCards(0).rank.value - sortedCards(4).rank.value == 12)
   }
 
   property("sequential cards rank a Straight") = forAll(genStraightHand) { hand =>
-    println(Ranking(hand))
-    Ranking(hand) == Straight
+//    println(s"HandRank: ${Ranking(hand)}")
+    (Ranking(hand) != Flush) ==> {
+      Ranking(hand) ?= Straight
+    }
   }
 
   // TODO test for straight flush
