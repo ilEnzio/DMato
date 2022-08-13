@@ -1,5 +1,7 @@
 package deck
 
+import scala.annotation.tailrec
+
 sealed trait Ranking {}
 // I'm thinking now that maybe it should have a value
 // of the actual n<=5 cards that make up the Ranking.  That way it can be used later
@@ -24,8 +26,6 @@ object Ranking {
     }
 
   def isFullHouse(hand: Hand): Boolean = {
-    // if the grouping by rank has 3 group and
-    // when you remove it, it has a >=2 group
     val count = hand.cards.groupBy(_.rank).toList.map(_._2.size).sorted.reverse
     if (count.size < 2) false
     else if (count.take(2).sum >= 5) true
@@ -63,10 +63,11 @@ object Ranking {
 //      println(s"Checked4A: $checkedForAce")
       val sorted = checkedForAce.sortBy(_.rank.value).reverse
 //      println(s"Sorted: $sorted")
+      @tailrec
       def checkStr(cards: List[Card]): Boolean =
         if (isTooShort(cards)) false
         else {
-          if (cards(0).rank.value == cards(4).rank.value + 4) !isFlush(hand) && true
+          if (cards(0).rank.value == cards(4).rank.value + 4) !isFlush(hand)
           else checkStr(cards.drop(1))
         }
 
