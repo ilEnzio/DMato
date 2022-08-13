@@ -1,6 +1,6 @@
 package Ranking
 
-import deck.{Card, Deck, Flush, FourOfAKind, Hand, HighCard, Rank, Ranking, Straight, ThreeOfAKind}
+import deck.{Card, Deck, Flush, FourOfAKind, FullHouse, Hand, HighCard, Rank, Ranking, Straight, ThreeOfAKind}
 import deck.DeckPropTest.{genCard, genRank, genSuit}
 import org.scalacheck.Prop.{all, exists, forAll, propBoolean, AnyOperators}
 
@@ -20,16 +20,7 @@ object RankingTest extends Properties("RankingTest") {
   implicit val arbRank = Arbitrary(genRank)
   val genHand          = Gen.pick(7, Deck.all)
 
-  val genThreeOfAKind = Gen.oneOf {
-    for {
-      group <- Deck.all.groupBy(_.rank).toList.map(_._2)
-      rank = group(0).rank
-      card1 <- genCard.suchThat(c => c.rank != rank).sample
-      card2 <- genCard.suchThat(c => c != card1 && c.rank != rank).sample
-      card3 <- genCard.suchThat(c => c != card1 && c != card2 && c.rank != rank).sample
-      card4 <- genCard.suchThat(c => c != card1 && c != card2 && c != card3 && c.rank != rank).sample
-    } yield Hand(card1 :: card2 :: card3 :: card4 :: group.take(3))
-  }
+  // Optimal Output Generators
 
   val genFourOfAKind = Gen.oneOf {
     for {
@@ -40,6 +31,41 @@ object RankingTest extends Properties("RankingTest") {
       card3 <- genCard.suchThat(c => c != card1 && c != card2 && c.rank != rank).sample
     } yield Hand(card1 :: card2 :: card3 :: group)
   }
+
+  val genThreeOfAKind = Gen
+    .oneOf {
+      for {
+        group <- Deck.all.groupBy(_.rank).toList.map(_._2)
+        rank = group(0).rank
+        card1 <- genCard.suchThat(c => c.rank != rank).sample
+        card2 <- genCard.suchThat(c => c != card1 && c.rank != rank).sample
+        card3 <- genCard.suchThat(c => c != card1 && c != card2 && c.rank != rank).sample
+        card4 <- genCard.suchThat(c => c != card1 && c != card2 && c != card3 && c.rank != rank).sample
+      } yield Hand(card1 :: card2 :: card3 :: card4 :: group.take(3))
+    }
+    .suchThat(Ranking(_) != FullHouse)
+
+  val genFullHouse =
+    for {
+      rank1 <- genRank
+      rank2 <- genRank.suchThat(r => r != rank1)
+      grouped = Deck.all.groupBy(_.rank)
+      set  <- pick(3, grouped(rank1))
+      pair <- pick(2, grouped(rank2))
+      card1 <- genCard.suchThat(c =>
+        set.contains(c) == false &&
+          pair.contains(c) == false &&
+          c.rank != rank1 &&
+          c.rank != rank2
+      )
+      card2 <- genCard.suchThat(c =>
+        set.contains(c) == false &&
+          pair.contains(c) == false &&
+          c.rank != rank1 &&
+          c.rank != rank2 &&
+          c != card1
+      )
+    } yield Hand(card1 :: card2 :: pair.toList ++ set.toList)
 
   val genFlushHand = for {
     suit <- genSuit
@@ -118,10 +144,14 @@ object RankingTest extends Properties("RankingTest") {
   }
 
   property("3 of a kind is NOT 4 of a kind") = forAll(genThreeOfAKind) { hand =>
-    (Ranking(hand) != FourOfAKind) ++ (Ranking(hand) == ThreeOfAKind)
+    (Ranking(hand) != FourOfAKind) ++ (Ranking(hand) ?= ThreeOfAKind)
   }
   // later on the user will need to be able to choose cards
   // so I might have to implement that for this test...
+
+  property("a FullHouse has 4 or less ranks") = forAll(genFullHouse) { hand: Hand =>
+    hand.cards.groupBy(_.rank).size <= 4
+  }
 
   property("5 or more cards of a suit is a Flush") = forAll(genFlushHand, genNonFlushHand) {
     (flushHand, nonFlushHand) =>
@@ -129,9 +159,7 @@ object RankingTest extends Properties("RankingTest") {
   }
 
   property("a Flush hand has 3 or less suits") = forAll(genFlushHand) { hand =>
-    (Ranking(hand) == Flush) ==> {
-      hand.cards.groupBy(c => c.suit).size <= 3
-    }
+    hand.cards.groupBy(c => c.suit).size <= 3
   }
 
   property("sequential cards rank a Straight") = forAll(genStraightHand) { hand =>

@@ -11,6 +11,7 @@ object Ranking {
   def apply(hand: Hand): Ranking =
     hand match {
       case x if isFourOfAKind(x)  => FourOfAKind
+      case x if isFullHouse(x)    => FullHouse
       case x if isFlush(x)        => Flush
       case x if isStraight(x)     => Straight
       case x if isThreeOfAKind(x) => ThreeOfAKind
@@ -21,6 +22,16 @@ object Ranking {
     hand.cards.groupBy(c => c.rank).exists { case (_, cards) =>
       cards.length == 4
     }
+
+  def isFullHouse(hand: Hand): Boolean = {
+    // if the grouping by rank has 3 group and
+    // when you remove it, it has a >=2 group
+    val count = hand.cards.groupBy(_.rank).toList.map(_._2.size).sorted.reverse
+    if (count.size < 2) false
+    else if (count.take(2).sum >= 5) true
+    else false
+
+  }
 
   def isFlush(hand: Hand): Boolean =
     // and not also Straight!
