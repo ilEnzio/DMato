@@ -16,9 +16,9 @@ object RankingTest extends Properties("RankingTest") {
   // a poker hand is 5 cards.  but I think for the purposes of this
   // it is the best 5 cards of 7, and the rank of the hand is determined by
   // the five cards
+  val genHand          = Gen.pick(7, Deck.all)
   implicit val arbHand = Arbitrary(genHand)
   implicit val arbRank = Arbitrary(genRank)
-  val genHand          = Gen.pick(7, Deck.all)
 
   // Optimal Output Generators
 
@@ -64,7 +64,7 @@ object RankingTest extends Properties("RankingTest") {
       )
     } yield Hand(card1 :: card2 :: pair.toList ++ set.toList)
 
-  val genFlushHand = for {
+  val genFlushHand: Gen[Hand] = for {
     suit <- genSuit
     suited = Deck.all.filter(_.suit == suit)
     flush <- pick(5, suited)
@@ -77,7 +77,7 @@ object RankingTest extends Properties("RankingTest") {
     }
   } yield Hand(card1 :: card2 :: flush.toList)
 
-  val genNonFlushHand = for {
+  val genNonFlushHand: Gen[Hand] = for {
     suit <- genSuit
     suited = Deck.all.filter(_.suit == suit)
     fourFlush <- pick(4, suited)
@@ -101,36 +101,29 @@ object RankingTest extends Properties("RankingTest") {
   // 0-2, 1-3,2-4,3-5,4-6,5-7,6-8,7-9,8-10,9-11,10-12,11-12,12-14
 
   val genStraightHand: Gen[Hand] = {
-    val rank    = genRank.retryUntil(_.value >= 5).sample.get
     val grouped = Deck.all.groupBy(_.rank).toList.sortBy(_._1.value)
-    if (rank.value > 5) {
-      val correctSlice: List[(Rank, List[Card])] =
+    for {
+      rank <- genRank.suchThat(_.value >= 5)
+      highSlice: List[(Rank, List[Card])] =
         grouped.slice(rank.value - 6, rank.value - 1)
-      "Hi-Hand" |: Gen.oneOf(for {
-        c1 <- correctSlice(0)._2
-        c2 <- correctSlice(1)._2
-        c3 <- correctSlice(2)._2
-        c4 <- correctSlice(3)._2
-        c5 <- correctSlice(4)._2
-        n1 <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5).contains(c)).sample
-        n2 <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5, n1).contains(c)).sample
-      } yield Hand(List(c1, c2, c3, c4, c5, n1, n2)))
-    } else {
-      val lowSlice: List[(Rank, List[Card])] = {
-        println(s"Last: ${grouped.last}")
+      lowSlice: List[(Rank, List[Card])] =
         grouped.last :: grouped.slice(rank.value - 5, rank.value - 1)
-      }
-      "Lo-Hand" |: Gen.oneOf(for {
-        c1 <- lowSlice(0)._2
-        c2 <- lowSlice(1)._2
-        c3 <- lowSlice(2)._2
-        c4 <- lowSlice(3)._2
-        c5 <- lowSlice(4)._2
-        n1 <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5).contains(c)).sample
-        n2 <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5, n1).contains(c)).sample
-      } yield Hand(List(c1, c2, c3, c4, c5, n1, n2)))
-    }
+      hand <-
+        if (rank.value > 5) genStraightHand_(highSlice)
+        else genStraightHand_(lowSlice)
+    } yield hand
   }
+
+  private def genStraightHand_(slice: List[(Rank, List[Card])]): Gen[Hand] =
+    for {
+      c1 <- Gen.oneOf(slice(0)._2)
+      c2 <- Gen.oneOf(slice(1)._2)
+      c3 <- Gen.oneOf(slice(2)._2)
+      c4 <- Gen.oneOf(slice(3)._2)
+      c5 <- Gen.oneOf(slice(4)._2)
+      n1 <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5).contains(c))
+      n2 <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5, n1).contains(c))
+    } yield Hand(List(c1, c2, c3, c4, c5, n1, n2))
 
   property("FourOfAKind must have 4 cards of same rank") = forAll(genFourOfAKind) { hand =>
     (Ranking(hand) == FourOfAKind) ==> {

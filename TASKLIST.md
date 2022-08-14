@@ -12,11 +12,12 @@ Some Tasks:
 
 - Determine Hand Ranking(winning hand)
   - test for StraightFlush
-  - test for 4 of kind
-  - test for boat
+  - ~~test for 4 of kind~~
+  - ~~test for boat~~
   - ~~test for flush~~
   - ~~test for straight~~
   - ~~test for set~~
+  - test for two pair
   - test for pair
 
 - Calculate the Equity of each player
