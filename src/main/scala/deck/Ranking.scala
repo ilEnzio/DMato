@@ -11,7 +11,8 @@ object Ranking {
   // TODo I kinda think this is wrong now.  I need a function that goes from
   // Hand => Int, then I can just order the hands and I might not need this type??
   def apply(hand: Hand): Ranking =
-    // TODO seems a little fragile because it is depending on the testing order
+    // TODO seems a little fragile because it is depending on the testing order,
+    // does being private make this ok?
     hand match {
       case x if isStraightFlush(x) => StraightFlush
       case x if isFourOfAKind(x)   => FourOfAKind
@@ -22,7 +23,7 @@ object Ranking {
       case _                       => HighCard
     }
 
-  def isStraightFlush(hand: Hand): Boolean = {
+  private def isStraightFlush(hand: Hand): Boolean = {
     val suitMap = hand.cards
       .groupBy(c => c.suit)
       .filter { case (_, cards) => cards.length >= 5 }
@@ -30,12 +31,12 @@ object Ranking {
     else isStraight(Hand(suitMap.toList.flatMap(_._2)))
   }
 
-  def isFourOfAKind(hand: Hand): Boolean =
+  private def isFourOfAKind(hand: Hand): Boolean =
     hand.cards.groupBy(c => c.rank).exists { case (_, cards) =>
       cards.length == 4
     }
 
-  def isFullHouse(hand: Hand): Boolean = {
+  private def isFullHouse(hand: Hand): Boolean = {
     val count = hand.cards.groupBy(_.rank).toList.map(_._2.size).sorted.reverse
     if (count.size < 2) false
     else if (count.take(2).sum >= 5) true
@@ -43,14 +44,14 @@ object Ranking {
 
   }
 
-  def isFlush(hand: Hand): Boolean =
+  private def isFlush(hand: Hand): Boolean =
     hand.cards
       .groupBy(c => c.suit)
       .exists({ case (_, cards) =>
         cards.length >= 5
       })
 
-  def isStraight(hand: Hand): Boolean = {
+  private def isStraight(hand: Hand): Boolean = {
     val culled                        = hand.cards.distinctBy(c => c.rank.value)
     def isTooShort(cards: List[Card]) = cards.length < 5
     if (isTooShort(culled)) false
@@ -74,7 +75,7 @@ object Ranking {
     }
   }
 
-  def isThreeOfAKind(hand: Hand): Boolean =
+  private def isThreeOfAKind(hand: Hand): Boolean =
     !isFourOfAKind(hand) &&
       hand.cards.groupBy(c => c.rank).exists { case (_, cards) =>
         cards.length == 3
