@@ -20,6 +20,7 @@ object Ranking {
       case x if isFlush(x)         => Flush
       case x if isStraight(x)      => Straight
       case x if isThreeOfAKind(x)  => ThreeOfAKind
+      case x if isTwoPair(x)       => TwoPair
       case _                       => HighCard
     }
 
@@ -52,8 +53,10 @@ object Ranking {
       })
 
   private def isStraight(hand: Hand): Boolean = {
-    val culled                        = hand.cards.distinctBy(c => c.rank.value)
+    val culled = hand.cards.distinctBy(c => c.rank.value)
+
     def isTooShort(cards: List[Card]) = cards.length < 5
+
     if (isTooShort(culled)) false
     else {
       def handleAce: List[Card] =
@@ -64,6 +67,7 @@ object Ranking {
 
       val checkedForAce = handleAce
       val sorted        = checkedForAce.sortBy(_.rank.value).reverse
+
       @tailrec
       def checkStr(cards: List[Card]): Boolean =
         if (isTooShort(cards)) false
@@ -71,15 +75,22 @@ object Ranking {
           if (cards(0).rank.value == cards(4).rank.value + 4) true
           else checkStr(cards.drop(1))
         }
+
       checkStr(sorted)
     }
   }
 
   private def isThreeOfAKind(hand: Hand): Boolean =
-    !isFourOfAKind(hand) &&
-      hand.cards.groupBy(c => c.rank).exists { case (_, cards) =>
-        cards.length == 3
-      }
+    hand.cards.groupBy(c => c.rank).exists { case (_, cards) =>
+      cards.length == 3
+    }
+
+  private def isTwoPair(hand: Hand): Boolean =
+    hand.cards
+      .groupBy(c => c.rank)
+      .count { case (_, cards) =>
+        cards.size == 2
+      } >= 2
 }
 object StraightFlush extends Ranking
 object FourOfAKind   extends Ranking

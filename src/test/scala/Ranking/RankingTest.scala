@@ -1,6 +1,7 @@
 package Ranking
 
 import deck._
+import Ranking._
 import deck.DeckPropTest.{genCard, genRank, genSuit}
 import org.scalacheck.Prop.{all, exists, forAll, propBoolean, AnyOperators}
 
@@ -48,19 +49,8 @@ object RankingTest extends Properties("RankingTest") {
       quads = Deck.all.groupBy(_.rank)(rank)
       card1 <- genCard.suchThat(c => c.rank != rank)
       card2 <- genCard.suchThat(c => c != card1 && c.rank != rank)
-      card3 <- genCard.suchThat(c => c != card1 && c != card2 && c.rank != rank)
+      card3 <- genCard.suchThat(c => !List(card1, card2).contains(c) && c.rank != rank)
     } yield Hand(card1 :: card2 :: card3 :: quads)
-
-  val genThreeOfAKind: Gen[Hand] =
-    for {
-      rank <- genRank
-      grouped = Deck.all.groupBy(_.rank)
-      set   <- pick(3, grouped(rank))
-      card1 <- genCard.suchThat(c => c.rank != rank)
-      card2 <- genCard.suchThat(c => c != card1 && c.rank != rank)
-      card3 <- genCard.suchThat(c => c != card1 && c != card2 && c.rank != rank)
-      card4 <- genCard.suchThat(c => c != card1 && c != card2 && c != card3 && c.rank != rank)
-    } yield Hand(card1 :: card2 :: card3 :: card4 :: set.toList)
 
   val genFullHouse: Gen[Hand] =
     for {
@@ -145,6 +135,28 @@ object RankingTest extends Properties("RankingTest") {
       n2 <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5, n1).contains(c))
     } yield Hand(List(c1, c2, c3, c4, c5, n1, n2))
 
+  val genThreeOfAKind: Gen[Hand] =
+    for {
+      rank <- genRank
+      grouped = Deck.all.groupBy(_.rank)
+      set   <- pick(3, grouped(rank))
+      card1 <- genCard.suchThat(c => c.rank != rank)
+      card2 <- genCard.suchThat(c => c != card1 && c.rank != rank)
+      card3 <- genCard.suchThat(c => !List(card1, card2).contains(c) && c.rank != rank)
+      card4 <- genCard.suchThat(c => !List(card1, card2, card3).contains(c) && c.rank != rank)
+    } yield Hand(card1 :: card2 :: card3 :: card4 :: set.toList)
+
+  val genTwoPair: Gen[Hand] = for {
+    rank1 <- genRank
+    rank2 <- genRank.suchThat(_ != rank1)
+    grouped = Deck.all.groupBy(_.rank)
+    pair1 <- pick(2, grouped(rank1))
+    pair2 <- pick(2, grouped(rank2))
+    card1 <- genCard.suchThat(c => !List(rank1, rank2).contains(c.rank))
+    card2 <- genCard.suchThat(c => c != card1 && !List(rank1, rank2).contains(c.rank))
+    card3 <- genCard.suchThat(c => !List(card1, card2).contains(c) && !List(rank1, rank2, card2.rank).contains(c.rank))
+  } yield Hand(card1 :: card2 :: card3 :: pair1.toList ++ pair2.toList)
+
   property("A StraightFlush is not Ranked a Straight or Flush ") = forAll(genStraightFlush) { hand =>
     (Ranking(hand) != Straight) :| "Not Ranked Straight" &&
     (Ranking(hand) != Flush) :| "Not Ranked Flush" &&
@@ -161,22 +173,13 @@ object RankingTest extends Properties("RankingTest") {
     (Ranking(hand) == FourOfAKind) ++ (Ranking(hand) != ThreeOfAKind)
   }
 
-  property("3 cards of the same rank is ThreeOfAKind") = forAll(genThreeOfAKind) { hand =>
-    (Ranking(hand) != FullHouse) ++ (Ranking(hand) != Flush) ++
-      (Ranking(hand) != Straight) ==> {
-        (Ranking(hand) != FourOfAKind) ++ (Ranking(hand) ?= ThreeOfAKind)
-      }
-  }
-  // later on the user will need to be able to choose cards
-  // so I might have to implement that for this test...
-
   property("a FullHouse has 4 or less ranks") = forAll(genFullHouse) { hand: Hand =>
     hand.cards.groupBy(_.rank).size <= 4
   }
 
   property("5 or more cards of a suit is a Flush") = forAll(genFlush, genNonFlush) { (flushHand, nonFlushHand) =>
-    (Ranking(flushHand) != StraightFlush) ==> {
-      (Ranking(flushHand) ?= Flush) && Ranking(nonFlushHand) != Flush
+    (Ranking(flushHand) != StraightFlush) :| "Constraint" ==> {
+      (Ranking(flushHand) ?= Flush) :| "Flush" && (Ranking(nonFlushHand) != Flush) :| "Non-Flush"
     }
   }
 
@@ -190,6 +193,17 @@ object RankingTest extends Properties("RankingTest") {
     }
   }
 
-  // TODO test for straight flush
+  property("3 cards of the same rank is ThreeOfAKind") = forAll(genThreeOfAKind) { hand =>
+    (Ranking(hand) != FullHouse) ++ (Ranking(hand) != Flush) ++
+      (Ranking(hand) != Straight) ==> {
+        (Ranking(hand) != FourOfAKind) ++ (Ranking(hand) ?= ThreeOfAKind)
+      }
+  }
+
+  property("at least 2 pair of cards in a hand is TwoPair") = forAll(genTwoPair) { hand =>
+    all(Ranking(hand) != StraightFlush, Ranking(hand) != Flush, Ranking(hand) != Straight) ==> {
+      (Ranking(hand) ?= TwoPair)
+    }
+  }
 
 }
