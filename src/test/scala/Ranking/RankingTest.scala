@@ -1,6 +1,6 @@
 package Ranking
 
-import deck.{Card, Deck, Flush, FourOfAKind, FullHouse, Hand, HighCard, Rank, Ranking, Straight, ThreeOfAKind}
+import deck._
 import deck.DeckPropTest.{genCard, genRank, genSuit}
 import org.scalacheck.Prop.{all, exists, forAll, propBoolean, AnyOperators}
 
@@ -21,6 +21,26 @@ object RankingTest extends Properties("RankingTest") {
   implicit val arbRank = Arbitrary(genRank)
 
   // Optimal Output Generators
+
+  val genStraightFlush: Gen[Hand] = for {
+    suit <- genSuit
+    rank <- genRank.suchThat(_.value >= 5)
+    suited = Deck.all.filter(_.suit == suit).sortBy(_.rank.value)
+    highSlice: List[Card] =
+      suited.slice(rank.value - 6, rank.value - 1)
+    lowSlice: List[Card] =
+      suited.last :: suited.slice(rank.value - 5, rank.value - 1)
+    hand <-
+      if (rank.value > 5) genStraightFlush_(highSlice)
+      else genStraightFlush_(lowSlice)
+
+  } yield hand
+
+  private def genStraightFlush_(slice: List[Card]): Gen[Hand] =
+    for {
+      n1 <- genCard.suchThat(c => !slice.contains(c))
+      n2 <- genCard.suchThat(c => !(n1 :: slice).contains(c))
+    } yield Hand(n1 :: n2 :: slice)
 
   val genFourOfAKind: Gen[Hand] =
     for {
@@ -64,7 +84,7 @@ object RankingTest extends Properties("RankingTest") {
       )
     } yield Hand(card1 :: card2 :: pair.toList ++ set.toList)
 
-  val genFlushHand: Gen[Hand] = for {
+  val genFlush: Gen[Hand] = for {
     suit <- genSuit
     suited = Deck.all.filter(_.suit == suit)
     flush <- pick(5, suited)
@@ -77,7 +97,7 @@ object RankingTest extends Properties("RankingTest") {
     }
   } yield Hand(card1 :: card2 :: flush.toList)
 
-  val genNonFlushHand: Gen[Hand] = for {
+  val genNonFlush: Gen[Hand] = for {
     suit <- genSuit
     suited = Deck.all.filter(_.suit == suit)
     fourFlush <- pick(4, suited)
@@ -100,7 +120,7 @@ object RankingTest extends Properties("RankingTest") {
   // 5 is a special case
   // 0-2, 1-3,2-4,3-5,4-6,5-7,6-8,7-9,8-10,9-11,10-12,11-12,12-14
 
-  val genStraightHand: Gen[Hand] = {
+  val genStraight: Gen[Hand] = {
     val grouped = Deck.all.groupBy(_.rank).toList.sortBy(_._1.value)
     for {
       rank <- genRank.suchThat(_.value >= 5)
@@ -125,11 +145,15 @@ object RankingTest extends Properties("RankingTest") {
       n2 <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5, n1).contains(c))
     } yield Hand(List(c1, c2, c3, c4, c5, n1, n2))
 
+  property("A StraightFlush is not Ranked a Straight or Flush ") = forAll(genStraightFlush) { hand =>
+    (Ranking(hand) != Straight) :| "Not Ranked Straight" &&
+    (Ranking(hand) != Flush) :| "Not Ranked Flush" &&
+    (Ranking(hand) ?= StraightFlush) :| "Ranked a StraightFlush"
+  }
+
   property("FourOfAKind must have 4 cards of same rank") = forAll(genFourOfAKind) { hand =>
-    (Ranking(hand) == FourOfAKind) ==> {
-      hand.cards.groupBy(c => c.rank).exists { case (_, cards) =>
-        cards.length == 4
-      }
+    hand.cards.groupBy(c => c.rank).exists { case (_, cards) =>
+      cards.length == 4
     }
   }
 
@@ -150,17 +174,18 @@ object RankingTest extends Properties("RankingTest") {
     hand.cards.groupBy(_.rank).size <= 4
   }
 
-  property("5 or more cards of a suit is a Flush") = forAll(genFlushHand, genNonFlushHand) {
-    (flushHand, nonFlushHand) =>
+  property("5 or more cards of a suit is a Flush") = forAll(genFlush, genNonFlush) { (flushHand, nonFlushHand) =>
+    (Ranking(flushHand) != StraightFlush) ==> {
       (Ranking(flushHand) ?= Flush) && Ranking(nonFlushHand) != Flush
+    }
   }
 
-  property("a Flush hand has 3 or less suits") = forAll(genFlushHand) { hand =>
+  property("a Flush hand has 3 or less suits") = forAll(genFlush) { hand =>
     hand.cards.groupBy(c => c.suit).size <= 3
   }
 
-  property("sequential cards rank a Straight") = forAll(genStraightHand) { hand =>
-    (Ranking(hand) != Flush) ==> {
+  property("sequential cards rank a Straight") = forAll(genStraight) { hand =>
+    all(Ranking(hand) != StraightFlush, Ranking(hand) != Flush) ==> {
       Ranking(hand) ?= Straight
     }
   }
