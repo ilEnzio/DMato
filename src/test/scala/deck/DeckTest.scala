@@ -6,7 +6,7 @@ package deck
 import org.scalacheck.Prop.forAll
 import org.scalacheck.{Arbitrary, Gen, Properties}
 import org.scalatest.funsuite.AnyFunSuite
-import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
+//import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 object DeckPropTest extends Properties("CardTest") {
 
