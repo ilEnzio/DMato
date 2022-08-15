@@ -1,4 +1,4 @@
-package deck
+package poker
 
 case class Card(rank: Rank, suit: Suit) {}
 

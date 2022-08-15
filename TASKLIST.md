@@ -11,14 +11,15 @@ Some Tasks:
 - create starting hands
 
 - Determine Hand Ranking(winning hand)
-  - test for StraightFlush
+  - ~~test for StraightFlush~~
   - ~~test for 4 of kind~~
   - ~~test for boat~~
   - ~~test for flush~~
   - ~~test for straight~~
   - ~~test for set~~
-  - test for two pair
-  - test for pair
+  - ~~test for two pair~~
+  - ~~test for pair~~
+  - Determine winner from hands of same Ranking
 
 - Calculate the Equity of each player
 - Handle up to 9 players

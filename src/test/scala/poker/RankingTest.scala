@@ -1,15 +1,9 @@
-package Ranking
+package poker
 
-import deck._
-import Ranking._
-import deck.DeckPropTest.{genCard, genRank, genSuit}
-import org.scalacheck.Prop.{all, exists, forAll, propBoolean, AnyOperators}
-
-import scala.util.Random
+import org.scalacheck.Gen._
+import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 import org.scalacheck.{Arbitrary, Gen, Properties}
-import org.scalacheck.Gen.{oneOf, pick}
-//import org.scalatest.funsuite.AnyFunSuite
-//import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
+import poker.DeckPropTest.{genCard, genRank, genSuit}
 
 object RankingTest extends Properties("RankingTest") {
 
@@ -35,7 +29,6 @@ object RankingTest extends Properties("RankingTest") {
     hand <-
       if (rank.value > 5) genStraightFlush_(highSlice)
       else genStraightFlush_(lowSlice)
-
   } yield hand
 
   private def genStraightFlush_(slice: List[Card]): Gen[Hand] =
