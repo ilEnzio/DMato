@@ -1,4 +1,4 @@
-package deck
+package poker
 
 import scala.annotation.tailrec
 
@@ -45,7 +45,6 @@ object Ranking {
     if (count.size < 2) false
     else if (count.take(2).sum >= 5) true
     else false
-
   }
 
   private def atLeastFlush(hand: Hand): Boolean =
@@ -59,7 +58,6 @@ object Ranking {
     val culled = hand.cards.distinctBy(c => c.rank.value)
 
     def isTooShort(cards: List[Card]) = cards.length < 5
-
     if (isTooShort(culled)) false
     else {
       def handleAce: List[Card] =

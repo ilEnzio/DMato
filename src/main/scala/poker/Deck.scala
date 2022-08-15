@@ -1,4 +1,4 @@
-package deck
+package poker
 
 import scala.util.Random
 

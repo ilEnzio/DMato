@@ -1,4 +1,4 @@
-package deck
+package poker
 
 //import deck.Deck._
 //import org.scalacheck.Prop._
