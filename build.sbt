@@ -6,6 +6,14 @@ scalaVersion := "2.13.8"
 
 val catsVersion = "2.7.0"
 
+Test / testOptions +=
+  Tests.Argument(
+    TestFrameworks.ScalaCheck,
+    "-verbosity",
+    "1",
+    "-minSuccessfulTests",
+    "10000"
+  )
 libraryDependencies ++= Seq(
   "org.typelevel"     %% "cats-core"       % catsVersion,
   "org.scalactic"     %% "scalactic"       % "3.2.13",

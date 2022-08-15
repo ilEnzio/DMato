@@ -7,6 +7,8 @@ sealed trait Ranking {}
 // of the actual n<=5 cards that make up the Ranking.  That way it can be used later
 // like with UI
 object Ranking {
+  def all: List[Ranking] =
+    List(StraightFlush, FourOfAKind, FullHouse, Flush, Straight, ThreeOfAKind, TwoPair, Pair, HighCard)
 
   // TODo I kinda think this is wrong now.  I need a function that goes from
   // Hand => Int, then I can just order the hands and I might not need this type??
@@ -14,14 +16,15 @@ object Ranking {
     // TODO seems a little fragile because it is depending on the testing order,
     // does being private make this ok?
     hand match {
-      case x if isStraightFlush(x) => StraightFlush
-      case x if isFourOfAKind(x)   => FourOfAKind
-      case x if isFullHouse(x)     => FullHouse
-      case x if isFlush(x)         => Flush
-      case x if isStraight(x)      => Straight
-      case x if isThreeOfAKind(x)  => ThreeOfAKind
-      case x if isTwoPair(x)       => TwoPair
-      case _                       => HighCard
+      case x if isStraightFlush(x)     => StraightFlush
+      case x if atLeastFourOfAKind(x)  => FourOfAKind
+      case x if atLeastFullHouse(x)    => FullHouse
+      case x if atLeastFlush(x)        => Flush
+      case x if atLeastStraight(x)     => Straight
+      case x if atLeastThreeOfAKind(x) => ThreeOfAKind
+      case x if atLeastTwoPair(x)      => TwoPair
+      case x if atLeastPair(x)         => Pair
+      case _                           => HighCard
     }
 
   private def isStraightFlush(hand: Hand): Boolean = {
@@ -29,15 +32,15 @@ object Ranking {
       .groupBy(c => c.suit)
       .filter { case (_, cards) => cards.length >= 5 }
     if (suitMap.isEmpty) false
-    else isStraight(Hand(suitMap.toList.flatMap(_._2)))
+    else atLeastStraight(Hand(suitMap.toList.flatMap(_._2)))
   }
 
-  private def isFourOfAKind(hand: Hand): Boolean =
+  private def atLeastFourOfAKind(hand: Hand): Boolean =
     hand.cards.groupBy(c => c.rank).exists { case (_, cards) =>
       cards.length == 4
     }
 
-  private def isFullHouse(hand: Hand): Boolean = {
+  private def atLeastFullHouse(hand: Hand): Boolean = {
     val count = hand.cards.groupBy(_.rank).toList.map(_._2.size).sorted.reverse
     if (count.size < 2) false
     else if (count.take(2).sum >= 5) true
@@ -45,14 +48,14 @@ object Ranking {
 
   }
 
-  private def isFlush(hand: Hand): Boolean =
+  private def atLeastFlush(hand: Hand): Boolean =
     hand.cards
       .groupBy(c => c.suit)
       .exists({ case (_, cards) =>
         cards.length >= 5
       })
 
-  private def isStraight(hand: Hand): Boolean = {
+  private def atLeastStraight(hand: Hand): Boolean = {
     val culled = hand.cards.distinctBy(c => c.rank.value)
 
     def isTooShort(cards: List[Card]) = cards.length < 5
@@ -80,18 +83,26 @@ object Ranking {
     }
   }
 
-  private def isThreeOfAKind(hand: Hand): Boolean =
+  private def atLeastThreeOfAKind(hand: Hand): Boolean =
     hand.cards.groupBy(c => c.rank).exists { case (_, cards) =>
       cards.length == 3
     }
 
-  private def isTwoPair(hand: Hand): Boolean =
+  private def atLeastTwoPair(hand: Hand): Boolean =
     hand.cards
       .groupBy(c => c.rank)
       .count { case (_, cards) =>
         cards.size == 2
       } >= 2
+
+  private def atLeastPair(hand: Hand): Boolean =
+    hand.cards
+      .groupBy(c => c.rank)
+      .count { case (_, cards) =>
+        cards.size == 2
+      } >= 1
 }
+
 object StraightFlush extends Ranking
 object FourOfAKind   extends Ranking
 object FullHouse     extends Ranking
