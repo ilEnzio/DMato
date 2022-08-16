@@ -3,15 +3,11 @@ package poker
 import scala.annotation.tailrec
 
 sealed trait Ranking {}
-// I'm thinking now that maybe it should have a value
-// of the actual n<=5 cards that make up the Ranking.  That way it can be used later
-// like with UI
+
 object Ranking {
   def all: List[Ranking] =
     List(StraightFlush, FourOfAKind, FullHouse, Flush, Straight, ThreeOfAKind, TwoPair, Pair, HighCard)
 
-  // TODo I kinda think this is wrong now.  I need a function that goes from
-  // Hand => Int, then I can just order the hands and I might not need this type??
   def apply(hand: Hand): Ranking =
     // TODO seems a little fragile because it is depending on the testing order,
     // does being private make this ok?

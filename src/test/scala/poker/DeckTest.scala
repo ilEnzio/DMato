@@ -1,8 +1,5 @@
 package poker
 
-//import deck.Deck._
-//import org.scalacheck.Prop._
-//import deck.CardTestProps.property
 import org.scalacheck.Prop.forAll
 import org.scalacheck.{Arbitrary, Gen, Properties}
 import org.scalatest.funsuite.AnyFunSuite
@@ -25,14 +22,6 @@ object DeckPropTest extends Properties("CardTest") {
 
   implicit val arbCard = Arbitrary(genCard)
   implicit val arbDeck = Arbitrary(startingDeck)
-//  println(genCard.sample)
-//  println(genCard.sample)
-//  println(genCard.sample)
-
-  // Properties of Deck
-  // Full deck has length of 52
-  // every card is unique
-  //
 
   property("can shuffle a deck") = forAll { (deck: Deck) =>
     val shuffled = deck.shuffle

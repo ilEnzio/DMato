@@ -1,6 +1,5 @@
 package poker
 
-import com.sun.scenario.effect.Offset
 import org.scalacheck.Gen._
 import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 import org.scalacheck.{Arbitrary, Gen, Properties}
@@ -34,6 +33,7 @@ object RankingTest extends Properties("RankingTest") {
     3  -> Three,
     2  -> Two
   )
+
   // Optimal Output Generators
 
   val genHighCard: Gen[Hand] = {

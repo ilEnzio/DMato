@@ -3,7 +3,7 @@ package poker
 case class Card(rank: Rank, suit: Suit) {}
 
 object Card {
-  //ToDO
+  //TODO
   def name: String =
     // Deck.Ace Spaces = As
     ???
