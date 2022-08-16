@@ -1,9 +1,12 @@
 package poker
 
+import com.sun.scenario.effect.Offset
 import org.scalacheck.Gen._
 import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 import org.scalacheck.{Arbitrary, Gen, Properties}
 import poker.DeckPropTest.{genCard, genRank, genSuit}
+
+import scala.util.Random
 
 object RankingTest extends Properties("RankingTest") {
 
@@ -16,7 +19,39 @@ object RankingTest extends Properties("RankingTest") {
   implicit val arbHand = Arbitrary(genHand)
   implicit val arbRank = Arbitrary(genRank)
 
+  val rankMap: Map[Int, Rank] = Map(
+    14 -> Ace,
+    13 -> King,
+    12 -> Queen,
+    11 -> Jack,
+    10 -> Ten,
+    9  -> Nine,
+    8  -> Eight,
+    7  -> Seven,
+    6  -> Six,
+    5  -> Five,
+    4  -> Four,
+    3  -> Three,
+    2  -> Two
+  )
   // Optimal Output Generators
+
+  val genHighCard: Gen[Hand] = {
+
+    val suits  = Random.shuffle(Suit.all)
+    val offset = choose(0, 3).sample.get
+    Hand(
+      List(
+        Card(rankMap(11 + offset), suits(0)),
+        Card(rankMap(10 + offset), suits(0)),
+        Card(rankMap(8 + offset), suits(1)),
+        Card(rankMap(7 + offset), suits(1)),
+        Card(rankMap(5 + offset), suits(2)),
+        Card(rankMap(4 + offset), suits(2)),
+        Card(rankMap(2 + offset), suits(3))
+      )
+    )
+  }
 
   val genStraightFlush: Gen[Hand] = for {
     suit <- genSuit
@@ -129,16 +164,30 @@ object RankingTest extends Properties("RankingTest") {
       n2 <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5, n1).contains(c))
     } yield Hand(List(c1, c2, c3, c4, c5, n1, n2))
 
-  val genThreeOfAKind: Gen[Hand] =
+//  val genThreeOfAKind: Gen[Hand] =
+//    for {
+//      rank <- genRank
+//      grouped = Deck.all.groupBy(_.rank)
+//      set   <- pick(3, grouped(rank))
+//      card1 <- genCard.suchThat(c => c.rank != rank)
+//      card2 <- genCard.suchThat(c => c != card1 && c.rank != rank)
+//      card3 <- genCard.suchThat(c => !List(card1, card2).contains(c) && c.rank != rank)
+//      card4 <- genCard.suchThat(c => !List(card1, card2, card3).contains(c) && c.rank != rank)
+//    } yield Hand(card1 :: card2 :: card3 :: card4 :: set.toList)
+
+  val genThreeOfAKind: Gen[Hand] = {
+    val hand = genHighCard.sample.get
     for {
-      rank <- genRank
-      grouped = Deck.all.groupBy(_.rank)
-      set   <- pick(3, grouped(rank))
-      card1 <- genCard.suchThat(c => c.rank != rank)
-      card2 <- genCard.suchThat(c => c != card1 && c.rank != rank)
-      card3 <- genCard.suchThat(c => !List(card1, card2).contains(c) && c.rank != rank)
-      card4 <- genCard.suchThat(c => !List(card1, card2, card3).contains(c) && c.rank != rank)
-    } yield Hand(card1 :: card2 :: card3 :: card4 :: set.toList)
+      card1 <- genCard.retryUntil(c =>
+        c.rank == hand.cards(6).rank &&
+          c != hand.cards(6)
+      )
+      card2 <- genCard.retryUntil(c =>
+        c.rank == hand.cards(6).rank &&
+          c != hand.cards(6) && c != card1
+      )
+    } yield Hand(hand.cards.take(4) ++ List(hand.cards(6), card1, card2))
+  }
 
   val genTwoPair: Gen[Hand] = for {
     rank1 <- genRank
@@ -157,7 +206,6 @@ object RankingTest extends Properties("RankingTest") {
     pair <- pick(2, grouped(rank))
     rankingList = Ranking.all.filterNot(_ == Pair)
     hand <- genHand.suchThat(h => rankingList.forall(r => r != Ranking(Hand(pair.toList ++ h.cards.take(5)))))
-
   } yield Hand(pair.toList ++ hand.cards.take(5))
 
   property("A StraightFlush is not Ranked a Straight or Flush ") = forAll(genStraightFlush) { hand =>
@@ -197,13 +245,7 @@ object RankingTest extends Properties("RankingTest") {
   }
 
   property("3 cards of the same rank is ThreeOfAKind") = forAll(genThreeOfAKind) { hand =>
-    (Ranking(hand) != FullHouse) ++
-      (Ranking(hand) != StraightFlush) ++
-      (Ranking(hand) != Flush) ++
-      (Ranking(hand) != Straight) ++
-      (Ranking(hand) != FourOfAKind) ==> {
-        Ranking(hand) ?= ThreeOfAKind
-      }
+    Ranking(hand) ?= ThreeOfAKind
   }
 
   property("at least 2 pair of cards in a hand is TwoPair") = forAll(genTwoPair) { hand =>
@@ -214,5 +256,9 @@ object RankingTest extends Properties("RankingTest") {
 
   property("at least two cards of the same rank is a Pair") = forAll(genPair) { hand =>
     Ranking(hand) ?= Pair
+  }
+
+  property("A HighCard hand has no other rank") = forAll(genHighCard) { hand =>
+    (Ranking(hand) ?= HighCard)
   }
 }
