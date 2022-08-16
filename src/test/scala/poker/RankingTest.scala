@@ -176,17 +176,21 @@ object RankingTest extends Properties("RankingTest") {
 //    } yield Hand(card1 :: card2 :: card3 :: card4 :: set.toList)
 
   val genThreeOfAKind: Gen[Hand] = {
-    val hand = genHighCard.sample.get
+    val hand     = genHighCard.sample.get
+    val position = choose(0, 6).sample.get
     for {
       card1 <- genCard.retryUntil(c =>
-        c.rank == hand.cards(6).rank &&
-          c != hand.cards(6)
+        c.rank == hand.cards(position).rank &&
+          c != hand.cards(position)
       )
       card2 <- genCard.retryUntil(c =>
-        c.rank == hand.cards(6).rank &&
-          c != hand.cards(6) && c != card1
+        c.rank == hand.cards(position).rank &&
+          c != hand.cards(position) && c != card1
       )
-    } yield Hand(hand.cards.take(4) ++ List(hand.cards(6), card1, card2))
+    } yield Hand(
+      pick(4, hand.cards.filterNot(_ == hand.cards(position))).sample.get.toList ++
+        List(hand.cards(position), card1, card2)
+    )
   }
 
   val genTwoPair: Gen[Hand] = for {
