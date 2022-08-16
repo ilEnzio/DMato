@@ -2,7 +2,7 @@ package poker
 
 import org.scalacheck.Prop.{forAll, propBoolean, AnyOperators}
 import org.scalacheck.Properties
-import poker.RankingTest.{genHand, genPair}
+import project.DataGenerators._
 
 object ScoreTest extends Properties("Score Test") {
 

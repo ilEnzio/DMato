@@ -2,26 +2,13 @@ package poker
 
 import org.scalacheck.Prop.forAll
 import org.scalacheck.{Arbitrary, Gen, Properties}
+import project.DataGenerators._
 import org.scalatest.funsuite.AnyFunSuite
 //import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 object DeckPropTest extends Properties("CardTest") {
 
   // Test the name of various Cards
-  // ToDO: move this generator; but where??
-  // card companion or data generation object?
-
-  val genSuit = Gen.oneOf(Suit.all)
-  val genRank = Gen.oneOf(Rank.all)
-  val genCard = for {
-    rank <- genRank
-    suit <- genSuit
-  } yield Card(rank, suit)
-
-  val startingDeck = Deck.makeStartingDeck //
-
-  implicit val arbCard = Arbitrary(genCard)
-  implicit val arbDeck = Arbitrary(startingDeck)
 
   property("can shuffle a deck") = forAll { (deck: Deck) =>
     val shuffled = deck.shuffle
