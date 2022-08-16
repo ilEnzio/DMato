@@ -164,17 +164,6 @@ object RankingTest extends Properties("RankingTest") {
       n2 <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5, n1).contains(c))
     } yield Hand(List(c1, c2, c3, c4, c5, n1, n2))
 
-//  val genThreeOfAKind: Gen[Hand] =
-//    for {
-//      rank <- genRank
-//      grouped = Deck.all.groupBy(_.rank)
-//      set   <- pick(3, grouped(rank))
-//      card1 <- genCard.suchThat(c => c.rank != rank)
-//      card2 <- genCard.suchThat(c => c != card1 && c.rank != rank)
-//      card3 <- genCard.suchThat(c => !List(card1, card2).contains(c) && c.rank != rank)
-//      card4 <- genCard.suchThat(c => !List(card1, card2, card3).contains(c) && c.rank != rank)
-//    } yield Hand(card1 :: card2 :: card3 :: card4 :: set.toList)
-
   val genThreeOfAKind: Gen[Hand] = {
     val hand     = genHighCard.sample.get
     val position = choose(0, 6).sample.get
