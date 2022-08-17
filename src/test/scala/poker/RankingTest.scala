@@ -1,8 +1,9 @@
 package poker
 
+import cats.implicits.catsSyntaxPartialOrder
 import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 import org.scalacheck.{Arbitrary, Gen, Properties}
-
+import poker.OrderInstances.rankOrder
 import project.DataGenerators._
 
 object RankingTest extends Properties("RankingTest") {
@@ -15,6 +16,13 @@ object RankingTest extends Properties("RankingTest") {
     (Ranking(hand) != Straight) :| "Not Ranked Straight" &&
     (Ranking(hand) != Flush) :| "Not Ranked Flush" &&
     (Ranking(hand) ?= StraightFlush) :| "Ranked a StraightFlush"
+  }
+
+  property("StraightFlush has a greater score than any other hand Ranking") = forAll(genStraightFlush, genHand) {
+    (strFlush, other) =>
+      Ranking(other) != StraightFlush ==> {
+        Ranking(strFlush) > Ranking(other)
+      }
   }
 
   property("FourOfAKind must have 4 cards of same rank") = forAll(genFourOfAKind) { hand =>
@@ -64,4 +72,5 @@ object RankingTest extends Properties("RankingTest") {
   property("A HighCard hand has no other rank") = forAll(genHighCard) { hand =>
     (Ranking(hand) ?= HighCard)
   }
+
 }
