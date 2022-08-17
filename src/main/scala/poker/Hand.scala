@@ -1,5 +1,8 @@
 package poker
 
+import cats.Order
+import cats.instances.all
+
 case class Hand(
   cards: List[Card]
 ) {

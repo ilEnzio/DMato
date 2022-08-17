@@ -1,16 +1,19 @@
 package poker
 
+import cats.Order
+import cats.implicits._
+
 import scala.annotation.tailrec
 
-sealed trait Ranking {}
+sealed trait Ranking {
+  val score: Int
+}
 
 object Ranking {
   def all: List[Ranking] =
     List(StraightFlush, FourOfAKind, FullHouse, Flush, Straight, ThreeOfAKind, TwoPair, Pair, HighCard)
 
   def apply(hand: Hand): Ranking =
-    // TODO seems a little fragile because it is depending on the testing order,
-    // does being private make this ok?
     hand match {
       case x if isStraightFlush(x)     => StraightFlush
       case x if atLeastFourOfAKind(x)  => FourOfAKind
@@ -54,6 +57,7 @@ object Ranking {
     val culled = hand.cards.distinctBy(c => c.rank.value)
 
     def isTooShort(cards: List[Card]) = cards.length < 5
+
     if (isTooShort(culled)) false
     else {
       def handleAce: List[Card] =
@@ -95,14 +99,20 @@ object Ranking {
       .count { case (_, cards) =>
         cards.size == 2
       } >= 1
-}
 
-object StraightFlush extends Ranking
-object FourOfAKind   extends Ranking
-object FullHouse     extends Ranking
-object Flush         extends Ranking
-object Straight      extends Ranking
-object ThreeOfAKind  extends Ranking
-object TwoPair       extends Ranking
-object Pair          extends Ranking
-object HighCard      extends Ranking
+}
+object StraightFlush extends Ranking { val score = 9 }
+object FourOfAKind   extends Ranking { val score = 8 }
+object FullHouse     extends Ranking { val score = 7 }
+object Flush         extends Ranking { val score = 6 }
+object Straight      extends Ranking { val score = 5 }
+object ThreeOfAKind  extends Ranking { val score = 4 }
+object TwoPair       extends Ranking { val score = 3 }
+object Pair          extends Ranking { val score = 2 }
+object HighCard      extends Ranking { val score = 1 }
+
+object OrderInstances {
+  implicit val rankOrder: Order[Ranking] = new Order[Ranking] {
+    override def compare(x: Ranking, y: Ranking): Int = x.score - y.score
+  }
+}
