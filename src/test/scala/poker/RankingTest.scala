@@ -3,7 +3,7 @@ package poker
 import cats.implicits.catsSyntaxPartialOrder
 import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 import org.scalacheck.{Arbitrary, Gen, Properties}
-import poker.OrderInstances.rankOrder
+import poker.OrderInstances._
 import project.DataGenerators._
 
 object RankingTest extends Properties("RankingTest") {

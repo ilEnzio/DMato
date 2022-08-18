@@ -1,9 +1,10 @@
 package poker
 
-import cats.Order
 import cats.implicits._
 
 import scala.annotation.tailrec
+
+import OrderInstances._
 
 sealed trait Ranking {
   val score: Int
@@ -67,7 +68,7 @@ object Ranking {
           culled
 
       val checkedForAce = handleAce
-      val sorted        = checkedForAce.sortBy(_.rank.value).reverse
+      val sorted        = checkedForAce.sorted.reverse
 
       @tailrec
       def checkStr(cards: List[Card]): Boolean =
@@ -110,9 +111,3 @@ object ThreeOfAKind  extends Ranking { val score = 4 }
 object TwoPair       extends Ranking { val score = 3 }
 object Pair          extends Ranking { val score = 2 }
 object HighCard      extends Ranking { val score = 1 }
-
-object OrderInstances {
-  implicit val rankOrder: Order[Ranking] = new Order[Ranking] {
-    override def compare(x: Ranking, y: Ranking): Int = x.score - y.score
-  }
-}

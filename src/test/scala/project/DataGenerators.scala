@@ -5,6 +5,9 @@ import org.scalacheck.Gen.pick
 import org.scalacheck.{Arbitrary, Gen}
 import poker._
 
+import cats.Order
+import poker.OrderInstances._
+
 import scala.util.Random
 
 object DataGenerators {
@@ -65,7 +68,7 @@ object DataGenerators {
   val genStraightFlush: Gen[Hand] = for {
     suit <- genSuit
     rank <- genRank.suchThat(_.value >= 5)
-    suited = Deck.all.filter(_.suit == suit).sortBy(_.rank.value)
+    suited = Deck.all.filter(_.suit == suit).sorted // todo
     highSlice: List[Card] =
       suited.slice(rank.value - 6, rank.value - 1)
     lowSlice: List[Card] =
@@ -149,7 +152,7 @@ object DataGenerators {
   // 0-2, 1-3,2-4,3-5,4-6,5-7,6-8,7-9,8-10,9-11,10-12,11-12,12-14
 
   val genStraight: Gen[Hand] = {
-    val grouped = Deck.all.groupBy(_.rank).toList.sortBy(_._1.value)
+    val grouped = Deck.all.groupBy(_.rank).toList.sortBy(_._1)
     for {
       rank <- genRank.suchThat(_.value >= 5)
       highSlice: List[(Rank, List[Card])] =
