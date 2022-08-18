@@ -13,8 +13,8 @@ object ScoreTest extends Properties("Score Test") {
   }
 
   property("a High Card hand has a score < 1,000,000") = forAll(genHand) { hand =>
-    val rankingList = Ranking.all.filterNot(_ == HighCard)
-    (!rankingList.contains(Ranking(hand))) ==> {
+    val rankingList = HandRank.all.filterNot(_ == HighCard)
+    (!rankingList.contains(HandRank(hand))) ==> {
       (hand.toScore.value < 1000000)
     }
   }
