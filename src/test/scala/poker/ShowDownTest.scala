@@ -17,10 +17,20 @@ object ShowDownTest extends Properties("ShowDownTest") {
       }
   }
 
-  property("A Pair beats HighCard at show down ") = forAll(genPair, genHighCard, genAceHigh) {
-    (pair, highCard, aHigh) =>
-      val testList = shuffle(List(highCard, pair, aHigh))
-      ShowDown(testList) ?= List(pair, aHigh, highCard)
+  property("A Pair beats HighCard at show down ") = forAll(genPair, genAceHigh) { (pair, aHigh) =>
+    val oCardList = aHigh.cards.sorted.reverse
+
+    def createDupe(idx: Int): Hand = {
+      val cardIdxRank = oCardList(4).rank
+      val newCard =
+        if (cardIdxRank.value == 2) oCardList(idx)
+        else oCardList(idx).copy(rank = rankMap(cardIdxRank.value - 1))
+      aHigh.copy(cards = oCardList.take(4) ++ List(newCard))
+    }
+
+    val dupe1    = createDupe(4)
+    val testList = shuffle(List(dupe1, pair, aHigh))
+    "Pair, Ace High, HighCard" |: (ShowDown(testList) ?= List(pair, aHigh, dupe1))
   }
 
   property("HighCard - Ace high is greater than any other high card") = forAll(genAceHigh, genHighCard) {

@@ -18,7 +18,19 @@ object ShowDown {
       .toList
       .sortBy(_._1)
       .reverse
-      .flatMap(_._2)
-    grouped
+
+    grouped.flatMap(g =>
+      g._1 match {
+        case Pair => evaluatePairs(g._2)
+        case _    => evaluateHighCard(g._2)
+      }
+    )
+
   }
+
+  private def evaluateHighCard(value: List[Hand]): List[Hand] =
+    value.sorted.reverse
+
+  private def evaluatePairs(value: List[Hand]): List[Hand] =
+    value.sorted(pairOrdering).reverse
 }

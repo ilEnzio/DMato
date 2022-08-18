@@ -6,7 +6,7 @@ import project.DataGenerators._
 import org.scalatest.funsuite.AnyFunSuite
 //import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
-object DeckPropTest extends Properties("CardTest") {
+object DeckPropTest extends Properties("DeckTest") {
 
   // Test the name of various Cards
 
