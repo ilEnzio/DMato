@@ -4,7 +4,7 @@ import org.scalacheck.Prop.{forAll, propBoolean, AnyOperators}
 import org.scalacheck.Properties
 import cats.implicits.catsSyntaxPartialOrder
 import poker.OrderInstances._
-import project.DataGenerators.{genAceHigh, genHand, genHighCard, genStraightFlush, rankMap}
+import project.DataGenerators.{genAceHigh, genHand, genHighCard, genPair, genStraightFlush, rankMap}
 
 import scala.util.Random.shuffle
 
@@ -17,13 +17,19 @@ object ShowDownTest extends Properties("ShowDownTest") {
       }
   }
 
+  property("A Pair beats HighCard at show down ") = forAll(genPair, genHighCard, genAceHigh) {
+    (pair, highCard, aHigh) =>
+      val testList = shuffle(List(highCard, pair, aHigh))
+      ShowDown(testList) ?= List(pair, aHigh, highCard)
+  }
+
   property("HighCard - Ace high is greater than any other high card") = forAll(genAceHigh, genHighCard) {
     (aHigh, other) =>
       (other.cards.sorted.reverse(0).rank != Ace) ==> {
         "Ace vs Other" |: (ShowDown(List(aHigh, other)) ?= List(aHigh, other))
       }
   }
-  // TODo this is failing because my AceGen (and HighCard gen!) are not varied enough.
+
   property("HighCard - General test of all Corresponding cards") = forAll(genAceHigh) { original =>
     val oCardList = original.cards.sorted.reverse
 
