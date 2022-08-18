@@ -10,7 +10,7 @@ case class Hand(
   //  convert each val to hex decimal then
   // make a string and compare the hands
   def toScore: Score =
-    Ranking(this) match {
+    HandRank(this) match {
       case Pair => fromPair
       case _    => fromHighCard
     }

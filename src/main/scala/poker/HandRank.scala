@@ -6,15 +6,15 @@ import scala.annotation.tailrec
 
 import OrderInstances._
 
-sealed trait Ranking {
+sealed trait HandRank {
   val score: Int
 }
 
-object Ranking {
-  def all: List[Ranking] =
+object HandRank {
+  def all: List[HandRank] =
     List(StraightFlush, FourOfAKind, FullHouse, Flush, Straight, ThreeOfAKind, TwoPair, Pair, HighCard)
 
-  def apply(hand: Hand): Ranking =
+  def apply(hand: Hand): HandRank =
     hand match {
       case x if isStraightFlush(x)     => StraightFlush
       case x if atLeastFourOfAKind(x)  => FourOfAKind
@@ -102,12 +102,12 @@ object Ranking {
       } >= 1
 
 }
-object StraightFlush extends Ranking { val score = 9 }
-object FourOfAKind   extends Ranking { val score = 8 }
-object FullHouse     extends Ranking { val score = 7 }
-object Flush         extends Ranking { val score = 6 }
-object Straight      extends Ranking { val score = 5 }
-object ThreeOfAKind  extends Ranking { val score = 4 }
-object TwoPair       extends Ranking { val score = 3 }
-object Pair          extends Ranking { val score = 2 }
-object HighCard      extends Ranking { val score = 1 }
+object StraightFlush extends HandRank { val score = 9 }
+object FourOfAKind   extends HandRank { val score = 8 }
+object FullHouse     extends HandRank { val score = 7 }
+object Flush         extends HandRank { val score = 6 }
+object Straight      extends HandRank { val score = 5 }
+object ThreeOfAKind  extends HandRank { val score = 4 }
+object TwoPair       extends HandRank { val score = 3 }
+object Pair          extends HandRank { val score = 2 }
+object HighCard      extends HandRank { val score = 1 }

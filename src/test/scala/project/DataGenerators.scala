@@ -48,11 +48,12 @@ object DataGenerators {
 
   // Optimal Output Generators
 
-  val genHighCard: Gen[Hand] = {
+// these generators are severely lacking.
 
+  val genHighCard: Gen[Hand] = {
     val suits  = Random.shuffle(Suit.all)
     val offset = choose(0, 3).sample.get
-    Hand(
+    val hand1 = Hand(
       List(
         Card(rankMap(11 + offset), suits(0)),
         Card(rankMap(10 + offset), suits(0)),
@@ -63,6 +64,37 @@ object DataGenerators {
         Card(rankMap(2 + offset), suits(3))
       )
     )
+    val hand2 = Hand(
+      List(
+        Card(rankMap(11 + offset), suits(0)),
+        Card(rankMap(9 + offset), suits(0)),
+        Card(rankMap(8 + offset), suits(1)),
+        Card(rankMap(6 + offset), suits(1)),
+        Card(rankMap(5 + offset), suits(2)),
+        Card(rankMap(3 + offset), suits(2)),
+        Card(rankMap(2 + offset), suits(3))
+      )
+    )
+    val hand3 = Hand(
+      List(
+        Card(rankMap(10 + offset), suits(0)),
+        Card(rankMap(9 + offset), suits(0)),
+        Card(rankMap(8 + offset), suits(1)),
+        Card(rankMap(7 + offset), suits(1)),
+        Card(rankMap(5 + offset), suits(2)),
+        Card(rankMap(4 + offset), suits(2)),
+        Card(rankMap(2 + offset), suits(3))
+      )
+    )
+    val variations = List(hand1, hand2, hand3)
+    oneOf(variations)
+  }
+
+  val genAceHigh: Gen[Hand] = {
+    for {
+      hand <- genHighCard
+      suit <- genSuit
+    } yield Hand(Card(Ace, suit) :: hand.cards.sorted.reverse.tail)
   }
 
   val genStraightFlush: Gen[Hand] = for {
@@ -209,8 +241,8 @@ object DataGenerators {
     rank <- genRank
     grouped = Deck.all.groupBy(_.rank)
     pair <- pick(2, grouped(rank))
-    rankingList = Ranking.all.filterNot(_ == Pair)
-    hand <- genHand.suchThat(h => rankingList.forall(r => r != Ranking(Hand(pair.toList ++ h.cards.take(5)))))
+    rankingList = HandRank.all.filterNot(_ == Pair)
+    hand <- genHand.suchThat(h => rankingList.forall(r => r != HandRank(Hand(pair.toList ++ h.cards.take(5)))))
   } yield Hand(pair.toList ++ hand.cards.take(5))
 
 }
