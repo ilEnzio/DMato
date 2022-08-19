@@ -4,10 +4,10 @@ import cats.Order
 
 object OrderInstances {
 
-  implicit val rankingOrder: Order[HandRank] = new Order[HandRank] {
+  implicit val handRankingOrder: Order[HandRank] = new Order[HandRank] {
     override def compare(x: HandRank, y: HandRank): Int = x.score - y.score
   }
-  implicit val rankingOrdering = rankingOrder.toOrdering
+  implicit val handRankingOrdering = handRankingOrder.toOrdering
 
   implicit val cardOrder: Order[Card] = (x: Card, y: Card) => x.rank.value - y.rank.value
   implicit val cardOrdering           = cardOrder.toOrdering // TODO ask about this.
@@ -57,20 +57,23 @@ object OrderInstances {
       val yGrouped = y.cards.groupBy(c => c.rank).toList.sortBy(_._2.size).reverse
       val xFinal   = xGrouped.take(2).flatMap(_._2) ++ xGrouped.drop(2).flatMap(_._2)
       val yFinal   = yGrouped.take(2).flatMap(_._2) ++ yGrouped.drop(2).flatMap(_._2)
-//
-//      for {
-//        xTwoPair <- xGrouped.take(2).map(_._2)
-//        yTwoPair <- yGrouped.take(2).map(_._2)
-//        x <- xGrouped.drop(2).map(_._2)
-//        y <- yGrouped.drop(2).map(_._2)
-//
-//      } yield  {val xFinal = xTwoPair ++ List(x.head)
-//      val yFinal = yTwoPair ++ List(y.head) }
+      compareCorresponding(xFinal, yFinal)
+    }
+  }
+
+  val twoPairOrdering = twoPairOrder.toOrdering
+
+  val threeOfAKindOrder: Order[Hand] = new Order[Hand] {
+    override def compare(x: Hand, y: Hand): Int = {
+      val xGrouped = x.cards.groupBy(c => c.rank).toList.sortBy(_._2.size).reverse
+      val yGrouped = y.cards.groupBy(c => c.rank).toList.sortBy(_._2.size).reverse
+      val xFinal   = xGrouped.head._2 ++ xGrouped.tail.flatMap(_._2).sorted.reverse.take(2)
+      val yFinal   = yGrouped.head._2 ++ yGrouped.tail.flatMap(_._2).sorted.reverse.take(2)
       compareCorresponding(xFinal, yFinal)
 
     }
   }
 
-  val twoPairOrdering = twoPairOrder.toOrdering
+  val threeOfAKindOrdering = threeOfAKindOrder.toOrdering
 
 }

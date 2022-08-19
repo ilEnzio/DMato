@@ -51,6 +51,11 @@ object RankingTest extends Properties("RankingTest") {
     HandRank(hand) ?= ThreeOfAKind
   }
 
+  property("ThreeOfAKind has 5 ranks and is NOT a Straight") = forAll(genThreeOfAKind) { hand =>
+    (hand.cards.groupBy(_.rank).size ?= 5) &&
+    HandRank(hand) != Straight
+  }
+
   property("at least 2 pair of cards in a hand is TwoPair") = forAll(genTwoPair) { hand =>
     all(HandRank(hand) != StraightFlush, HandRank(hand) != Flush, HandRank(hand) != Straight) ==> {
       HandRank(hand) ?= TwoPair
