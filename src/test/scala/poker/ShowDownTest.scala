@@ -20,8 +20,8 @@ object ShowDownTest extends Properties("ShowDownTest") {
   property("Two Pair beats Pair and HighCard") = forAll(genTwoPair, genPair, genHighCard) { (twoPair, pair, highCard) =>
     val testList = shuffle(List(highCard, twoPair, pair))
     all(
-      "TwoPair, Pair, HighCard" |: (ShowDown(testList) ?= List(twoPair, pair, highCard))
-//      "Not Equal" |: (ShowDown(testList) != List(highCard, pair, twoPair))
+      "TwoPair, Pair, HighCard" |: (ShowDown(testList) ?= List(twoPair, pair, highCard)),
+      "Not Equal" |: (ShowDown(testList) != List(highCard, pair, twoPair))
     )
 
   }
