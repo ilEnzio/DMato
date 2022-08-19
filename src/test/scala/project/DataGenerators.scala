@@ -98,23 +98,9 @@ object DataGenerators {
   }
 
   val genStraightFlush: Gen[Hand] = for {
-    suit <- genSuit
-    rank <- genRank.suchThat(_.value >= 5)
-    suited = Deck.all.filter(_.suit == suit).sorted // todo
-    highSlice: List[Card] =
-      suited.slice(rank.value - 6, rank.value - 1)
-    lowSlice: List[Card] =
-      suited.last :: suited.slice(rank.value - 5, rank.value - 1)
-    hand <-
-      if (rank.value > 5) genStraightFlush_(highSlice)
-      else genStraightFlush_(lowSlice)
-  } yield hand
-
-  private def genStraightFlush_(slice: List[Card]): Gen[Hand] =
-    for {
-      n1 <- genCard.suchThat(c => !slice.contains(c))
-      n2 <- genCard.suchThat(c => !(n1 :: slice).contains(c))
-    } yield Hand(n1 :: n2 :: slice)
+    newSuit  <- genSuit
+    straight <- genStraight
+  } yield Hand(straight.cards.distinctBy(_.rank).map(x => x.copy(suit = newSuit)))
 
   val genFourOfAKind: Gen[Hand] =
     for {
@@ -182,19 +168,29 @@ object DataGenerators {
   // take a card from that top rank and 4 ranks beneath it.
   // 5 is a special case
   // 0-2, 1-3,2-4,3-5,4-6,5-7,6-8,7-9,8-10,9-11,10-12,11-12,12-14
+  val genWheelStraight: Gen[Hand] = {
+    val wheelRanks = List(Ace, Five, Four, Three, Two)
+    for {
+      suit1 <- genSuit
+      suit2 <- genSuit
+      suit3 <- genSuit
+      suit4 <- genSuit
+      suit5 <- genSuit.suchThat(s => List(suit1, suit2, suit3, suit4).count(_ == s) < 5)
+      suits = List(suit1, suit2, suit3, suit4, suit5)
+    } yield Hand(wheelRanks.zip(suits).map(x => Card(x._1, x._2)))
+  }
 
   val genStraight: Gen[Hand] = {
-    val grouped = Deck.all.groupBy(_.rank).toList.sortBy(_._1)
+
+    val grouped: List[(Rank, List[Card])] = Deck.all.groupBy(_.rank).toList.sortBy(_._1)
     for {
-      rank <- genRank.suchThat(_.value >= 5)
+      hand1 <- genWheelStraight
+      idx = choose(0, 8).sample.get
       highSlice: List[(Rank, List[Card])] =
-        grouped.slice(rank.value - 6, rank.value - 1)
-      lowSlice: List[(Rank, List[Card])] =
-        grouped.last :: grouped.slice(rank.value - 5, rank.value - 1)
-      hand <-
-        if (rank.value > 5) genStraightHand_(highSlice)
-        else genStraightHand_(lowSlice)
-    } yield hand
+        grouped.slice(idx, idx + 5)
+      hand2     <- genStraightHand_(highSlice)
+      finalHand <- oneOf(List(hand1, hand2))
+    } yield finalHand
   }
 
   private def genStraightHand_(slice: List[(Rank, List[Card])]): Gen[Hand] =
@@ -207,24 +203,6 @@ object DataGenerators {
       n1 <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5).contains(c))
       n2 <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5, n1).contains(c))
     } yield Hand(List(c1, c2, c3, c4, c5, n1, n2))
-
-  val genThreeOfAKind2: Gen[Hand] = {
-    val hand     = genHighCard.sample.get
-    val position = choose(0, 6).sample.get
-    for {
-      card1 <- genCard.retryUntil(c =>
-        c.rank == hand.cards(position).rank &&
-          c != hand.cards(position)
-      )
-      card2 <- genCard.retryUntil(c =>
-        c.rank == hand.cards(position).rank &&
-          c != hand.cards(position) && c != card1
-      )
-    } yield Hand(
-      pick(4, hand.cards.filterNot(_ == hand.cards(position))).sample.get.toList ++
-        List(hand.cards(position), card1, card2)
-    )
-  }
 
   val genThreeOfAKind: Gen[Hand] = for {
     ranks <- pick(5, Rank.all).retryUntil { r =>
