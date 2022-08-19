@@ -208,7 +208,7 @@ object DataGenerators {
       n2 <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5, n1).contains(c))
     } yield Hand(List(c1, c2, c3, c4, c5, n1, n2))
 
-  val genThreeOfAKind: Gen[Hand] = {
+  val genThreeOfAKind2: Gen[Hand] = {
     val hand     = genHighCard.sample.get
     val position = choose(0, 6).sample.get
     for {
@@ -226,6 +226,31 @@ object DataGenerators {
     )
   }
 
+  val genThreeOfAKind: Gen[Hand] = for {
+    ranks <- pick(5, Rank.all).retryUntil { r =>
+      val x = r.toList.map(_.value).sorted
+      x(0) + 4 != x(4) && x(0) + 12 != x(4)
+    }
+    suits <- pick(3, Suit.all)
+    set = List(Card(ranks(0), suits(0)), Card(ranks(0), suits(1)), Card(ranks(0), suits(2)))
+    card1 <- genCard.retryUntil(c =>
+      c.rank == ranks(1) &&
+        set.map(_.suit).contains(c.suit)
+    ) // 1 of suit already
+    card2 <- genCard.retryUntil(c =>
+      c.rank == ranks(2) &&
+        c.suit == (card1 :: set).groupBy(_.suit).filter(_._2.size == 1).toList.head._1
+    ) // 1 of suit already
+    card3 <- genCard.retryUntil(c =>
+      c.rank == ranks(3) &&
+        c.suit == (card1 :: card2 :: set).groupBy(_.suit).filter(_._2.size == 2).toList.head._1
+    ) // 2 of suit already
+    card4 <- genCard.retryUntil(c =>
+      c.rank == ranks(4) &&
+        !(card1 :: card2 :: card3 :: set).map(_.suit).contains(c.suit)
+    ) // unique suit
+  } yield Hand(card1 :: card2 :: card3 :: card4 :: set)
+
   val genTwoPair: Gen[Hand] = for {
     rank1 <- genRank
     rank2 <- genRank.retryUntil(_ != rank1)
@@ -235,7 +260,9 @@ object DataGenerators {
     card1 <- genCard.retryUntil(c => !List(rank1, rank2).contains(c.rank))
     card2 <- genCard.retryUntil(c => c != card1 && !List(rank1, rank2).contains(c.rank))
     card3 <- genCard.retryUntil(c =>
-      !List(card1, card2).contains(c) && !List(rank1, rank2, card2.rank).contains(c.rank)
+      !List(card1, card2).contains(c) && !List(rank1, rank2, card2.rank).contains(c.rank) &&
+        !List(card1, card2).map(_.suit).contains(c.suit) &&
+        HandRank(Hand(card1 :: card2 :: c :: pair1.toList ++ pair2.toList)) != Straight
     )
   } yield Hand(card1 :: card2 :: card3 :: pair1.toList ++ pair2.toList)
 
