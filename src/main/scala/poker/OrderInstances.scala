@@ -50,4 +50,27 @@ object OrderInstances {
   }
 
   val pairOrdering = pairOrder.toOrdering
+
+  val twoPairOrder: Order[Hand] = new Order[Hand] {
+    override def compare(x: Hand, y: Hand): Int = {
+      val xGrouped = x.cards.groupBy(c => c.rank).toList.sortBy(_._2.size).reverse
+      val yGrouped = y.cards.groupBy(c => c.rank).toList.sortBy(_._2.size).reverse
+      val xFinal   = xGrouped.take(2).flatMap(_._2) ++ xGrouped.drop(2).flatMap(_._2)
+      val yFinal   = yGrouped.take(2).flatMap(_._2) ++ yGrouped.drop(2).flatMap(_._2)
+//
+//      for {
+//        xTwoPair <- xGrouped.take(2).map(_._2)
+//        yTwoPair <- yGrouped.take(2).map(_._2)
+//        x <- xGrouped.drop(2).map(_._2)
+//        y <- yGrouped.drop(2).map(_._2)
+//
+//      } yield  {val xFinal = xTwoPair ++ List(x.head)
+//      val yFinal = yTwoPair ++ List(y.head) }
+      compareCorresponding(xFinal, yFinal)
+
+    }
+  }
+
+  val twoPairOrdering = twoPairOrder.toOrdering
+
 }

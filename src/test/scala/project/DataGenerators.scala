@@ -228,13 +228,15 @@ object DataGenerators {
 
   val genTwoPair: Gen[Hand] = for {
     rank1 <- genRank
-    rank2 <- genRank.suchThat(_ != rank1)
+    rank2 <- genRank.retryUntil(_ != rank1)
     grouped = Deck.all.groupBy(_.rank)
     pair1 <- pick(2, grouped(rank1))
     pair2 <- pick(2, grouped(rank2))
-    card1 <- genCard.suchThat(c => !List(rank1, rank2).contains(c.rank))
-    card2 <- genCard.suchThat(c => c != card1 && !List(rank1, rank2).contains(c.rank))
-    card3 <- genCard.suchThat(c => !List(card1, card2).contains(c) && !List(rank1, rank2, card2.rank).contains(c.rank))
+    card1 <- genCard.retryUntil(c => !List(rank1, rank2).contains(c.rank))
+    card2 <- genCard.retryUntil(c => c != card1 && !List(rank1, rank2).contains(c.rank))
+    card3 <- genCard.retryUntil(c =>
+      !List(card1, card2).contains(c) && !List(rank1, rank2, card2.rank).contains(c.rank)
+    )
   } yield Hand(card1 :: card2 :: card3 :: pair1.toList ++ pair2.toList)
 
   val genPair: Gen[Hand] = for {

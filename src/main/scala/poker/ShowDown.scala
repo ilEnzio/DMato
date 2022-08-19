@@ -6,8 +6,6 @@ case class ShowDown()
 
 object ShowDown {
   def apply(hands: List[Hand]): List[Hand] = {
-    //    hands.sorted.reverse
-
     /// Order the hands by HankRank
     // Group the hands by HandRank
     // Sort the individual groups
@@ -21,8 +19,9 @@ object ShowDown {
 
     grouped.flatMap(g =>
       g._1 match {
-        case Pair => evaluatePairs(g._2)
-        case _    => evaluateHighCard(g._2)
+        case TwoPair => evaluateTwoPair(g._2)
+        case Pair    => evaluatePairs(g._2)
+        case _       => evaluateHighCard(g._2)
       }
     )
 
@@ -33,4 +32,8 @@ object ShowDown {
 
   private def evaluatePairs(value: List[Hand]): List[Hand] =
     value.sorted(pairOrdering).reverse
+
+  private def evaluateTwoPair(value: List[Hand]): List[Hand] =
+    value.sorted(twoPairOrdering).reverse
+
 }
