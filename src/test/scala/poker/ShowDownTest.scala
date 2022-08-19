@@ -9,6 +9,7 @@ import project.DataGenerators.{
   genHand,
   genHighCard,
   genPair,
+  genStraight,
   genStraightFlush,
   genThreeOfAKind,
   genTwoPair,
@@ -26,8 +27,18 @@ object ShowDownTest extends Properties("ShowDownTest") {
       }
   }
 
+  property("Straight beats ThreeOfAKind, TwoPair, Pair, HighCard") =
+    forAll(genStraight, genThreeOfAKind, genTwoPair, genPair, genHighCard) { (straight, set, twoPair, pair, highCard) =>
+      val testList = shuffle(List(set, twoPair, pair, highCard, straight))
+      (ShowDown(testList) ?= List(straight, set, twoPair, pair, highCard)) &&
+      ShowDown(testList) != List(highCard, set, twoPair, pair, straight)
+    }
+
+  property("Straight is greater then Three of A Kind") = forAll(genStraight, genThreeOfAKind) { (straight, set) =>
+    HandRank(straight) > HandRank(set)
+  }
+
   property("Three of Kind is greater than TwoPair") = forAll(genThreeOfAKind, genTwoPair) { (set, twoPair) =>
-//    println(set)
     "Set vs TwoPair" |: (HandRank(set) > HandRank(twoPair))
   }
 

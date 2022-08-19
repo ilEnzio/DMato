@@ -76,4 +76,10 @@ object OrderInstances {
 
   val threeOfAKindOrdering = threeOfAKindOrder.toOrdering
 
+  val straightOrder: Order[Hand] = new Order[Hand] {
+    override def compare(x: Hand, y: Hand): Int = ???
+  }
+
+  val straightOrdering = straightOrder.toOrdering
+
 }
