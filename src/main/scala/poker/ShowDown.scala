@@ -15,9 +15,11 @@ object ShowDown {
       .toList
       .sortBy(_._1)
       .reverse
-
+// This feels like a dependency?  Reader/Kleisi?
     grouped.flatMap { g =>
       g._1 match {
+        case FullHouse => evaluateFullHouse(g._2)
+
         case Straight     => evaluateStraight(g._2)
         case ThreeOfAKind => evaluateThreeOfKind(g._2)
         case TwoPair      => evaluateTwoPair(g._2)
@@ -43,4 +45,6 @@ object ShowDown {
   private def evaluateStraight(value: List[Hand]): List[Hand] =
     value.sorted(straightOrdering).reverse
 
+  private def evaluateFullHouse(value: List[Hand]): List[Hand] =
+    value.sorted(fullHouseOrdering).reverse
 }
