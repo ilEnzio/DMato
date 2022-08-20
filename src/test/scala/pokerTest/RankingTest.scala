@@ -1,9 +1,10 @@
-package poker
+package pokerTest
 
 import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 import org.scalacheck.{Arbitrary, Gen, Properties}
-
-import project.DataGenerators._
+import poker.{Flush, FourOfAKind, Hand, HighCard, Pair, Straight, StraightFlush, ThreeOfAKind, TwoPair}
+import test.pokerData.DataGenerators._
+import poker._
 
 object RankingTest extends Properties("RankingTest") {
 

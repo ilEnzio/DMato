@@ -11,16 +11,18 @@ sealed trait HandRank {
 }
 
 object HandRank {
+
   def all: List[HandRank] =
     List(StraightFlush, FourOfAKind, FullHouse, Flush, Straight, ThreeOfAKind, TwoPair, Pair, HighCard)
 
   def apply(hand: Hand): HandRank =
     hand match {
-      case x if isStraightFlush(x)     => StraightFlush
-      case x if atLeastFourOfAKind(x)  => FourOfAKind
-      case x if atLeastFullHouse(x)    => FullHouse
-      case x if atLeastFlush(x)        => Flush
-      case x if atLeastStraight(x)     => Straight
+      case x if isStraightFlush(x)    => StraightFlush
+      case x if atLeastFourOfAKind(x) => FourOfAKind
+      case x if atLeastFullHouse(x)   => FullHouse
+      case x if atLeastFlush(x)       => Flush
+      case x if atLeastStraight(x)    => Straight
+      // case x if atLeastWheelStraight(x) => Straight???
       case x if atLeastThreeOfAKind(x) => ThreeOfAKind
       case x if atLeastTwoPair(x)      => TwoPair
       case x if atLeastPair(x)         => Pair
@@ -32,7 +34,8 @@ object HandRank {
       .groupBy(c => c.suit)
       .filter { case (_, cards) => cards.length >= 5 }
     if (suitMap.isEmpty) false
-    else atLeastStraight(Hand(suitMap.toList.flatMap(_._2)))
+    else
+      atLeastStraight(Hand(suitMap.toList.head._2))
   }
 
   private def atLeastFourOfAKind(hand: Hand): Boolean =
@@ -55,31 +58,20 @@ object HandRank {
       })
 
   private def atLeastStraight(hand: Hand): Boolean = {
-    val culled = hand.cards.distinctBy(c => c.rank.value)
+    val sorted = hand.cards.map(_.rank).distinct.sorted.reverse
 
-    def isTooShort(cards: List[Card]) = cards.length < 5
+    def isTooShort(cards: List[Rank]) = cards.length < 5
 
-    if (isTooShort(culled)) false
-    else {
-      def handleAce: List[Card] =
-        if (hand.cards.exists { case c => c.rank == Ace })
-          hand.cards.find(_.rank == Ace).get.copy(rank = PhantomAce) :: culled
-        else
-          culled
+    val wheelStraight = List(Ace, Five, Four, Three, Two)
+    @tailrec
+    def check4Str(cards: List[Rank]): Boolean =
+      if (isTooShort(cards)) false
+      else if (cards.head.value == cards(4).value + 4) true
+      else check4Str(cards.drop(1))
 
-      val checkedForAce = handleAce
-      val sorted        = checkedForAce.sorted.reverse
-
-      @tailrec
-      def checkStr(cards: List[Card]): Boolean =
-        if (isTooShort(cards)) false
-        else {
-          if (cards(0).rank.value == cards(4).rank.value + 4) true
-          else checkStr(cards.drop(1))
-        }
-
-      checkStr(sorted)
-    }
+    if (isTooShort(sorted)) false
+    else if (check4Str(sorted) || (sorted.count(c => wheelStraight.contains(c)) == 5)) true
+    else false
   }
 
   private def atLeastThreeOfAKind(hand: Hand): Boolean =

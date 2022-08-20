@@ -1,19 +1,12 @@
-package poker
+package pokerTest
 
 import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 import org.scalacheck.Properties
 import cats.implicits.catsSyntaxPartialOrder
 import poker.OrderInstances._
-import project.DataGenerators.{
-  genAceHigh,
-  genHand,
-  genHighCard,
-  genPair,
-  genStraightFlush,
-  genThreeOfAKind,
-  genTwoPair,
-  rankMap
-}
+import poker.Rank.rankMap
+import poker._
+import test.pokerData.DataGenerators._
 
 import scala.util.Random.shuffle
 
@@ -26,8 +19,24 @@ object ShowDownTest extends Properties("ShowDownTest") {
       }
   }
 
+  property("Straight: a non wheel beats a wheel straight") = forAll(genNonWheelStraight, genWheelStraight) {
+    (straight, wheel) =>
+      val testList = shuffle(List(wheel, straight))
+      "NonWheel vs Wheel" |: (ShowDown(testList) ?= List(straight, wheel))
+  }
+
+  property("Straight beats ThreeOfAKind, TwoPair, Pair, HighCard") =
+    forAll(genStraight, genThreeOfAKind, genTwoPair, genPair, genHighCard) { (straight, set, twoPair, pair, highCard) =>
+      val testList = shuffle(List(set, twoPair, pair, highCard, straight))
+      (ShowDown(testList) ?= List(straight, set, twoPair, pair, highCard)) &&
+      ShowDown(testList) != List(highCard, set, twoPair, pair, straight)
+    }
+
+  property("Straight is greater then Three of A Kind") = forAll(genStraight, genThreeOfAKind) { (straight, set) =>
+    HandRank(straight) > HandRank(set)
+  }
+
   property("Three of Kind is greater than TwoPair") = forAll(genThreeOfAKind, genTwoPair) { (set, twoPair) =>
-//    println(set)
     "Set vs TwoPair" |: (HandRank(set) > HandRank(twoPair))
   }
 

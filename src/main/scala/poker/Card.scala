@@ -23,15 +23,30 @@ sealed trait Rank {
   val value: Int
 }
 object Rank {
+
+  val rankMap: Map[Int, Rank] = Map(
+    14 -> Ace,
+    13 -> King,
+    12 -> Queen,
+    11 -> Jack,
+    10 -> Ten,
+    9  -> Nine,
+    8  -> Eight,
+    7  -> Seven,
+    6  -> Six,
+    5  -> Five,
+    4  -> Four,
+    3  -> Three,
+    2  -> Two
+  )
+
   val all: List[Rank] = List(Ace, King, Queen, Jack, Ten, Nine, Eight, Seven, Six, Five, Four, Three, Two)
 }
 
 case object Ace extends Rank {
   val value = 14
 }
-case object PhantomAce extends Rank {
-  val value = 1
-}
+
 case object King extends Rank {
   val value = 13
 }
