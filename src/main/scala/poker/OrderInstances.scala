@@ -104,6 +104,18 @@ object OrderInstances {
 
   val straightOrdering = straightOrder.toOrdering
 
+  val flushOrder: Order[Hand] = new Order[Hand] {
+    override def compare(x: Hand, y: Hand): Int = {
+      val xFlushCards = x.cards.groupBy(_.suit).filter(_._2.size >= 5).head._2
+      val yFlushCards = y.cards.groupBy(_.suit).filter(_._2.size >= 5).head._2
+      val xFinal      = xFlushCards.map(_.rank).sorted.reverse.head
+      val yFinal      = yFlushCards.map(_.rank).sorted.reverse.head
+
+      xFinal.value - yFinal.value
+    }
+  }
+  val flushOrdering = flushOrder.toOrdering
+
   val fullHouseOrder: Order[Hand] = new Order[Hand] {
     override def compare(x: Hand, y: Hand): Int = {
       val xGrouped = x.cards.groupBy(_.rank).toList.sortBy(_._2.size).reverse
