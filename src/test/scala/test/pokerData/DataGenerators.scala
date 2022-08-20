@@ -121,10 +121,8 @@ object DataGenerators {
     val grouped = Deck.all.groupBy(_.rank)
 
     for {
-      set   <- pick(3, grouped(rank1))
-      pair  <- pick(2, grouped(rank2))
-      suit1 <- genSuit
-      suit2 <- genSuit
+      set  <- pick(3, grouped(rank1))
+      pair <- pick(2, grouped(rank2))
     } yield Hand(pair.toList ++ set.toList)
   }
 
@@ -140,6 +138,28 @@ object DataGenerators {
       c != card1
     }
   } yield Hand(card1 :: card2 :: flush.toList)
+
+  val genNutFlush: Gen[Hand] = for {
+    suit <- genSuit
+    suited = Deck.all.filter(_.suit == suit)
+    flush <- pick(5, suited).suchThat(x => x.contains(Card(Ace, suit)))
+    card1 <- genCard.suchThat { c =>
+      !suited.contains(c)
+    }
+    card2 <- genCard.suchThat { c =>
+      !suited.contains(c) &&
+      c != card1
+    }
+  } yield Hand(card1 :: card2 :: flush.toList)
+
+  val genNonNutFlush: Gen[Hand] = for {
+    suit <- genSuit
+    suited = Deck.all.filter(_.suit == suit)
+    flush <- pick(5, suited).retryUntil(x =>
+      !x.contains(Card(Ace, suit)) &&
+        HandRank(Hand(x.toList)) != StraightFlush
+    )
+  } yield Hand(flush.toList)
 
   val genNonFlush: Gen[Hand] = for {
     suit <- genSuit
@@ -176,7 +196,6 @@ object DataGenerators {
   }
 
   val genStraight: Gen[Hand] = {
-
     for {
       hand1     <- genWheelStraight
       hand2     <- genNonWheelStraight
