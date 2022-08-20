@@ -11,6 +11,7 @@ sealed trait HandRank {
 }
 
 object HandRank {
+
   def all: List[HandRank] =
     List(StraightFlush, FourOfAKind, FullHouse, Flush, Straight, ThreeOfAKind, TwoPair, Pair, HighCard)
 
@@ -57,7 +58,7 @@ object HandRank {
       })
 
   private def atLeastStraight(hand: Hand): Boolean = {
-    val culled = hand.cards.map(_.rank).distinct.sorted.reverse
+    val sorted = hand.cards.map(_.rank).distinct.sorted.reverse
 
     def isTooShort(cards: List[Rank]) = cards.length < 5
 
@@ -68,8 +69,8 @@ object HandRank {
       else if (cards.head.value == cards(4).value + 4) true
       else check4Str(cards.drop(1))
 
-    if (isTooShort(culled)) false
-    else if (culled.count(c => wheelStraight.contains(c)) == 5 || check4Str(culled)) true
+    if (isTooShort(sorted)) false
+    else if (check4Str(sorted) || (sorted.count(c => wheelStraight.contains(c)) == 5)) true
     else false
   }
 

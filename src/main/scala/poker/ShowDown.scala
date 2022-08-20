@@ -1,6 +1,5 @@
 package poker
-
-import poker.OrderInstances._
+import OrderInstances._
 
 case class ShowDown()
 
@@ -17,7 +16,7 @@ object ShowDown {
       .sortBy(_._1)
       .reverse
 
-    grouped.flatMap(g =>
+    grouped.flatMap { g =>
       g._1 match {
         case Straight     => evaluateStraight(g._2)
         case ThreeOfAKind => evaluateThreeOfKind(g._2)
@@ -25,7 +24,7 @@ object ShowDown {
         case Pair         => evaluatePairs(g._2)
         case _            => evaluateHighCard(g._2)
       }
-    )
+    }
 
   }
 

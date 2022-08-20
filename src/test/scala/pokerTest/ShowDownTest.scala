@@ -1,20 +1,12 @@
-package poker
+package pokerTest
 
 import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 import org.scalacheck.Properties
 import cats.implicits.catsSyntaxPartialOrder
 import poker.OrderInstances._
-import project.DataGenerators.{
-  genAceHigh,
-  genHand,
-  genHighCard,
-  genPair,
-  genStraight,
-  genStraightFlush,
-  genThreeOfAKind,
-  genTwoPair,
-  rankMap
-}
+import poker.Rank.rankMap
+import poker._
+import test.pokerData.DataGenerators._
 
 import scala.util.Random.shuffle
 
@@ -25,6 +17,12 @@ object ShowDownTest extends Properties("ShowDownTest") {
       HandRank(other) != StraightFlush ==> {
         HandRank(strFlush) > HandRank(other)
       }
+  }
+
+  property("Straight: a non wheel beats a wheel straight") = forAll(genNonWheelStraight, genWheelStraight) {
+    (straight, wheel) =>
+      val testList = shuffle(List(wheel, straight))
+      "NonWheel vs Wheel" |: (ShowDown(testList) ?= List(straight, wheel))
   }
 
   property("Straight beats ThreeOfAKind, TwoPair, Pair, HighCard") =

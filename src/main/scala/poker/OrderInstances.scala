@@ -1,6 +1,9 @@
 package poker
 
 import cats.Order
+import poker.Rank.rankMap
+
+import scala.annotation.tailrec
 
 object OrderInstances {
 
@@ -77,7 +80,26 @@ object OrderInstances {
   val threeOfAKindOrdering = threeOfAKindOrder.toOrdering
 
   val straightOrder: Order[Hand] = new Order[Hand] {
-    override def compare(x: Hand, y: Hand): Int = ???
+    val wheelStraight = List(Ace, Five, Four, Three, Two)
+    override def compare(x: Hand, y: Hand): Int = {
+      val xSorted: List[Rank] = x.cards.map(_.rank).distinct.sorted.reverse
+      val ySorted: List[Rank] = y.cards.map(_.rank).distinct.sorted.reverse
+
+      def wheelCheck(sorted: List[Rank]): Rank =
+        sorted.filter(r => wheelStraight.contains(r)).size == 5 match {
+          case true =>
+            rankMap(Integer.max(check4Str(sorted).value, 5))
+          case false => check4Str(sorted)
+        }
+
+      @tailrec
+      def check4Str(cards: List[Rank]): Rank =
+        if (cards.length < 5) Two /// This is Wrong
+        else if (cards.head.value == cards(4).value + 4) cards.head
+        else check4Str(cards.drop(1))
+
+      wheelCheck(xSorted).value - wheelCheck(ySorted).value
+    }
   }
 
   val straightOrdering = straightOrder.toOrdering

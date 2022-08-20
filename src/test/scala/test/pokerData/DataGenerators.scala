@@ -1,11 +1,9 @@
-package project
+package test.pokerData
 
-import org.scalacheck.Gen._
-import org.scalacheck.Gen.pick
+import org.scalacheck.Gen.{choose, oneOf, pick}
 import org.scalacheck.{Arbitrary, Gen}
 import poker._
-
-import cats.Order
+import poker.Rank._
 import poker.OrderInstances._
 
 import scala.util.Random
@@ -27,24 +25,8 @@ object DataGenerators {
   val genHand = for {
     cards <- pick(7, Deck.all)
   } yield Hand(cards.toList)
-  implicit val arbHand = Arbitrary(genHand)
-  implicit val arbRank = Arbitrary(genRank)
-
-  val rankMap: Map[Int, Rank] = Map(
-    14 -> Ace,
-    13 -> King,
-    12 -> Queen,
-    11 -> Jack,
-    10 -> Ten,
-    9  -> Nine,
-    8  -> Eight,
-    7  -> Seven,
-    6  -> Six,
-    5  -> Five,
-    4  -> Four,
-    3  -> Three,
-    2  -> Two
-  )
+  implicit val arbHand: Arbitrary[Hand] = Arbitrary(genHand)
+  implicit val arbRank                  = Arbitrary(genRank)
 
   // Optimal Output Generators
 
@@ -175,34 +157,34 @@ object DataGenerators {
       suit2 <- genSuit
       suit3 <- genSuit
       suit4 <- genSuit
-      suit5 <- genSuit.suchThat(s => List(suit1, suit2, suit3, suit4).count(_ == s) < 5)
+      suit5 <- genSuit.suchThat(s => List(suit1, suit2, suit3, suit4).count(_ == s) < 4)
       suits = List(suit1, suit2, suit3, suit4, suit5)
     } yield Hand(wheelRanks.zip(suits).map(x => Card(x._1, x._2)))
   }
 
   val genStraight: Gen[Hand] = {
 
-    val grouped: List[(Rank, List[Card])] = Deck.all.groupBy(_.rank).toList.sortBy(_._1)
     for {
-      hand1 <- genWheelStraight
-      idx = choose(0, 8).sample.get
-      highSlice: List[(Rank, List[Card])] =
-        grouped.slice(idx, idx + 5)
-      hand2     <- genStraightHand_(highSlice)
+      hand1     <- genWheelStraight
+      hand2     <- genNonWheelStraight
       finalHand <- oneOf(List(hand1, hand2))
     } yield finalHand
   }
 
-  private def genStraightHand_(slice: List[(Rank, List[Card])]): Gen[Hand] =
+  val genNonWheelStraight: Gen[Hand] = {
+    val idx                               = choose(0, 8).sample.get
+    val grouped: List[(Rank, List[Card])] = Deck.all.groupBy(_.rank).toList.sortBy(_._1)
+    val hslice: List[(Rank, List[Card])]  = grouped.slice(idx, idx + 5)
     for {
-      c1 <- Gen.oneOf(slice(0)._2)
-      c2 <- Gen.oneOf(slice(1)._2)
-      c3 <- Gen.oneOf(slice(2)._2)
-      c4 <- Gen.oneOf(slice(3)._2)
-      c5 <- Gen.oneOf(slice(4)._2)
+      c1 <- Gen.oneOf(hslice(0)._2)
+      c2 <- Gen.oneOf(hslice(1)._2)
+      c3 <- Gen.oneOf(hslice(2)._2)
+      c4 <- Gen.oneOf(hslice(3)._2)
+      c5 <- Gen.oneOf(hslice(4)._2)
       n1 <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5).contains(c))
       n2 <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5, n1).contains(c))
     } yield Hand(List(c1, c2, c3, c4, c5, n1, n2))
+  }
 
   val genThreeOfAKind: Gen[Hand] = for {
     ranks <- pick(5, Rank.all).retryUntil { r =>
@@ -249,7 +231,7 @@ object DataGenerators {
     grouped = Deck.all.groupBy(_.rank)
     pair <- pick(2, grouped(rank))
     rankingList = HandRank.all.filterNot(_ == Pair)
-    hand <- genHand.suchThat(h => rankingList.forall(r => r != HandRank(Hand(pair.toList ++ h.cards.take(5)))))
+    hand <- genHand.suchThat(h => !rankingList.contains(HandRank(Hand(pair.toList ++ h.cards.take(5)))))
   } yield Hand(pair.toList ++ hand.cards.take(5))
 
 }

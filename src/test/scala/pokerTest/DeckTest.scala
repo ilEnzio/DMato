@@ -1,9 +1,10 @@
-package poker
+package pokerTest
 
 import org.scalacheck.Prop.forAll
 import org.scalacheck.{Arbitrary, Gen, Properties}
-import project.DataGenerators._
 import org.scalatest.funsuite.AnyFunSuite
+import poker.{Card, Deck}
+import test.pokerData.DataGenerators._
 //import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 object DeckPropTest extends Properties("DeckTest") {
