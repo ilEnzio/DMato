@@ -115,6 +115,19 @@ object DataGenerators {
       )
     } yield Hand(card1 :: card2 :: pair.toList ++ set.toList)
 
+  val genDeucesFullOfTres: Gen[Hand] = {
+    val rank1   = Two
+    val rank2   = Three
+    val grouped = Deck.all.groupBy(_.rank)
+
+    for {
+      set   <- pick(3, grouped(rank1))
+      pair  <- pick(2, grouped(rank2))
+      suit1 <- genSuit
+      suit2 <- genSuit
+    } yield Hand(pair.toList ++ set.toList)
+  }
+
   val genFlush: Gen[Hand] = for {
     suit <- genSuit
     suited = Deck.all.filter(_.suit == suit)
@@ -176,14 +189,31 @@ object DataGenerators {
     val grouped: List[(Rank, List[Card])] = Deck.all.groupBy(_.rank).toList.sortBy(_._1)
     val hslice: List[(Rank, List[Card])]  = grouped.slice(idx, idx + 5)
     for {
-      c1 <- Gen.oneOf(hslice(0)._2)
-      c2 <- Gen.oneOf(hslice(1)._2)
-      c3 <- Gen.oneOf(hslice(2)._2)
-      c4 <- Gen.oneOf(hslice(3)._2)
-      c5 <- Gen.oneOf(hslice(4)._2)
-      n1 <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5).contains(c))
-      n2 <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5, n1).contains(c))
-    } yield Hand(List(c1, c2, c3, c4, c5, n1, n2))
+      suit1 <- genSuit
+      suit2 <- genSuit
+      suit3 <- genSuit
+      suit4 <- genSuit
+      suit5 <- genSuit.suchThat(s => List(suit1, suit2, suit3, suit4).count(_ == s) < 4)
+      suit6 <- genSuit.suchThat(s => List(suit1, suit2, suit3, suit4, suit5).count(_ == s) < 4)
+      suit7 <- genSuit.suchThat(s => List(suit1, suit2, suit3, suit4, suit5, suit6).count(_ == s) < 4)
+      c1    <- Gen.oneOf(hslice(0)._2)
+      c2    <- Gen.oneOf(hslice(1)._2)
+      c3    <- Gen.oneOf(hslice(2)._2)
+      c4    <- Gen.oneOf(hslice(3)._2)
+      c5    <- Gen.oneOf(hslice(4)._2)
+      n1    <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5).contains(c))
+      n2    <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5, n1).contains(c))
+    } yield Hand(
+      List(
+        c1.copy(suit = suit1),
+        c2.copy(suit = suit2),
+        c3.copy(suit = suit3),
+        c4.copy(suit = suit4),
+        c5.copy(suit = suit5),
+        n1.copy(suit = suit6),
+        n2.copy(suit = suit7)
+      )
+    )
   }
 
   val genThreeOfAKind: Gen[Hand] = for {

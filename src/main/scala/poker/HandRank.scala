@@ -17,12 +17,11 @@ object HandRank {
 
   def apply(hand: Hand): HandRank =
     hand match {
-      case x if isStraightFlush(x)    => StraightFlush
-      case x if atLeastFourOfAKind(x) => FourOfAKind
-      case x if atLeastFullHouse(x)   => FullHouse
-      case x if atLeastFlush(x)       => Flush
-      case x if atLeastStraight(x)    => Straight
-      // case x if atLeastWheelStraight(x) => Straight???
+      case x if isStraightFlush(x)     => StraightFlush
+      case x if atLeastFourOfAKind(x)  => FourOfAKind
+      case x if atLeastFullHouse(x)    => FullHouse
+      case x if atLeastFlush(x)        => Flush
+      case x if atLeastStraight(x)     => Straight
       case x if atLeastThreeOfAKind(x) => ThreeOfAKind
       case x if atLeastTwoPair(x)      => TwoPair
       case x if atLeastPair(x)         => Pair

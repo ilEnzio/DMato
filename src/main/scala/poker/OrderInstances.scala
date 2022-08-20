@@ -104,4 +104,30 @@ object OrderInstances {
 
   val straightOrdering = straightOrder.toOrdering
 
+  val fullHouseOrder: Order[Hand] = new Order[Hand] {
+    override def compare(x: Hand, y: Hand): Int = {
+      val xGrouped = x.cards.groupBy(_.rank).toList.sortBy(_._2.size).reverse
+      val yGrouped = y.cards.groupBy(_.rank).toList.sortBy(_._2.size).reverse
+      val xRank    = xGrouped.head._1
+      val yRank    = yGrouped.head._1
+      if (xRank.value - yRank.value != 0) xRank.value - yRank.value // TODO I basically need this for everything!
+      else {
+        val xRank2 = xGrouped
+          .filter(_._2.size == 2)
+          .sortBy(_._1)
+          .reverse
+          .head
+          ._1
+        val yRank2 = yGrouped
+          .filter(_._2.size == 2)
+          .sortBy(_._1)
+          .reverse
+          .head
+          ._1
+        if (xRank2.value - yRank2.value != 0) xRank2.value - yRank2.value
+        else xRank2.value - yRank2.value // TODO WRong!!!!
+      }
+    }
+  }
+  val fullHouseOrdering = fullHouseOrder.toOrdering
 }
