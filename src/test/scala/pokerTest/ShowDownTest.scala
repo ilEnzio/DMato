@@ -19,6 +19,8 @@ object ShowDownTest extends Properties("ShowDownTest") {
       }
   }
 
+  // TODO demo change for Samad
+
   property("FourOfAKind beats FullHouse, Flush") = forAll(genFourOfAKind, genFullHouse, genNutFlush) {
     (quads, boat, flush) =>
       val testList = shuffle(List(boat, flush, quads))
