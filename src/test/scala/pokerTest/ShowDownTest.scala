@@ -10,6 +10,8 @@ import test.pokerData.DataGenerators._
 
 import scala.util.Random.shuffle
 
+// TODO Account for all Ties - for instance players can be playing the boards
+
 object ShowDownTest extends Properties("ShowDownTest") {
 
   property("StraightFlush is greater than any other hand Ranking") = forAll(genStraightFlush, genHand) {
@@ -19,7 +21,19 @@ object ShowDownTest extends Properties("ShowDownTest") {
       }
   }
 
-  // TODO demo change for Samad
+  property("StraightFlush: the Highest Ranked StraightFlush wins") =
+    forAll(genNutStraightFlush, genNonNutStraightFlush) { (nutStrFlush, nonNutStrFlush) =>
+      val testList = shuffle(List(nonNutStrFlush, nutStrFlush))
+
+      (ShowDown(testList) ?= List(nutStrFlush, nonNutStrFlush)) &&
+      (ShowDown(testList) != List(nonNutStrFlush, nutStrFlush))
+    }
+
+  property("StraightFlush beats FourOfKind, FullHouse") = forAll(genStraightFlush, genFourOfAKind, genFullHouse) {
+    (strFlush, quads, boat) =>
+      val testList = shuffle(List(quads, boat, strFlush))
+      ShowDown(testList) ?= List(strFlush, quads, boat)
+  }
 
   property("FourOfAKind beats FullHouse, Flush") = forAll(genFourOfAKind, genFullHouse, genNutFlush) {
     (quads, boat, flush) =>

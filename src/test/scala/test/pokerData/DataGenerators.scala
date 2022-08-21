@@ -84,6 +84,20 @@ object DataGenerators {
     straight <- genStraight
   } yield Hand(straight.cards.distinctBy(_.rank).map(x => x.copy(suit = newSuit)))
 
+  val genNutStraightFlush: Gen[Hand] = {
+    val broadWayRanks = List(Ace, King, Queen, Jack, Ten)
+    for {
+      suit <- genSuit
+      suitList = List.fill(5)(suit)
+    } yield Hand(broadWayRanks.zip(suitList).map(x => Card(x._1, x._2)))
+  }
+
+  val genNonNutStraightFlush: Gen[Hand] = for {
+    newSuit  <- genSuit
+    straight <- genStraight.suchThat(x => !x.cards.map(_.rank).contains(Ace))
+    cards = straight.cards
+  } yield Hand(cards.map(_.copy(suit = newSuit)))
+
   val genFourOfAKind: Gen[Hand] =
     for {
       rank <- genRank
