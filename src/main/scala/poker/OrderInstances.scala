@@ -142,4 +142,16 @@ object OrderInstances {
     }
   }
   val fullHouseOrdering = fullHouseOrder.toOrdering
+
+  val fourOfAKindOrder: Order[Hand] = new Order[Hand] {
+    override def compare(x: Hand, y: Hand): Int = {
+      val xGrouped = x.cards.groupBy(_.rank).toList.sortBy(_._2.size).reverse
+      val yGrouped = y.cards.groupBy(_.rank).toList.sortBy(_._2.size).reverse
+      val xRank    = xGrouped.head._1
+      val yRank    = yGrouped.head._1
+      xRank.value - yRank.value
+    }
+  }
+
+  val fourOfAKindOrdering = fourOfAKindOrder.toOrdering
 }

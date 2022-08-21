@@ -19,6 +19,17 @@ object ShowDownTest extends Properties("ShowDownTest") {
       }
   }
 
+  property("FourOfAKind beats FullHouse, Flush") = forAll(genFourOfAKind, genFullHouse, genNutFlush) {
+    (quads, boat, flush) =>
+      val testList = shuffle(List(boat, flush, quads))
+      (ShowDown(testList) ?= List(quads, boat, flush)) &&
+      (ShowDown(testList) != List(flush, boat, quads))
+  }
+
+  property("Four of a Kind is greater than FullHouse") = forAll(genFourOfAKind, genFullHouse) { (quads, boat) =>
+    HandRank(quads) > HandRank(boat)
+  }
+
   property("FullHouse: The highest set wins between two boats") = forAll(genFullHouse, genDeucesFullOfTres) {
     (bigBoat, smBoat) =>
       (bigBoat.cards.drop(2).map(_.rank) != smBoat.cards.map(_.rank)) ==> {

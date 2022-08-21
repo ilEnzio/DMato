@@ -142,7 +142,10 @@ object DataGenerators {
   val genNutFlush: Gen[Hand] = for {
     suit <- genSuit
     suited = Deck.all.filter(_.suit == suit)
-    flush <- pick(5, suited).suchThat(x => x.contains(Card(Ace, suit)))
+    flush <- pick(5, suited).retryUntil(x =>
+      x.contains(Card(Ace, suit)) &&
+        HandRank(Hand(x.toList)) != StraightFlush
+    )
     card1 <- genCard.suchThat { c =>
       !suited.contains(c)
     }
