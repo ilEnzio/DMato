@@ -62,7 +62,8 @@ object HandRank {
     def isTooShort(cards: List[Rank]) = cards.length < 5
 
     val wheelStraight = List(Ace, Five, Four, Three, Two)
-    @tailrec
+
+    @tailrec // TODO: Am I missing an HOF?
     def check4Str(cards: List[Rank]): Boolean =
       if (isTooShort(cards)) false
       else if (cards.head.value == cards(4).value + 4) true
