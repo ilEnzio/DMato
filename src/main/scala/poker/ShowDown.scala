@@ -18,14 +18,15 @@ object ShowDown {
 // This feels like a dependency?  Reader/Kleisi?
     grouped.flatMap { g =>
       g._1 match {
-        case FourOfAKind  => evaluateFourOfAKind(g._2)
-        case FullHouse    => evaluateFullHouse(g._2)
-        case Flush        => evaluateFlush(g._2)
-        case Straight     => evaluateStraight(g._2)
-        case ThreeOfAKind => evaluateThreeOfKind(g._2)
-        case TwoPair      => evaluateTwoPair(g._2)
-        case Pair         => evaluatePairs(g._2)
-        case _            => evaluateHighCard(g._2)
+        case StraightFlush => evaluateStraightFlush(g._2)
+        case FourOfAKind   => evaluateFourOfAKind(g._2)
+        case FullHouse     => evaluateFullHouse(g._2)
+        case Flush         => evaluateFlush(g._2)
+        case Straight      => evaluateStraight(g._2)
+        case ThreeOfAKind  => evaluateThreeOfKind(g._2)
+        case TwoPair       => evaluateTwoPair(g._2)
+        case Pair          => evaluatePairs(g._2)
+        case _             => evaluateHighCard(g._2)
       }
     }
 
@@ -55,4 +56,6 @@ object ShowDown {
   private def evaluateFourOfAKind(value: List[Hand]): List[Hand] =
     value.sorted(fourOfAKindOrdering).reverse
 
+  private def evaluateStraightFlush(value: List[Hand]): List[Hand] =
+    value.sorted(straightFlushOrdering).reverse
 }

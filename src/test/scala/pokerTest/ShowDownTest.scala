@@ -25,7 +25,7 @@ object ShowDownTest extends Properties("ShowDownTest") {
     forAll(genNutStraightFlush, genNonNutStraightFlush) { (nutStrFlush, nonNutStrFlush) =>
       val testList = shuffle(List(nonNutStrFlush, nutStrFlush))
 
-      (ShowDown(testList) ?= List(nutStrFlush, nonNutStrFlush)) &&
+      "Nuts vs NonNuts" |: (ShowDown(testList) ?= List(nutStrFlush, nonNutStrFlush))
       (ShowDown(testList) != List(nonNutStrFlush, nutStrFlush))
     }
 
@@ -74,6 +74,12 @@ object ShowDownTest extends Properties("ShowDownTest") {
 
   property("Flush is greater than straight") = forAll(genFlush, genStraight) { (flush, straight) =>
     HandRank(flush) > HandRank(straight)
+  }
+
+  property("Straight: The highest Ranked Straight wins") = forAll(genNutStraight, genNonNutStraight) {
+    (broadway, nonNutStraight) =>
+      val testList = shuffle(List(broadway, nonNutStraight))
+      (ShowDown(testList)) ?= List(broadway, nonNutStraight)
   }
 
   property("Straight: a non wheel beats a wheel straight") = forAll(genNonWheelStraight, genWheelStraight) {

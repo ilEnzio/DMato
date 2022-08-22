@@ -154,4 +154,11 @@ object OrderInstances {
   }
 
   val fourOfAKindOrdering = fourOfAKindOrder.toOrdering
+
+  val straightFlushOrder: Order[Hand] = new Order[Hand] {
+    override def compare(x: Hand, y: Hand): Int =
+      straightOrder.compare(x, y)
+  }
+
+  val straightFlushOrdering = straightFlushOrder.toOrdering
 }

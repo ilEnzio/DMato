@@ -25,6 +25,7 @@ object DataGenerators {
   val genHand = for {
     cards <- pick(7, Deck.all)
   } yield Hand(cards.toList)
+
   implicit val arbHand: Arbitrary[Hand] = Arbitrary(genHand)
   implicit val arbRank                  = Arbitrary(genRank)
 
@@ -92,10 +93,18 @@ object DataGenerators {
     } yield Hand(broadWayRanks.zip(suitList).map(x => Card(x._1, x._2)))
   }
 
+  val genNutStraightFlush2: Gen[Hand] = {
+
+    for {
+      broadway <- genNutStraight
+      newSuit  <- genSuit
+    } yield Hand(broadway.cards.map(c => c.copy(suit = newSuit)))
+  }
+
   val genNonNutStraightFlush: Gen[Hand] = for {
     newSuit  <- genSuit
     straight <- genStraight.suchThat(x => !x.cards.map(_.rank).contains(Ace))
-    cards = straight.cards
+    cards = straight.cards.distinct
   } yield Hand(cards.map(_.copy(suit = newSuit)))
 
   val genFourOfAKind: Gen[Hand] =
@@ -212,6 +221,18 @@ object DataGenerators {
     } yield Hand(wheelRanks.zip(suits).map(x => Card(x._1, x._2)))
   }
 
+  def genNutStraight: Gen[Hand] = {
+    val broadWayRanks = List(Ace, King, Queen, Jack, Ten)
+    for {
+      suit1 <- genSuit
+      suit2 <- genSuit
+      suit3 <- genSuit
+      suit4 <- genSuit
+      suit5 <- genSuit.suchThat(s => List(suit1, suit2, suit3, suit4).count(_ == s) < 4)
+      suits = List(suit1, suit2, suit3, suit4, suit5)
+    } yield Hand(broadWayRanks.zip(suits).map(x => Card(x._1, x._2)))
+  }
+
   val genStraight: Gen[Hand] = {
     for {
       hand1     <- genWheelStraight
@@ -220,8 +241,14 @@ object DataGenerators {
     } yield finalHand
   }
 
-  val genNonWheelStraight: Gen[Hand] = {
-    val idx                               = choose(0, 8).sample.get
+  val genNonNutStraight: Gen[Hand] =
+    genStraight_(7)
+
+  val genNonWheelStraight: Gen[Hand] =
+    genStraight_(8)
+
+  def genStraight_(high: Int) = {
+    val idx                               = choose(0, high).sample.get
     val grouped: List[(Rank, List[Card])] = Deck.all.groupBy(_.rank).toList.sortBy(_._1)
     val hslice: List[(Rank, List[Card])]  = grouped.slice(idx, idx + 5)
     for {
