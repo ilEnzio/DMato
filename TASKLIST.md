@@ -7,7 +7,7 @@ Some Tasks:
 - ~~Shuffle Deck~~
 - Name/string repr of Card
 - ~~Fix Card model for Ace!~~
-- CreateModel for hand ??
+- ~~CreateModel for hand ??~~
 - create starting hands
 
 - Determine Hand Ranking(winning hand)
@@ -20,6 +20,7 @@ Some Tasks:
   - ~~test for two pair~~
   - ~~test for pair~~
   - Determine winner from hands of same Ranking
+    - Showdown.. still goofy 
 
 - Calculate the Equity of each player
 - Handle up to 9 players
