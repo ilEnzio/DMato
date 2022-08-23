@@ -6,6 +6,8 @@ case class Deck(cards: List[Card]) {
   def size: Int = cards.length
   // I'm starting to get uncomfortable that outside stuff can reach into
   // cards.  Not sure about this.
+
+  //
   def shuffle: Deck = Deck(Random.shuffle(cards))
 
   // TODO - Create some compensating action tests for these

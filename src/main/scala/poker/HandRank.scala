@@ -12,7 +12,7 @@ sealed trait HandRank {
 
 object HandRank {
 
-  def all: List[HandRank] =
+  val all: List[HandRank] =
     List(StraightFlush, FourOfAKind, FullHouse, Flush, Straight, ThreeOfAKind, TwoPair, Pair, HighCard)
 
   def apply(hand: Hand): HandRank =
