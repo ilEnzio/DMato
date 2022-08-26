@@ -241,8 +241,8 @@ object DataGenerators {
     } yield finalHand
   }
 
-  val genNonNutStraight: Gen[Hand] =
-    genStraight_(7)
+//  val genNonNutStraight: Gen[Hand] = // broken
+//    genStraight_(7)
 
   val genNonWheelStraight: Gen[Hand] =
     genStraight_(8)

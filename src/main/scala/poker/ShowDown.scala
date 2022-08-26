@@ -1,5 +1,6 @@
 package poker
 import OrderInstances._
+import cats.Order
 
 case class ShowDown()
 
@@ -12,47 +13,77 @@ object ShowDown {
       .sortBy(_._1)
       .reverse
 
-    for {
-      (rankCategory, hands) <- grouped
-      evaluation <- rankCategory match {
-        case StraightFlush => evaluateStraightFlush(hands)
-        case FourOfAKind   => evaluateFourOfAKind(hands)
-        case FullHouse     => evaluateFullHouse(hands)
-        case Flush         => evaluateFlush(hands)
-        case Straight      => evaluateStraight(hands)
-        case ThreeOfAKind  => evaluateThreeOfKind(hands)
-        case TwoPair       => evaluateTwoPair(hands)
-        case Pair          => evaluatePairs(hands)
-        case _             => evaluateHighCard(hands)
-      }
-    } yield evaluation
+    val (rankCategory, bHands) = grouped.head
+
+    rankCategory match {
+      case StraightFlush => evaluateStraightFlush(bHands)
+      case FourOfAKind   => evaluateFourOfAKind(bHands)
+      case FullHouse     => evaluateFullHouse(bHands)
+      case Flush         => evaluateFlush(bHands)
+      case Straight      => evaluateStraight(bHands)
+      case ThreeOfAKind  => evaluateThreeOfKind(bHands)
+      case TwoPair       => evaluateTwoPair(bHands)
+      case Pair          => evaluatePairs(bHands)
+      case _             => evaluateHighCard(bHands)
+
+    }
+  }
+
+  private def evaluateWinningHands(hands: List[Hand], order: Order[Hand]): List[Hand] =
+    hands.foldLeft(List.empty[Hand]) { (s, v) =>
+      if (order.compare(v, hands.head) == 0) v :: s
+      else s
+    }
+
+  private def evaluateHighCard(value: List[Hand]): List[Hand] = {
+    val ordered = value.sorted.reverse
+
+    evaluateWinningHands(ordered, handOrder)
+  }
+
+  private def evaluatePairs(value: List[Hand]): List[Hand] = {
+    val ordered = value.sorted(pairOrdering).reverse
+
+    evaluateWinningHands(ordered, pairOrder)
 
   }
 
-  private def evaluateHighCard(value: List[Hand]): List[Hand] =
-    value.sorted.reverse
+  private def evaluateTwoPair(value: List[Hand]): List[Hand] = {
+    val ordered = value.sorted(twoPairOrdering).reverse
+    evaluateWinningHands(ordered, twoPairOrder)
 
-  private def evaluatePairs(value: List[Hand]): List[Hand] =
-    value.sorted(pairOrdering).reverse
+  }
 
-  private def evaluateTwoPair(value: List[Hand]): List[Hand] =
-    value.sorted(twoPairOrdering).reverse
+  private def evaluateThreeOfKind(value: List[Hand]): List[Hand] = {
+    val ordered = value.sorted(threeOfAKindOrdering).reverse
+    evaluateWinningHands(ordered, threeOfAKindOrder)
+  }
 
-  private def evaluateThreeOfKind(value: List[Hand]): List[Hand] =
-    value.sorted(threeOfAKindOrdering).reverse
+  private def evaluateStraight(value: List[Hand]): List[Hand] = {
+    val ordered = value.sorted(straightOrdering).reverse
 
-  private def evaluateStraight(value: List[Hand]): List[Hand] =
-    value.sorted(straightOrdering).reverse
+    evaluateWinningHands(ordered, straightOrder)
 
-  private def evaluateFlush(value: List[Hand]): List[Hand] =
-    value.sorted(flushOrdering).reverse
+  }
 
-  private def evaluateFullHouse(value: List[Hand]): List[Hand] =
-    value.sorted(fullHouseOrdering).reverse
+  private def evaluateFlush(value: List[Hand]): List[Hand] = {
+    val ordered = value.sorted(flushOrdering).reverse
 
-  private def evaluateFourOfAKind(value: List[Hand]): List[Hand] =
-    value.sorted(fourOfAKindOrdering).reverse
+    evaluateWinningHands(ordered, flushOrder)
+  }
 
-  private def evaluateStraightFlush(value: List[Hand]): List[Hand] =
-    value.sorted(straightFlushOrdering).reverse
+  private def evaluateFullHouse(value: List[Hand]): List[Hand] = {
+    val ordered = value.sorted(fullHouseOrdering).reverse
+    evaluateWinningHands(ordered, fullHouseOrder)
+  }
+
+  private def evaluateFourOfAKind(value: List[Hand]): List[Hand] = {
+    val ordered = value.sorted(fourOfAKindOrdering).reverse
+    evaluateWinningHands(ordered, fourOfAKindOrder)
+  }
+
+  private def evaluateStraightFlush(value: List[Hand]): List[Hand] = {
+    val ordered = value.sorted(straightFlushOrdering).reverse
+    evaluateWinningHands(ordered, straightFlushOrder)
+  }
 }
