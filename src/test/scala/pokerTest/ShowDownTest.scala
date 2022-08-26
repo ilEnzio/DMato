@@ -76,6 +76,14 @@ object ShowDownTest extends Properties("ShowDownTest") {
     HandRank(flush) > HandRank(straight)
   }
 
+  property("Straight: Two Equally Ranked Straights win vs Lower hands") =
+    forAll(genStraight, genThreeOfAKind, genTwoPair) { (straight, set, twoPair) =>
+      val straight2 = straight.copy()
+      val testList  = List(straight, set, twoPair, straight2)
+      (ShowDown(testList).size == 2) &&
+      (ShowDown(testList).forall(List(straight2, straight).contains(_)))
+    }
+
   property("Straight: The highest Ranked Straight wins") = forAll(genNutStraight, genStraight) {
     (broadway, nonNutStraight) =>
       (straightOrder.compare(nonNutStraight, broadway) != 0) ==> {
@@ -134,6 +142,15 @@ object ShowDownTest extends Properties("ShowDownTest") {
     val testList = shuffle(List(dupe1, pair, aHigh))
 
     "Pair, Ace High, HighCard" |: (ShowDown(testList) ?= List(pair))
+  }
+
+  property("HighCard: two high card hands of the same value are equal") = forAll(genAceHigh, genHighCard) {
+    (aHigh, highCard) =>
+      val aHigh2   = aHigh.copy()
+      val testList = List(aHigh, aHigh2, highCard)
+      List(aHigh, aHigh2).forall(ShowDown(testList).contains(_)) &&
+      (ShowDown(testList).size ?= 2) &&
+      (HandRank(aHigh) ?= HandRank(aHigh2))
   }
 
   property("HighCard - Ace high is greater than any other high card") = forAll(genAceHigh, genHighCard) {

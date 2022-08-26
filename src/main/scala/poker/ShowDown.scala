@@ -37,21 +37,17 @@ object ShowDown {
 
   private def evaluateHighCard(value: List[Hand]): List[Hand] = {
     val ordered = value.sorted.reverse
-
     evaluateWinningHands(ordered, handOrder)
   }
 
   private def evaluatePairs(value: List[Hand]): List[Hand] = {
     val ordered = value.sorted(pairOrdering).reverse
-
     evaluateWinningHands(ordered, pairOrder)
-
   }
 
   private def evaluateTwoPair(value: List[Hand]): List[Hand] = {
     val ordered = value.sorted(twoPairOrdering).reverse
     evaluateWinningHands(ordered, twoPairOrder)
-
   }
 
   private def evaluateThreeOfKind(value: List[Hand]): List[Hand] = {
@@ -61,14 +57,11 @@ object ShowDown {
 
   private def evaluateStraight(value: List[Hand]): List[Hand] = {
     val ordered = value.sorted(straightOrdering).reverse
-
     evaluateWinningHands(ordered, straightOrder)
-
   }
 
   private def evaluateFlush(value: List[Hand]): List[Hand] = {
     val ordered = value.sorted(flushOrdering).reverse
-
     evaluateWinningHands(ordered, flushOrder)
   }
 
