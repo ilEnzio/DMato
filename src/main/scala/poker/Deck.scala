@@ -1,5 +1,7 @@
 package poker
 
+import cats.effect.IO
+
 import scala.util.Random
 
 case class Deck(cards: List[Card]) {
@@ -8,13 +10,15 @@ case class Deck(cards: List[Card]) {
   // cards.  Not sure about this.
 
   //
-//  def shuffle: Deck = Deck(Random.shuffle(cards))
-//
-//  // TODO - Create some compensating action tests for these
-//  def add(card: Card): Deck           = Deck(card +: cards)
-//  def add(cardList: List[Card]): Deck = Deck(cards ++ cardList)
-//  def take(n: Int): (List[Card])      = cards.take(n)
-//  def drop(n: Int): Deck              = Deck(cards.drop(n))
+  def shuffle: IO[Deck] = IO(Deck(Random.shuffle(cards)))
+
+  // TODO - Create some compensating action tests for these
+  def add(card: Card): Deck                = Deck(card +: cards)
+  def add(cardList: List[Card]): Deck      = Deck(cards ++ cardList)
+  def take(n: Int): (List[Card])           = cards.take(n)
+  def drop(n: Int): Deck                   = Deck(cards.drop(n))
+  def remove(card: Card): Deck             = Deck(cards.filterNot(_ == card))
+  def remove(otherCards: List[Card]): Deck = Deck(cards.filter(!otherCards.contains(_)))
 }
 
 object Deck {
