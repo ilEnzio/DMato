@@ -1,6 +1,7 @@
 package poker
 
 import cats.effect.IO
+import cats.kernel.Monoid
 
 import scala.util.Random
 
@@ -25,14 +26,8 @@ object BoardState {
     case x: Turn    => River(x.players, ???, ???)
     case x: River   => x
   }
-  def shuffleDeck(deck: Deck): IO[Deck] =
-    IO(Deck(Random.shuffle(deck.cards)))
-
-  // TODO - Create some compensating action tests for these
-  def add(card: Card, deck: Deck): Deck           = deck.copy(cards = card :: deck.cards)
-  def add(cardList: List[Card], deck: Deck): Deck = deck.copy(cards = cardList ++ deck.cards)
-  def take(n: Int, deck: Deck): (List[Card])      = deck.cards.take(n)
-  def drop(n: Int, deck: Deck): Deck              = deck.copy(cards = deck.cards.drop(n))
+//  def shuffleDeck(deck: Deck): IO[Deck] =
+//    IO(Deck(Random.shuffle(deck.cards)))
 
 }
 case class Preflop(players: List[Player], board: List[Card], deck: Deck) extends BoardState {}
@@ -41,3 +36,17 @@ case class Turn(players: List[Player], board: List[Card], deck: Deck)    extends
 case class River(players: List[Player], board: List[Card], deck: Deck)   extends BoardState
 
 case class Player(holeCards: (Card, Card)) {}
+
+case class WinnerList(map: Map[Int, Int]) {}
+object WinnerList {
+
+  implicit val winnerListMonoid: Monoid[WinnerList] = new Monoid[WinnerList] {
+    override def empty: WinnerList = WinnerList(Map.empty)
+
+    override def combine(x: WinnerList, y: WinnerList): WinnerList =
+      WinnerList(y.map.foldLeft(x.map) { (s, v) =>
+        if (!s.contains(v._1)) s + v
+        else s + (v._1 -> (v._2 + s(v._1)))
+      })
+  }
+}
