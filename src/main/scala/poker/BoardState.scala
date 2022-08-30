@@ -11,31 +11,31 @@ sealed trait BoardState {
   // deck(remaining cards)
   val players: List[Player]
   val board: List[Card]
-  val deck: Deck
+  val deck: IO[Deck]
 }
 
 object BoardState {
-  def deal(players: List[Player]): BoardState = {
+  def deal(players: List[Player]): IO[BoardState] = {
     val board: List[Card] = Nil
-    val deck: Deck        = ???
-    Preflop(players, board, deck)
+
+    // TODO if I return an IO here Does the whole BoardState become IO?
+    val deck: IO[Deck] = Deck.makeStartingDeck.shuffle
+    IO(Preflop(players, board, deck))
   }
-  def deal(street: BoardState): BoardState = street match {
-    case x: Preflop => Flop(x.players, ???, ???)
-    case x: Flop    => Turn(x.players, ???, ???)
-    case x: Turn    => River(x.players, ???, ???)
-    case x: River   => x
+  def deal(street: BoardState): IO[BoardState] = street match {
+    case x: IO[Preflop] => ???
+    case x: IO[Flop]    => ???
+    case x: IO[Turn]    => ???
+    case x: IO[River]   => x
   }
-//  def shuffleDeck(deck: Deck): IO[Deck] =
-//    IO(Deck(Random.shuffle(deck.cards)))
 
 }
-case class Preflop(players: List[Player], board: List[Card], deck: Deck) extends BoardState {}
-case class Flop(players: List[Player], board: List[Card], deck: Deck)    extends BoardState
-case class Turn(players: List[Player], board: List[Card], deck: Deck)    extends BoardState
-case class River(players: List[Player], board: List[Card], deck: Deck)   extends BoardState
+case class Preflop(players: List[Player], board: List[Card], deck: IO[Deck]) extends BoardState
+case class Flop(players: List[Player], board: List[Card], deck: IO[Deck])    extends BoardState
+case class Turn(players: List[Player], board: List[Card], deck: IO[Deck])    extends BoardState
+case class River(players: List[Player], board: List[Card], deck: IO[Deck])   extends BoardState
 
-case class Player(holeCards: (Card, Card)) {}
+case class Player(holeCards: (Card, Card)) {} // TODO a tuple is more accurate but harder to deal with
 
 case class WinnerList(map: Map[Int, Int]) {}
 object WinnerList {

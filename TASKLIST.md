@@ -19,10 +19,10 @@ Some Tasks:
   - ~~test for set~~
   - ~~test for two pair~~
   - ~~test for pair~~
-  - Determine winner from hands of same Ranking
+  - ~~Determine winner from hands of same Ranking~~
     - Showdown.. still goofy 
 
-- Calculate the Equity of each player
+- Calculate the Equity between two players
 - Handle up to 9 players
 - User can select Starting hands
 

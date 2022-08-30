@@ -8,10 +8,10 @@ import poker.OrderInstances._
 import test.pokerData.DataGenerators._
 
 object EquityTest extends Properties("Equity Tests") {
-
-  /// given a preflop board, and x  simulations
+  // given a preflop board, and x  simulations
 // each hand as a certain amount of equity
 // the percentage of times it won
+
 //  property("preflop equity of Pair vs Pair") = forAll(genPair, genPair) { (overPair, underPair) =>
 //    (pairOrder.compare(overPair, underPair) > 0) ==> {
 //
