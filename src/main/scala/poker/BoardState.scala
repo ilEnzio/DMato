@@ -10,34 +10,38 @@ sealed trait BoardState {
   // board cards 0 - 5
   // deck(remaining cards)
   val players: List[Player]
-  val board: List[Card]
-  val deck: IO[Deck]
+  val board: List[Card] // 1, 2, 3, 4, 5
+  val deck: Deck
 }
 
+// ToDo where do those initial players come from??
+// I need the player creation / hole card selection.
+// or I need a mock for now.
 object BoardState {
   def deal(players: List[Player]): IO[BoardState] = {
-    val board: List[Card] = Nil
-
-    // TODO if I return an IO here Does the whole BoardState become IO?
     val deck: IO[Deck] = Deck.makeStartingDeck.shuffle
-    IO(Preflop(players, board, deck))
-  }
-  def deal(street: BoardState): IO[BoardState] = street match {
-    case x: IO[Preflop] => ???
-    case x: IO[Flop]    => ???
-    case x: IO[Turn]    => ???
-    case x: IO[River]   => x
+    deck.map(Preflop(players, _))
   }
 
+  def deal(street: BoardState): BoardState = street match {
+    case x: Preflop => ???
+    case x: Flop    => ???
+    case x: Turn    => ???
+    case x: River   => x
+  }
 }
-case class Preflop(players: List[Player], board: List[Card], deck: IO[Deck]) extends BoardState
-case class Flop(players: List[Player], board: List[Card], deck: IO[Deck])    extends BoardState
-case class Turn(players: List[Player], board: List[Card], deck: IO[Deck])    extends BoardState
-case class River(players: List[Player], board: List[Card], deck: IO[Deck])   extends BoardState
+case class Preflop(players: List[Player], deck: Deck) extends BoardState {
+  override val board: List[Card] = Nil
+}
+case class Flop(players: List[Player], card1: Card, card2: Card, card3: Card, deck: Deck) extends BoardState {
+  override val board: List[Card] = List(card1, card2, card3)
+}
+case class Turn(players: List[Player], board: List[Card], deck: Deck)  extends BoardState
+case class River(players: List[Player], board: List[Card], deck: Deck) extends BoardState
 
-case class Player(holeCards: (Card, Card)) {} // TODO a tuple is more accurate but harder to deal with
+case class Player(card1: Card, card2: Card)
 
-case class WinnerList(map: Map[Int, Int]) {}
+case class WinnerList(map: Map[Int, Int]) // ToDo Player position, rather than int
 object WinnerList {
 
   implicit val winnerListMonoid: Monoid[WinnerList] = new Monoid[WinnerList] {
