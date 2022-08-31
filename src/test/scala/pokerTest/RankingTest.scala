@@ -6,7 +6,7 @@ import poker.{Flush, FourOfAKind, Hand, HighCard, Pair, Straight, StraightFlush,
 import test.pokerData.DataGenerators._
 import poker._
 
-object RankingTest extends Properties("RankingTest") {
+object RankingTest extends Properties("Ranking Tests") {
 
   // a poker hand is 5 cards.  but I think for the purposes of this
   // it is the best 5 cards of 7, and the rank of the hand is determined by

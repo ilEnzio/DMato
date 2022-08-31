@@ -36,8 +36,14 @@ case class Preflop(players: List[Player], deck: Deck) extends BoardState {
 case class Flop(players: List[Player], card1: Card, card2: Card, card3: Card, deck: Deck) extends BoardState {
   override val board: List[Card] = List(card1, card2, card3)
 }
-case class Turn(players: List[Player], board: List[Card], deck: Deck)  extends BoardState
-case class River(players: List[Player], board: List[Card], deck: Deck) extends BoardState
+case class Turn(players: List[Player], card1: Card, card2: Card, card3: Card, turn: Card, deck: Deck)
+    extends BoardState {
+  override val board: List[Card] = List(card1, card2, card3, turn)
+}
+case class River(players: List[Player], card1: Card, card2: Card, card3: Card, turn: Card, river: Card, deck: Deck)
+    extends BoardState {
+  override val board: List[Card] = List(card1, card2, card3, turn, river)
+}
 
 case class Player(card1: Card, card2: Card)
 
