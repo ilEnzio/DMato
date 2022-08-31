@@ -146,11 +146,13 @@ object ShowDownTest extends Properties("ShowDownTest") {
 
   property("HighCard: two high card hands of the same value are equal") = forAll(genAceHigh, genHighCard) {
     (aHigh, highCard) =>
-      val aHigh2   = aHigh.copy()
-      val testList = List(aHigh, aHigh2, highCard)
-      List(aHigh, aHigh2).forall(ShowDown(testList).contains(_)) &&
-      (ShowDown(testList).size ?= 2) &&
-      (HandRank(aHigh) ?= HandRank(aHigh2))
+      (aHigh > highCard) ==> {
+        val aHigh2   = aHigh.copy()
+        val testList = List(aHigh, aHigh2, highCard)
+        List(aHigh, aHigh2).forall(ShowDown(testList).contains(_)) &&
+        (ShowDown(testList).size ?= 2) &&
+        (HandRank(aHigh) ?= HandRank(aHigh2))
+      }
   }
 
   property("HighCard - Ace high is greater than any other high card") = forAll(genAceHigh, genHighCard) {

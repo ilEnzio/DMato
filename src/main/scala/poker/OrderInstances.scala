@@ -6,7 +6,9 @@ import poker.Rank.rankMap
 import scala.annotation.tailrec
 
 object OrderInstances {
-
+///  TODO: General, this is wrong, because they are all order of Hand
+  // I should have only one Order instance of hand
+  // therefore what I could do is model
   implicit val handRankingOrder: Order[HandRank] = new Order[HandRank] {
     override def compare(x: HandRank, y: HandRank): Int = x.score - y.score
   }

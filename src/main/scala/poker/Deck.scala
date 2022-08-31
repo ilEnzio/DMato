@@ -8,7 +8,6 @@ case class Deck(cards: List[Card]) {
   def size: Int = cards.length
   // I'm starting to get uncomfortable that outside stuff can reach into
   // cards.  Not sure about this.
-
   //
   def shuffle: IO[Deck] = IO(Deck(Random.shuffle(cards)))
 
