@@ -11,23 +11,28 @@ import scala.util.Random
 // then I can somehow use unapply methods
 /// TODO: I don't understand the proper use of unapply.
 
-
 sealed trait BoardState
 
 // TODO: I'm not sure I understand why it was suggested I put this in an object.
 object BoardState {
 
-  def deal(boardState: BoardState ): BoardState =
+  def deal(players: List[Player]): IO[BoardState] = {
+    val deck: IO[Deck] = Deck.makeStartingDeck.shuffle
+    deck.map(Preflop(players, _))
+  }
+
+  def deal(boardState: BoardState): BoardState =
     boardState match {
-      case Preflop(ps, d) => dealFlop(ps, d) // flop factory
-      case Flop(ps, d, c1, c2, c3)    => ???
-      case Turn(ps, d, c1, c2, c3, t,)    => ???
-      case River(ps, d, c1, c2, c3, t, r)   => ???
+      case Preflop(ps, d)                            => dealFlop(ps, d) // flop factory
+      case BoardState.Flop(ps, d, c1, c2, c3)        => ???
+      case BoardState.Turn(ps, d, c1, c2, c3, t)     => ???
+      case BoardState.River(ps, d, c1, c2, c3, t, r) => ???
 
     }
-  final case class Preflop(players: List[Player], deck: Deck) extends BoardState
+  final case class Preflop(players: List[Player], deck: Deck)                                     extends BoardState
   final case class Flop(players: List[Player], deck: Deck, card1: Card, card2: Card, card3: Card) extends BoardState
-  final case class Turn(players: List[Player], deck: Deck, card1: Card, card2: Card, card3: Card, turn: Card) extends BoardState
+  final case class Turn(players: List[Player], deck: Deck, card1: Card, card2: Card, card3: Card, turn: Card)
+      extends BoardState
   final case class River(
     players: List[Player],
     card1: Card,
@@ -40,7 +45,8 @@ object BoardState {
 
   object Preflop {
     def unapply(state: Preflop): Option[(List[Player], Deck)] =
-      (state == Preflop).guard[Option].as(state.players, state.deck)
+      // What's suppose to happen here?  validation?
+      Some(state.players, state.deck)
 
   }
   object Flop {
@@ -57,10 +63,9 @@ object BoardState {
 
   def dealFlop(players: List[Player], deck: Deck): Flop = {
     val newDeck = deck.drop(3)
-    val flop = deck.take(3)
+    val flop    = deck.take(3)
     Flop(players, newDeck, flop(0), flop(1), flop(2))
   }
-
 
 }
 

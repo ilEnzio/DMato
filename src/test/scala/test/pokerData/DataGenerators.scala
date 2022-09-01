@@ -1,7 +1,9 @@
 package test.pokerData
 
+import cats.effect.unsafe.implicits.global
 import org.scalacheck.Gen.{choose, oneOf, pick}
 import org.scalacheck.{Arbitrary, Gen}
+import poker.BoardState.Preflop
 import poker._
 import poker.Rank._
 import poker.OrderInstances._
@@ -326,5 +328,19 @@ object DataGenerators {
     rankingList = HandRank.all.filterNot(_ == Pair)
     hand <- genHand.suchThat(h => !rankingList.contains(HandRank(Hand(pair.toList ++ h.cards.take(5)))))
   } yield Hand(pair.toList ++ hand.cards.take(5))
+
+  val genPreflop: Gen[Preflop] = {
+    // Deck
+    // 2-9 players
+    // for each player take 2 cards from the deck
+    val numPlayers = choose(2, 9).sample.get
+    val deck       = Deck.makeStartingDeck.shuffle.unsafeRunSync()
+    val cards      = deck.take(numPlayers * 2)
+    val newDeck    = deck.drop(numPlayers * 2)
+    // TODO still not safe!!
+    val players = cards.grouped(2).map { case h :: t => Player(h, t.headOption.get) }.toList
+
+    Preflop(players, newDeck)
+  }
 
 }
