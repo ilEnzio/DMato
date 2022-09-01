@@ -54,7 +54,7 @@ object ShowDownTest extends Properties("ShowDownTest") {
       }
   }
 
-  property("FullHouse beats Flush, Straight, ThreeOfKind, TwoPair") = // ToDO Include Flush
+  property("FullHouse beats Flush, Straight, ThreeOfKind, TwoPair") =
     forAll(genFullHouse, genNonNutFlush, genStraight, genThreeOfAKind, genTwoPair) {
       (boat, flush, straight, set, twoPair) =>
         val testList = shuffle(List(set, twoPair, flush, boat, straight))
