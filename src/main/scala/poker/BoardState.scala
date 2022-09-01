@@ -29,7 +29,10 @@ object BoardState {
       case BoardState.River(ps, d, c1, c2, c3, t, r) => ???
 
     }
-  final case class Preflop(players: List[Player], deck: Deck)                                     extends BoardState
+  final case class Preflop(players: List[Player], deck: Deck) extends BoardState {
+    def allHands: List[Hand] =
+      players.map { case Player(x, y) => Hand(List(x, y)) }
+  }
   final case class Flop(players: List[Player], deck: Deck, card1: Card, card2: Card, card3: Card) extends BoardState
   final case class Turn(players: List[Player], deck: Deck, card1: Card, card2: Card, card3: Card, turn: Card)
       extends BoardState
