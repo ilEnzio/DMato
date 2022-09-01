@@ -57,20 +57,18 @@ object HandRank {
       })
 
   private def atLeastStraight(hand: Hand): Boolean = {
-    val sorted = hand.cards.map(_.rank).distinct.sorted.reverse
-
-    def isTooShort(cards: List[Rank]) = cards.length < 5
-
+    val sorted        = hand.cards.map(_.rank).distinct.sorted.reverse
     val wheelStraight = List(Ace, Five, Four, Three, Two)
 
-    @tailrec // TODO: Am I missing an HOF?
-    def check4Str(cards: List[Rank]): Boolean =
-      if (isTooShort(cards)) false
-      else if (cards.head.value == cards(4).value + 4) true
-      else check4Str(cards.drop(1))
+    def check4Str(cards: List[Rank]): Boolean = {
+      val strPair = sorted.zip(sorted.drop(4))
+      strPair.foldLeft(false) { (s, v) =>
+        if (s) true
+        else v._1.value == v._2.value + 4
+      }
+    }
 
-    if (isTooShort(sorted)) false
-    else if (check4Str(sorted) || (sorted.count(c => wheelStraight.contains(c)) == 5)) true
+    if (check4Str(sorted) || (sorted.count(wheelStraight.contains(_)) == 5)) true
     else false
   }
 
