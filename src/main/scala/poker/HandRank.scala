@@ -59,17 +59,15 @@ object HandRank {
   private def atLeastStraight(hand: Hand): Boolean = {
     val sorted        = hand.cards.map(_.rank).distinct.sorted.reverse
     val wheelStraight = List(Ace, Five, Four, Three, Two)
-
-    def check4Str(cards: List[Rank]): Boolean = {
+    def check4Str: Boolean = {
       val strPair = sorted.zip(sorted.drop(4))
       strPair.foldLeft(false) { (s, v) =>
         if (s) true
         else v._1.value == v._2.value + 4
       }
     }
+    check4Str || (sorted.count(wheelStraight.contains(_)) == 5)
 
-    if (check4Str(sorted) || (sorted.count(wheelStraight.contains(_)) == 5)) true
-    else false
   }
 
   private def atLeastThreeOfAKind(hand: Hand): Boolean =
