@@ -4,7 +4,7 @@ import cats.implicits.catsSyntaxPartialOrder
 import org.scalacheck.Prop.{forAll, propBoolean, AnyOperators, False}
 import org.scalacheck.Properties
 import poker.BoardState.Preflop
-import poker.{FourOfAKind, Hand, HandRank, Pair, ShowDown}
+import poker.{Card, FourOfAKind, Hand, HandRank, Pair, ShowDown}
 import poker.OrderInstances.handRankingOrder
 import test.pokerData.DataGenerators._
 
@@ -21,7 +21,17 @@ object BoardStateTest extends Properties("BoardState Tests") {
     ShowDown(preFlop.allHands).exists(HandRank(_) > Pair) ?= false
   }
 
-//  property("Test preflop deck size and uniqueness") = ???
+  property("preflop deck size equals 52 minus the players cards and maintains uniqueness") = forAll(genPreflop) {
+    preFlop =>
+      val numPlayers = preFlop.players.size
+      val playerCards = preFlop.players.foldLeft(List.empty[Card]) { (s, v) =>
+        v.card1 :: v.card2 :: s
+      }
+      preFlop.deck.size == 52 - (numPlayers * 2) &&
+      playerCards.distinct.size == playerCards.size &&
+      preFlop.deck.cards.distinct.size == preFlop.deck.size
+
+  }
 
   property("Flop: more than one player can not have quads") = forAll(genFlop) { flop =>
     ShowDown(flop.allHands).filter(HandRank(_) == FourOfAKind).size <= 1

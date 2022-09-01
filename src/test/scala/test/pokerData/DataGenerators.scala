@@ -346,8 +346,8 @@ object DataGenerators {
   val genFlop: Gen[Flop] = {
     for {
       preflop <- genPreflop
-      newDeck       = preflop.deck.drop(3)
-      (f :: s :: t) = preflop.deck.take(3)
+      newDeck     = preflop.deck.drop(3)
+      f :: s :: t = preflop.deck.take(3)
     } yield Flop(preflop.players, newDeck, f, s, t.headOption.get)
 
   }
