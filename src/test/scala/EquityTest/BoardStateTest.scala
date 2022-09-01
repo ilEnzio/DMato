@@ -30,11 +30,21 @@ object BoardStateTest extends Properties("BoardState Tests") {
       preFlop.deck.size == 52 - (numPlayers * 2) &&
       playerCards.distinct.size == playerCards.size &&
       preFlop.deck.cards.distinct.size == preFlop.deck.size
-
   }
 
   property("Flop: more than one player can not have quads") = forAll(genFlop) { flop =>
     ShowDown(flop.allHands).filter(HandRank(_) == FourOfAKind).size <= 1
   }
 
+  property("flop deck size equals 49 minus the players cards and maintains uniqueness") = forAll(genFlop) { flop =>
+    val numPlayers = flop.players.size
+    val playerCards = flop.players.foldLeft(List.empty[Card]) { (s, v) =>
+      v.card1 :: v.card2 :: s
+    }
+    ("Flop Deck size" |: (flop.deck.size ?= 49 - (numPlayers * 2))) &&
+    ("Player card count" |: (playerCards.distinct.size ?= playerCards.size)) &&
+    ("Flop deck still unique" |: (flop.deck.cards.distinct.size ?= flop.deck.size))
+  }
+
+  property()
 }

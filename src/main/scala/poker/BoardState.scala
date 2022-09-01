@@ -11,11 +11,7 @@ import scala.util.Random
 // then I can somehow use unapply methods
 /// TODO: I don't understand the proper use of unapply.
 
-sealed trait BoardState {
-  val players: List[Player]
-  def allHands: List[Hand] =
-    players.map { case Player(x, y) => Hand(List(x, y)) }
-}
+sealed trait BoardState
 
 // TODO: I'm not sure I understand why it was suggested I put this in an object.
 // and I think I've gotten this wrong...
@@ -36,8 +32,14 @@ object BoardState {
 
     }
 
-  final case class Preflop(players: List[Player], deck: Deck)                                     extends BoardState {}
-  final case class Flop(players: List[Player], deck: Deck, card1: Card, card2: Card, card3: Card) extends BoardState
+  final case class Preflop(players: List[Player], deck: Deck) extends BoardState {
+    def allHands: List[Hand] =
+      players.map { case Player(x, y) => Hand(List(x, y)) }
+  }
+  final case class Flop(players: List[Player], deck: Deck, card1: Card, card2: Card, card3: Card) extends BoardState {
+    def allHands: List[Hand] =
+      players.map { case Player(x, y) => Hand(List(x, y, card1, card2, card3)) }
+  }
   final case class Turn(players: List[Player], deck: Deck, card1: Card, card2: Card, card3: Card, turn: Card)
       extends BoardState
   final case class River(
