@@ -3,8 +3,8 @@ package EquityTest
 import cats.implicits.catsSyntaxPartialOrder
 import org.scalacheck.Prop.{forAll, propBoolean, AnyOperators, False}
 import org.scalacheck.Properties
-import poker.BoardState.Preflop
-import poker.{Card, FourOfAKind, Hand, HandRank, Pair, ShowDown}
+import poker.BoardState.{Flop, Preflop}
+import poker.{BoardState, Card, FourOfAKind, Hand, HandRank, Pair, ShowDown}
 import poker.OrderInstances.handRankingOrder
 import test.pokerData.DataGenerators._
 
@@ -46,5 +46,15 @@ object BoardStateTest extends Properties("BoardState Tests") {
     ("Flop deck still unique" |: (flop.deck.cards.distinct.size ?= flop.deck.size))
   }
 
-  property()
+  property("After dealing a flop deck has less cards than a preflop deck") = forAll(genPreflop) { preflop =>
+    val flop = BoardState.deal(preflop)
+
+    (BoardState.deal(preflop) match {
+      case Flop(_) => true
+      case _       => false
+    }) &&
+    (preflop.deck.size > (flop match {
+      case x: Flop => x.deck.size
+    }))
+  }
 }

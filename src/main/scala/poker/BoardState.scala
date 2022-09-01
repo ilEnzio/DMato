@@ -25,8 +25,8 @@ object BoardState {
 
   def deal(boardState: BoardState): BoardState =
     boardState match {
-      case Preflop(ps, d)                            => dealFlop(ps, d) // flop factory
-      case BoardState.Flop(ps, d, c1, c2, c3)        => ???
+      case BoardState.Preflop(ps, d)                 => dealFlop(ps, d) // flop factory
+      case BoardState.Flop(ps, d, c1, c2, c3)        => dealTurn(ps, d, c1, c2, c3)
       case BoardState.Turn(ps, d, c1, c2, c3, t)     => ???
       case BoardState.River(ps, d, c1, c2, c3, t, r) => ???
 
@@ -59,21 +59,28 @@ object BoardState {
 
   }
   object Flop {
-    def unapply(state: BoardState): Option[(List[Player], Deck, Card, Card, Card)] = ???
+    def unapply(flop: Flop): Option[(List[Player], Deck, Card, Card, Card)] =
+      Some(flop.players, flop.deck, flop.card1, flop.card2, flop.card3)
   }
 
   object Turn {
-    def unapply(state: BoardState): Option[(List[Player], Deck, Card, Card, Card, Card)] = ???
+    def unapply(state: Turn): Option[(List[Player], Deck, Card, Card, Card, Card)] = ???
   }
 
   object River {
-    def unapply(state: BoardState): Option[(List[Player], Deck, Card, Card, Card, Card, Card)] = ???
+    def unapply(state: River): Option[(List[Player], Deck, Card, Card, Card, Card, Card)] = ???
   }
 
-  def dealFlop(players: List[Player], deck: Deck): Flop = {
+  def dealFlop(players: List[Player], deck: Deck): BoardState.Flop = {
     val newDeck = deck.drop(3)
     val flop    = deck.take(3)
     Flop(players, newDeck, flop(0), flop(1), flop(2))
+  }
+
+  def dealTurn(players: List[Player], deck: Deck, fl1: Card, fl2: Card, fl3: Card): Turn = {
+    val newDeck = deck.drop(1)
+    val turn    = deck.take(1)
+    Turn(players, newDeck, fl1, fl2, fl3, turn.headOption.get)
   }
 
 }
