@@ -3,7 +3,7 @@ package EquityTest
 import cats.implicits.catsSyntaxPartialOrder
 import org.scalacheck.Prop.{forAll, propBoolean, AnyOperators, False}
 import org.scalacheck.Properties
-import poker.BoardState.{Flop, Preflop}
+import poker.BoardState.{Flop, Preflop, River, Turn}
 import poker.{BoardState, Card, FourOfAKind, Hand, HandRank, Pair, ShowDown}
 import poker.OrderInstances.handRankingOrder
 import test.pokerData.DataGenerators._
@@ -47,14 +47,37 @@ object BoardStateTest extends Properties("BoardState Tests") {
   }
 
   property("After dealing a flop deck has less cards than a preflop deck") = forAll(genPreflop) { preflop =>
-    val flop = BoardState.deal(preflop)
+    val flop: BoardState = BoardState.deal(preflop)
 
-    (BoardState.deal(preflop) match {
+    (flop match {
       case Flop(_) => true
       case _       => false
     }) &&
     (preflop.deck.size > (flop match {
-      case x: Flop => x.deck.size
+      case Flop(_, deck, _, _, _) => deck.size
     }))
   }
+
+  property("After dealing a turn deck has less cards than a flop deck") = forAll(genFlop) { flop =>
+    val turn: BoardState = BoardState.deal(flop)
+    (turn match {
+      case Turn(_) => true
+      case _       => false
+    }) &&
+    (flop.deck.size > (turn match {
+      case Turn(_, deck, _, _, _, _) => deck.size
+    }))
+  }
+
+  property("After dealing a river deck has less cards than a turn deck") = forAll(genTurn) { turn =>
+    val river: BoardState = BoardState.deal(turn)
+    (river match {
+      case River(_) => true
+      case _        => false
+    }) &&
+    (turn.deck.size > (river match {
+      case River(_, deck, _, _, _, _, _) => deck.size
+    }))
+  }
+
 }

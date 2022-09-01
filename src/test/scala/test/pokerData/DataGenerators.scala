@@ -3,7 +3,7 @@ package test.pokerData
 import cats.effect.unsafe.implicits.global
 import org.scalacheck.Gen.{choose, oneOf, pick}
 import org.scalacheck.{Arbitrary, Gen}
-import poker.BoardState.{Flop, Preflop}
+import poker.BoardState.{Flop, Preflop, Turn}
 import poker._
 import poker.Rank._
 import poker.OrderInstances._
@@ -349,6 +349,15 @@ object DataGenerators {
       newDeck     = preflop.deck.drop(3)
       f :: s :: t = preflop.deck.take(3)
     } yield Flop(preflop.players, newDeck, f, s, t.headOption.get)
+
+  }
+
+  val genTurn: Gen[Turn] = {
+    for {
+      flop <- genFlop
+      newDeck = flop.deck.drop(1)
+      turn    = flop.deck.take(1)
+    } yield Turn(flop.players, newDeck, flop.card1, flop.card2, flop.card3, turn.headOption.get)
 
   }
 

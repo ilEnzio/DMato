@@ -10,6 +10,7 @@ import scala.util.Random
 // so the state is going through pipeline
 // then I can somehow use unapply methods
 /// TODO: I don't understand the proper use of unapply.
+/// I feel like I've just added a bunch of boiler plate
 
 sealed trait BoardState
 
@@ -25,11 +26,11 @@ object BoardState {
 
   def deal(boardState: BoardState): BoardState =
     boardState match {
-      case BoardState.Preflop(ps, d)                 => dealFlop(ps, d) // flop factory
-      case BoardState.Flop(ps, d, c1, c2, c3)        => dealTurn(ps, d, c1, c2, c3)
-      case BoardState.Turn(ps, d, c1, c2, c3, t)     => ???
-      case BoardState.River(ps, d, c1, c2, c3, t, r) => ???
-
+      case BoardState.Preflop(ps, d)             => dealFlop(ps, d) // flop factory
+      case BoardState.Flop(ps, d, c1, c2, c3)    => dealTurn(ps, d, c1, c2, c3)
+      case BoardState.Turn(ps, d, c1, c2, c3, t) => dealRiver(ps, d, c1, c2, c3, t)
+//      case BoardState.River(ps, d, c1, c2, c3, t, r) => ???
+      case x: River => x
     }
 
   final case class Preflop(players: List[Player], deck: Deck) extends BoardState {
@@ -44,12 +45,12 @@ object BoardState {
       extends BoardState
   final case class River(
     players: List[Player],
+    deck: Deck,
     card1: Card,
     card2: Card,
     card3: Card,
     turn: Card,
-    river: Card,
-    deck: Deck
+    river: Card
   ) extends BoardState
 
   object Preflop {
@@ -64,13 +65,15 @@ object BoardState {
   }
 
   object Turn {
-    def unapply(state: Turn): Option[(List[Player], Deck, Card, Card, Card, Card)] = ???
+    def unapply(turn: Turn): Option[(List[Player], Deck, Card, Card, Card, Card)] =
+      Some(turn.players, turn.deck, turn.card1, turn.card2, turn.card3, turn.turn)
   }
 
   object River {
-    def unapply(state: River): Option[(List[Player], Deck, Card, Card, Card, Card, Card)] = ???
+    def unapply(river: River): Option[(List[Player], Deck, Card, Card, Card, Card, Card)] =
+      Some(river.players, river.deck, river.card1, river.card2, river.card3, river.turn, river.river)
   }
-
+// TODO none of this is safe??
   def dealFlop(players: List[Player], deck: Deck): BoardState.Flop = {
     val newDeck = deck.drop(3)
     val flop    = deck.take(3)
@@ -81,6 +84,12 @@ object BoardState {
     val newDeck = deck.drop(1)
     val turn    = deck.take(1)
     Turn(players, newDeck, fl1, fl2, fl3, turn.headOption.get)
+  }
+
+  def dealRiver(players: List[Player], deck: Deck, fl1: Card, fl2: Card, fl3: Card, t: Card): River = {
+    val newDeck = deck.drop(1)
+    val river   = deck.take(1)
+    River(players, newDeck, fl1, fl2, fl3, t, river.headOption.get)
   }
 
 }
