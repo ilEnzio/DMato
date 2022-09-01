@@ -3,7 +3,6 @@ package EquityTest
 import cats.effect.unsafe.implicits.global
 import org.scalacheck.Prop.{forAll, propBoolean}
 import org.scalacheck.Properties
-import poker.{BoardState, Deck, Player, Preflop}
 import poker.OrderInstances._
 import test.pokerData.DataGenerators._
 
