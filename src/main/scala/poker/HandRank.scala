@@ -67,7 +67,6 @@ object HandRank {
       }
     }
     check4Str || (sorted.count(wheelStraight.contains(_)) == 5)
-
   }
 
   private def atLeastThreeOfAKind(hand: Hand): Boolean =
@@ -88,8 +87,8 @@ object HandRank {
       .count { case (_, cards) =>
         cards.size == 2
       } >= 1
-
 }
+
 object StraightFlush extends HandRank { val score = 9 }
 object FourOfAKind   extends HandRank { val score = 8 }
 object FullHouse     extends HandRank { val score = 7 }

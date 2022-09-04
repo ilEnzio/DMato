@@ -21,6 +21,8 @@ Some Tasks:
   - ~~test for pair~~
   - ~~Determine winner from hands of same Ranking~~
     - Showdown.. still goofy 
+    - refactor HandRank to be different types that extend hand
+    with the intent to make ranking a hand a pipeline.  
 
 - Calculate the Equity between two players
 - Handle up to 9 players

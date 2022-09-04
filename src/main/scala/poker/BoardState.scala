@@ -52,7 +52,7 @@ object BoardState {
     turn: Card,
     river: Card
   ) extends BoardState
-
+// TODo Refactor all the unapplys
   object Preflop {
     def unapply(state: Preflop): Option[(List[Player], Deck)] =
       // TODO: What's suppose to happen here?  validation?
