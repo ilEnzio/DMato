@@ -2,6 +2,7 @@ package poker
 
 import cats.Order
 import poker.Rank.rankMap
+import poker.UnrankedHand._
 
 import scala.annotation.tailrec
 
@@ -9,6 +10,34 @@ object OrderInstances {
 ///  TODO: General, this is wrong, because they are all order of Hand
   // I should have only one Order instance of hand
   // therefore what I could do is model
+
+  implicit val unrankedHandOrder: Order[UnrankedHand] = new Order[UnrankedHand] {
+    override def compare(x: UnrankedHand, y: UnrankedHand): Int =
+      (x, y) match {
+        case (StraightFlush(_, r), StraightFlush(_, r2)) => r.value - r2.value
+        case (FourOfAKind(_, rank, kickers), FourOfAKind(_, rank2, kickers2)) =>
+          if (rank.value - rank2.value != 0) rank.value - rank2.value
+          else compareCorresponding(kickers, kickers2)
+        case (FullHouse(_, rank1, rank2), FullHouse(_, rank3, rank4)) =>
+          if (rank1.value - rank3.value != 0) rank1.value - rank3.value
+          else rank2.value - rank4.value
+        case (Flush(_, rank), Flush(_, rank2))       => rank.value - rank2.value
+        case (Straight(_, rank), Straight(_, rank2)) => rank.value - rank2.value
+        case (ThreeOfAKind(_, rank, kickers), ThreeOfAKind(_, rank2, kickers2)) =>
+          if (rank.value - rank2.value != 0) rank.value - rank2.value
+          else compareCorresponding(kickers, kickers2)
+        case (TwoPair(_, rank1, rank2, kickers), TwoPair(_, rank3, rank4, kickers2)) =>
+          if (rank1.value - rank3.value != 0) rank1.value - rank3.value
+          else if (rank2.value - rank4.value != 0) rank2.value - rank4.value
+          else compareCorresponding(kickers, kickers2)
+        case (Pair(_, rank, kickers), Pair(_, rank2, kickers2)) =>
+          if (rank.value - rank2.value != 0) rank.value - rank2.value
+          else compareCorresponding(kickers, kickers2)
+        case (HighCard(cards, rank), HighCard(cards2, rank2)) => compareCorresponding(cards, cards2)
+      }
+  }
+  implicit val unrankedHandOrdering: Ordering[UnrankedHand] = unrankedHandOrder.toOrdering
+
   implicit val handRankingOrder: Order[HandRank] = new Order[HandRank] {
     override def compare(x: HandRank, y: HandRank): Int = x.score - y.score
   }

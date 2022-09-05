@@ -175,7 +175,7 @@ object UnrankedHand {
       (pairsGrouped.size > 1).guard[Option].as {
         val usedCards   = pairsGrouped.head._2 ++ pairsGrouped(1)._2
         val unUsedCards = hand.cards.filterNot(usedCards.contains(_)).sorted.reverse
-        (hand.cards, pairsGrouped(0)._1, pairsGrouped(1)._1, unUsedCards)
+        (hand.cards, pairsGrouped.head._1, pairsGrouped(1)._1, unUsedCards)
 
       }
     }
