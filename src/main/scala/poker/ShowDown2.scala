@@ -1,17 +1,19 @@
 package poker
 
 import cats.Order
-import poker.OrderInstances.{unrankedHandOrder, unrankedHandOrdering}
+import poker.OrderInstances.{hand_2Order, hand_2Ordering}
 
 case class ShowDown2()
 
 object ShowDown2 {
-  def apply(hands: List[UnrankedHand]): List[UnrankedHand] = {
+  def apply(hands: List[Hand_2]): List[Hand_2] = {
 
-    val grouped: Seq[(UnrankedHand, List[UnrankedHand])] = hands
-      .groupBy(UnrankedHand.rankHand(_))
+    val grouped = hands
+      .map(_.cards)
+      .map(Hand_2.rank(_))
+      .groupBy(_.score)
       .toList
-      .sortBy(_._1.score)
+      .sortBy(_._1)
       .reverse
 //
     val (_, bestHands) = grouped.head
@@ -32,9 +34,9 @@ object ShowDown2 {
 //    }
   }
 
-  private def evaluateWinningHands(hands: List[UnrankedHand]): List[UnrankedHand] =
-    hands.foldLeft(List.empty[UnrankedHand]) { (s, v) =>
-      if (unrankedHandOrder.compare(v, hands.head) == 0) v :: s
+  private def evaluateWinningHands(hands: List[Hand_2]): List[Hand_2] =
+    hands.foldLeft(List.empty[Hand_2]) { (s, v) =>
+      if (hand_2Order.compare(v, hands.head) == 0) v :: s
       else s
     }
 //

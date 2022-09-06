@@ -4,7 +4,7 @@ import cats.effect.unsafe.implicits.global
 import org.scalacheck.Prop.{forAll, propBoolean}
 import org.scalacheck.Properties
 import poker.OrderInstances._
-import test.pokerData.DataGenerators._
+import pokerData.DataGenerators._
 
 object EquityTest extends Properties("Equity Tests") {
   // given a preflop board, and x  simulations

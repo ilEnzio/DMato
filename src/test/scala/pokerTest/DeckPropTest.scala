@@ -4,24 +4,27 @@ import cats.effect.unsafe.implicits.global
 import org.scalacheck.Gen.{const, pick}
 import org.scalacheck.Prop.{forAll, propBoolean, AnyOperators}
 import org.scalacheck.{Arbitrary, Gen, Properties}
-import org.scalatest.funsuite.AnyFunSuite
-import poker.OrderInstances.{cardOrder, pairOrder, rankOrder}
-import poker.{BoardState, Card, Deck, Suit}
-import test.pokerData.DataGenerators._
-//import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
+import poker.Deck.makeStartingDeck
+import poker.OrderInstances.{cardOrder, rankOrder}
+import poker.{BoardState, Card, Deck, Rank, Suit}
+//import pokerData.DataGenerators.genSuit
+//import pokerTest.DataGen2.{genCard, genRank, startingDeck}
+import pokerData.DeckGenerators._
 
 object DeckPropTest extends Properties("DeckTest") {
 
   // Test the name of various Cards
   //TODO - unsafeRunSync????
-  property("can shuffle a deck") = forAll { (deck: Deck) =>
+
+  property("can shuffle a deck") = forAll(genDeck) { deck =>
     val shuffled = deck.shuffle.unsafeRunSync()
-    (deck.size == shuffled.size &&
-    deck.size == shuffled.cards.distinct.size &&
-    !deck.cards.sameElements(shuffled.cards))
+//    val shuffled = deck
+    (deck.size ?= shuffled.size) :| "Size is the same" &&
+    (deck.size ?= shuffled.cards.distinct.size) &&
+    (deck.cards != shuffled.cards)
   }
 
-  property("a starting deck contains only one of any card") = forAll { card: Card =>
+  property("a starting deck contains only one of any card") = forAll(genCard) { card: Card =>
     startingDeck.cards.count(c => c == card) == 1 && startingDeck.size == 52
   }
 

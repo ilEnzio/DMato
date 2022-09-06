@@ -1,21 +1,24 @@
 package pokerTest
 
 import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
-import org.scalacheck.{Arbitrary, Gen, Properties}
-import poker.{Flush, FourOfAKind, Hand, HighCard, Pair, Straight, StraightFlush, ThreeOfAKind, TwoPair}
-import test.pokerData.DataGenerators._
+import org.scalacheck.{Properties}
+import poker.Hand_2._
+import pokerData.HandGenerators._
 import poker._
 
 object RankingTest extends Properties("Ranking Tests") {
 
-  // a poker hand is 5 cards.  but I think for the purposes of this
-  // it is the best 5 cards of 7, and the rank of the hand is determined by
-  // the five cards
-
   property("A StraightFlush is not Ranked a Straight or Flush ") = forAll(genStraightFlush) { hand =>
-    (HandRank(hand) != Straight) :| "Not Ranked Straight" &&
-    (HandRank(hand) != Flush) :| "Not Ranked Flush" &&
-    (HandRank(hand) ?= StraightFlush) :| "Ranked a StraightFlush"
+    (Hand_2.rank(hand.cards) match {
+      case _: Straight      => false
+      case _: StraightFlush => true
+      case _                => false
+    }) :| "Not Ranked Straight" &&
+    (Hand_2.rank(hand.cards) match {
+      case _: Flush         => false
+      case _: StraightFlush => true
+      case _                => false
+    }) :| "Not Ranked Flush"
   }
 
   property("FourOfAKind must have 4 cards of same rank") = forAll(genFourOfAKind) { hand =>
@@ -25,16 +28,31 @@ object RankingTest extends Properties("Ranking Tests") {
   }
 
   property("a hand is 4 of a kind is FourOfAKind and NOT ThreeOfAKind") = forAll(genFourOfAKind) { hand =>
-    (HandRank(hand) == FourOfAKind) ++ (HandRank(hand) != ThreeOfAKind)
+//    (HandRank(hand) == FourOfAKind) ++ (HandRank(hand) != ThreeOfAKind)
+    (Hand_2.rank(hand.cards) match {
+      case _: ThreeOfAKind => false
+      case _: FourOfAKind  => true
+      case _               => false
+    }) :| "Not ThreeOfAKind"
   }
 
-  property("a FullHouse has 4 or less ranks") = forAll(genFullHouse) { hand: Hand =>
+  property("a FullHouse has 4 or less ranks") = forAll(genFullHouse) { hand =>
     hand.cards.groupBy(_.rank).size <= 4
   }
 
   property("5 or more cards of a suit is a Flush") = forAll(genFlush, genNonFlush) { (flushHand, nonFlushHand) =>
-    (HandRank(flushHand) != StraightFlush) :| "Constraint" ==> {
-      (HandRank(flushHand) ?= Flush) :| "Flush" && (HandRank(nonFlushHand) != Flush) :| "Non-Flush"
+    (Hand_2.rank(flushHand.cards) match {
+      case _: StraightFlush => false
+      case _                => true
+    }) :| "Constraint" ==> {
+      (Hand_2.rank(flushHand.cards) match {
+        case _: Flush => true
+        case _        => false
+      }) :| "Flush" &&
+      (Hand_2.rank(nonFlushHand.cards) match {
+        case _: Flush => false
+        case _        => true
+      }) :| "Non-Flush"
     }
   }
 
@@ -43,32 +61,62 @@ object RankingTest extends Properties("Ranking Tests") {
   }
 
   property("sequential cards rank a Straight") = forAll(genStraight) { hand =>
-    all(HandRank(hand) != StraightFlush, HandRank(hand) != Flush) ==> {
-      HandRank(hand) ?= Straight
+    all(
+      Hand_2.rank(hand.cards) match {
+        case _: StraightFlush => false
+        case _                => true
+      },
+      Hand_2.rank(hand.cards) match {
+        case _: Flush => false
+        case _        => true
+      }
+    ) ==> {
+      Hand_2.rank(hand.cards) match {
+        case _: Straight => true
+        case _           => false
+      }
     }
   }
 
   property("3 cards of the same rank is ThreeOfAKind") = forAll(genThreeOfAKind) { hand =>
-    HandRank(hand) ?= ThreeOfAKind
+    Hand_2.rank(hand.cards) match {
+      case _: ThreeOfAKind => true
+      case _               => false
+    }
   }
 
   property("ThreeOfAKind has 5 ranks and is NOT a Straight") = forAll(genThreeOfAKind) { hand =>
     (hand.cards.groupBy(_.rank).size ?= 5) &&
-    HandRank(hand) != Straight
+    (Hand_2.rank(hand.cards) match {
+      case _: Straight => false
+      case _           => true
+    })
   }
 
   property("at least 2 pair of cards in a hand is TwoPair") = forAll(genTwoPair) { hand =>
-    all(HandRank(hand) != StraightFlush, HandRank(hand) != Flush, HandRank(hand) != Straight) ==> {
-      HandRank(hand) ?= TwoPair
+    (Hand_2.rank(hand.cards) match {
+      case _: StraightFlush | _: Flush | _: Straight => false
+      case _                                         => true
+    }) ==> {
+      Hand_2.rank(hand.cards) match {
+        case _: TwoPair => true
+        case _          => false
+      }
     }
   }
 
   property("at least two cards of the same rank is a Pair") = forAll(genPair) { hand =>
-    HandRank(hand) ?= Pair
+    Hand_2.rank(hand.cards) match {
+      case _: Pair => true
+      case _       => false
+    }
   }
 
   property("A HighCard hand has no other rank") = forAll(genHighCard) { hand =>
-    (HandRank(hand) ?= HighCard)
+    Hand_2.rank(hand.cards) match {
+      case _: HighCard => true
+      case _           => false
+    }
   }
 
 }
