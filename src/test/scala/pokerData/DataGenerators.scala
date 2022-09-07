@@ -23,10 +23,9 @@ object DataGenerators {
 
   val startingDeck: Deck = makeStartingDeck //
 
-  val genDeck: Gen[Deck] = {
-    println(makeStartingDeck.shuffle.unsafeRunSync().cards)
+  val genDeck: Gen[Deck] =
+//    println(makeStartingDeck.shuffle.unsafeRunSync().cards)
     Gen.const(makeStartingDeck)
-  }
 
   implicit val arbCard: Arbitrary[Card] = Arbitrary(genCard)
 //  implicit val arbDeck = Arbitrary(startingDeck)

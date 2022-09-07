@@ -1,9 +1,10 @@
 package poker
 
 import cats.Order
+import cats.data.NonEmptyList
 import poker.OrderInstances.{hand_2Order, hand_2Ordering}
 
-case class ShowDown2()
+sealed trait ShowDown2
 
 object ShowDown2 {
   def apply(hands: List[Hand_2]): List[Hand_2] = {
@@ -17,7 +18,13 @@ object ShowDown2 {
       .reverse
 //
     val (_, bestHands) = grouped.head
-    evaluateWinningHands(bestHands)
+    evaluateWinningHands(bestHands.head, bestHands.tail).toList
+
+//      .sorted(bestHands)
+//      .groupBy(hand_.score)
+//      .toList
+//      .sortBy(_._1)
+//      .reverse
 
 //
 //    rankCategory match {
@@ -34,10 +41,11 @@ object ShowDown2 {
 //    }
   }
 
-  private def evaluateWinningHands(hands: List[Hand_2]): List[Hand_2] =
-    hands.foldLeft(List.empty[Hand_2]) { (s, v) =>
-      if (hand_2Order.compare(v, hands.head) == 0) v :: s
-      else s
+  private def evaluateWinningHands(head: Hand_2, tail: List[Hand_2]): NonEmptyList[Hand_2] =
+    tail.foldLeft(NonEmptyList(head, Nil)) { (s, v) =>
+      if (hand_2Order.compare(v, s.head) == 0) v :: s
+      else if (hand_2Order.compare(v, s.head) < 0) s
+      else NonEmptyList(v, Nil)
     }
 //
 //  private def evaluateHighCard(value: List[Hand]): List[Hand] = {

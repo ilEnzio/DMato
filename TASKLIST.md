@@ -23,6 +23,10 @@ Some Tasks:
     - Showdown.. still goofy 
     - refactor HandRank to be different types that extend hand
     with the intent to make ranking a hand a pipeline.  
+  - get rid of List of Cards from Hand_2 model (x, f(x))
+  - get rid of UnrankedHand
+  - 
+
 
 - Calculate the Equity between two players
 - Handle up to 9 players

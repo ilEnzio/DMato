@@ -67,6 +67,8 @@ object Hand_2 {
     override val score = 1
   }
 
+  // TODO use collectFirst or the appropriate HOF
+
   object StraightFlush {
     def unapply(hand: List[Card]): Option[StraightFlush] = {
       val suitMap = hand
@@ -93,10 +95,9 @@ object Hand_2 {
     def unapply(hand: List[Card]): Option[FourOfAKind] = {
       val rankGroups = hand.groupBy(_.rank).toList.sortBy(_._2.size).reverse
       rankGroups
-        .exists { case (_, cards) => cards.length == 4 }
-        .guard[Option]
-        .as {
-          FourOfAKind(hand, rankGroups.head._1, rankGroups.tail.flatMap(_._2))
+        .collectFirst {
+          case (rank, cards) if cards.length == 4 =>
+            FourOfAKind(hand, rank, rankGroups.tail.flatMap(_._2))
         }
     }
   }
@@ -104,18 +105,20 @@ object Hand_2 {
   object FullHouse {
     def unapply(hand: List[Card]): Option[FullHouse] = {
       val rankGroups: Seq[(Rank, List[Card])] = hand.groupBy(_.rank).toList.sortBy(_._2.size).reverse
-      val groupsFlattened                     = rankGroups.flatMap(_._2)
-      val count                               = rankGroups.map(_._2.size)
 
-      // first list zip with second list
-//      val rankSizeGroup = rankGroups.map{x => (x._1, x._2.size)}
-
-      ((count.size > 2) && count.take(2).sum >= 5)
-        .guard[Option]
-        .as {
-          FullHouse(hand, groupsFlattened.head.rank, groupsFlattened(3).rank)
+      // sort; collect the first set
+      // remove that set and repeat
+      for {
+        (rank1, set1) <- rankGroups.find { case (_, cards) =>
+          cards.size == 3
         }
-
+        remain = hand.filterNot(set1.contains(_))
+        (rank2, _) <- remain
+          .groupBy(_.rank)
+          .toList
+          .sortBy(_._1)
+          .findLast(_._2.size >= 2)
+      } yield FullHouse(hand, rank1, rank2)
     }
   }
 

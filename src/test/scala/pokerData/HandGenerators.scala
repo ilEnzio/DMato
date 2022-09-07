@@ -1,6 +1,6 @@
 package pokerData
 
-import org.scalacheck.Gen.{choose, oneOf, pick}
+import org.scalacheck.Gen.{choose, frequency, oneOf, pick}
 import org.scalacheck.Gen
 import poker._
 import poker.{Deck, Hand_2, Rank}
@@ -109,16 +109,16 @@ object HandGenerators {
       suit2 <- genSuit
       suit3 <- genSuit
       suit4 <- genSuit
-      suit5 <- genSuit.suchThat(s => List(suit1, suit2, suit3, suit4).count(_ == s) < 4)
-      suit6 <- genSuit.suchThat(s => List(suit1, suit2, suit3, suit4, suit5).count(_ == s) < 4)
-      suit7 <- genSuit.suchThat(s => List(suit1, suit2, suit3, suit4, suit5, suit6).count(_ == s) < 4)
+      suit5 <- genSuit.retryUntil(s => List(suit1, suit2, suit3, suit4).count(_ == s) < 4)
+      suit6 <- genSuit.retryUntil(s => List(suit1, suit2, suit3, suit4, suit5).count(_ == s) < 4)
+      suit7 <- genSuit.retryUntil(s => List(suit1, suit2, suit3, suit4, suit5, suit6).count(_ == s) < 4)
       c1    <- Gen.oneOf(hslice.head._2)
       c2    <- Gen.oneOf(hslice(1)._2)
       c3    <- Gen.oneOf(hslice(2)._2)
       c4    <- Gen.oneOf(hslice(3)._2)
       c5    <- Gen.oneOf(hslice(4)._2)
-      n1    <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5).contains(c))
-      n2    <- genCard.suchThat(c => !List(c1, c2, c3, c4, c5, n1).contains(c))
+      n1    <- genCard.retryUntil(c => !List(c1, c2, c3, c4, c5).contains(c))
+      n2    <- genCard.retryUntil(c => !List(c1, c2, c3, c4, c5, n1).contains(c))
     } yield Hand_2
       .rank(
         List(
@@ -141,7 +141,7 @@ object HandGenerators {
     for {
       hand1     <- genWheelStraight
       hand2     <- genNonWheelStraight
-      finalHand <- oneOf(List(hand1, hand2))
+      finalHand <- frequency((1, hand1), (10, hand2))
     } yield finalHand
   }
 

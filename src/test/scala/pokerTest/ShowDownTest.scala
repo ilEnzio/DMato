@@ -33,7 +33,7 @@ object ShowDownTest extends Properties("ShowDownTest") {
 //  } yield Hand_2.rank(cards.map(_.copy(suit = newSuit))).asInstanceOf[StraightFlush]
 
   val genNonNutStraightFlush: Gen[StraightFlush] = for {
-    nonNut <- genStraightFlush.suchThat(x => !x.cards.map(_.rank).contains(Ace))
+    nonNut <- genStraightFlush.retryUntil(x => x.rank != Ace)
   } yield Hand_2.rank(nonNut.cards).asInstanceOf[StraightFlush]
 
   val genDeucesFullOfTres: Gen[FullHouse] = {
@@ -110,8 +110,9 @@ object ShowDownTest extends Properties("ShowDownTest") {
   property("StraightFlush: the Highest Ranked StraightFlush wins") =
     forAll(genNutStraightFlush, genNonNutStraightFlush) { (nutStrFlush, nonNutStrFlush) =>
       val testList = shuffle(List(nonNutStrFlush, nutStrFlush))
-      println(s"Nut: ${nutStrFlush.rank.value}")
-      println(s"NONNut: ${nonNutStrFlush.rank.value}")
+//      println(s"Nut: ${nutStrFlush.rank.value}")
+//      println(s"NONNut: ${nonNutStrFlush.rank.value}")
+//      println(s"${hand_2Order.compare(nutStrFlush, nonNutStrFlush)}")
       ("Nuts vs NonNuts" |: (ShowDown2(testList) ?= List(nutStrFlush))) &&
       ("Nuts vs NonNuts2" |: (ShowDown2(testList) != List(nonNutStrFlush)))
     }
@@ -182,6 +183,8 @@ object ShowDownTest extends Properties("ShowDownTest") {
   property("Straight: a non wheel beats a wheel straight") = forAll(genNonWheelStraight, genWheelStraight) {
     (straight, wheel) =>
       val testList = shuffle(List(wheel, straight))
+//      println(s"NonWheel: ${straight.rank.value}")
+//      println(s"Wheel: ${wheel.rank.value}")
       "NonWheel vs Wheel" |: (ShowDown2(testList) ?= List(straight))
   }
 
