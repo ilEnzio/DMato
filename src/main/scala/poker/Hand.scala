@@ -131,7 +131,6 @@ object Hand {
       groupBySuit5Count.collectFirst { case (_, cards) =>
         Flush(hand, cards.max.rank)
       }
-
     }
   }
 
@@ -156,16 +155,10 @@ object Hand {
 
       val setGroup = hand.groupBy(_.rank).toList.find { case (_, cards) => cards.size == 3 }
 
-      setGroup.isDefined
-        .guard[Option]
-        .as {
-          for {
-            setCards    <- setGroup._2F
-            rank        <- setGroup._1F
-            unusedCards <- Some(hand.filterNot(setCards.contains(_)).sorted)
-          } yield ThreeOfAKind(hand, rank, unusedCards)
-        }
-        .flatten
+      setGroup.collectFirst { case (rank, cards) =>
+        val unusedCards = hand.filterNot(cards.contains(_)).sorted
+        ThreeOfAKind(hand, rank, unusedCards)
+      }
     }
   }
 
@@ -189,6 +182,7 @@ object Hand {
           } yield TwoPair(hand, head._1, rest._1, unUsedCards)
         }
         .flatten
+
     }
   }
 
