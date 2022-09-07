@@ -4,11 +4,8 @@ import cats.effect.unsafe.implicits.global
 import org.scalacheck.Gen.{const, pick}
 import org.scalacheck.Prop.{forAll, propBoolean, AnyOperators}
 import org.scalacheck.{Arbitrary, Gen, Properties}
-import poker.Deck.makeStartingDeck
 import poker.OrderInstances.{cardOrder, rankOrder}
 import poker.{BoardState, Card, Deck, Rank, Suit}
-//import pokerData.DataGenerators.genSuit
-//import pokerTest.DataGen2.{genCard, genRank, startingDeck}
 import pokerData.DeckGenerators._
 
 object DeckPropTest extends Properties("DeckTest") {

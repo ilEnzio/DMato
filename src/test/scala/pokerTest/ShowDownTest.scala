@@ -3,142 +3,56 @@ package pokerTest
 import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 import org.scalacheck.{Gen, Properties}
 import cats.implicits.catsSyntaxPartialOrder
-import org.scalacheck.Gen.pick
-import poker.Hand_2.{Flush, FullHouse, HighCard, Straight, StraightFlush}
+import poker.Hand.{Flush, FullHouse, HighCard, Straight, StraightFlush}
 import poker.OrderInstances._
 import poker.Rank.rankMap
 import poker._
-//import pokerData.DataGenerators._
-import pokerData.DeckGenerators._
 import pokerData.HandGenerators._
+import pokerData.SpecialHandsGenerators._
 
 import scala.util.Random.shuffle
 
-// TODO Account for all Ties - for instance players can be playing the boards
-
 object ShowDownTest extends Properties("ShowDownTest") {
-
-  val genNutStraightFlush: Gen[StraightFlush] = {
-    val broadWayRanks = List(Ace, King, Queen, Jack, Ten)
-    for {
-      suit <- genSuit
-      suitList = List.fill(5)(suit)
-    } yield Hand_2.rank(broadWayRanks.zip(suitList).map(x => Card(x._1, x._2))).asInstanceOf[StraightFlush]
-  }
-
-//  val genNonNutStraightFlush: Gen[StraightFlush] = for {
-//    newSuit  <- genSuit
-//    straight <- genStraight.suchThat(x => !x.cards.map(_.rank).contains(Ace))
-//    cards = straight.cards.distinct
-//  } yield Hand_2.rank(cards.map(_.copy(suit = newSuit))).asInstanceOf[StraightFlush]
-
-  val genNonNutStraightFlush: Gen[StraightFlush] = for {
-    nonNut <- genStraightFlush.retryUntil(x => x.rank != Ace)
-  } yield Hand_2.rank(nonNut.cards).asInstanceOf[StraightFlush]
-
-  val genDeucesFullOfTres: Gen[FullHouse] = {
-    val rank1   = Two
-    val rank2   = Three
-    val grouped = Deck.all.groupBy(_.rank)
-
-    for {
-      set  <- pick(3, grouped(rank1))
-      pair <- pick(2, grouped(rank2))
-    } yield Hand_2.rank(pair.toList ++ set.toList).asInstanceOf[FullHouse]
-  }
-
-  val genNutFlush: Gen[Flush] = for {
-    suit <- genSuit
-    suited = Deck.all.filter(_.suit == suit)
-    flush <- pick(5, suited).retryUntil(x =>
-      x.contains(Card(Ace, suit)) &&
-        (Hand_2.rank(x.toList) match {
-          case _: StraightFlush => false
-          case _                => true
-        }) /// ToDo ????
-    )
-    card1 <- genCard.suchThat { c =>
-      !suited.contains(c)
-    }
-    card2 <- genCard.suchThat { c =>
-      !suited.contains(c) &&
-      c != card1
-    }
-  } yield Hand_2.rank(card1 :: card2 :: flush.toList).asInstanceOf[Flush]
-
-  val genNonNutFlush: Gen[Flush] = for {
-    suit <- genSuit
-    suited = Deck.all.filter(_.suit == suit)
-    flush <- pick(5, suited).retryUntil(x =>
-      !x.contains(Card(Ace, suit)) &&
-        (Hand_2.rank(x.toList) match {
-          case _: StraightFlush => false
-          case _                => true
-        }) // todo Again...???
-    )
-  } yield Hand_2.rank(flush.toList).asInstanceOf[Flush]
-
-  val genNutStraight: Gen[Straight] = {
-    val broadWayRanks = List(Ace, King, Queen, Jack, Ten)
-    for {
-      suit1 <- genSuit
-      suit2 <- genSuit
-      suit3 <- genSuit
-      suit4 <- genSuit
-      suit5 <- genSuit.suchThat(s => List(suit1, suit2, suit3, suit4).count(_ == s) < 4)
-      suits = List(suit1, suit2, suit3, suit4, suit5)
-    } yield Hand_2.rank(broadWayRanks.zip(suits).map(x => Card(x._1, x._2))).asInstanceOf[Straight]
-  }
-
-  val genAceHigh: Gen[HighCard] = {
-    for {
-      hand <- genHighCard
-      suit <- genSuit
-    } yield Hand_2.rank(Card(Ace, suit) :: hand.cards.sorted.reverse.tail).asInstanceOf[HighCard]
-  }
 
   property("StraightFlush is greater than any other hand Ranking") = forAll(genStraightFlush, genHand) {
     (strFlush, other) =>
-      (Hand_2.rank(other.cards) match {
+      (Hand.rank(other.cards) match {
         case _: StraightFlush => false
         case _                => true
       }) ==> {
-        "StraightFlush vs Any other" |: Hand_2.rank(strFlush.cards) > Hand_2.rank(other.cards)
+        "StraightFlush vs Any other" |: Hand.rank(strFlush.cards) > Hand.rank(other.cards)
       }
   }
 
   property("StraightFlush: the Highest Ranked StraightFlush wins") =
     forAll(genNutStraightFlush, genNonNutStraightFlush) { (nutStrFlush, nonNutStrFlush) =>
       val testList = shuffle(List(nonNutStrFlush, nutStrFlush))
-//      println(s"Nut: ${nutStrFlush.rank.value}")
-//      println(s"NONNut: ${nonNutStrFlush.rank.value}")
-//      println(s"${hand_2Order.compare(nutStrFlush, nonNutStrFlush)}")
-      ("Nuts vs NonNuts" |: (ShowDown2(testList) ?= List(nutStrFlush))) &&
-      ("Nuts vs NonNuts2" |: (ShowDown2(testList) != List(nonNutStrFlush)))
+      ("Nuts vs NonNuts" |: (ShowDown(testList) ?= List(nutStrFlush))) &&
+      ("Nuts vs NonNuts2" |: (ShowDown(testList) != List(nonNutStrFlush)))
     }
 
   property("StraightFlush beats FourOfKind, FullHouse") = forAll(genStraightFlush, genFourOfAKind, genFullHouse) {
     (strFlush, quads, boat) =>
       val testList = shuffle(List(quads, boat, strFlush))
-      ShowDown2(testList) ?= List(strFlush)
+      ShowDown(testList) ?= List(strFlush)
   }
 
   property("FourOfAKind beats FullHouse, Flush") = forAll(genFourOfAKind, genFullHouse, genNutFlush) {
     (quads, boat, flush) =>
       val testList = shuffle(List(boat, flush, quads))
-      (ShowDown2(testList) ?= List(quads)) &&
-      (ShowDown2(testList) != List(flush))
+      (ShowDown(testList) ?= List(quads)) &&
+      (ShowDown(testList) != List(flush))
   }
 
   property("Four of a Kind is greater than FullHouse") = forAll(genFourOfAKind, genFullHouse) { (quads, boat) =>
-    Hand_2.rank(quads.cards) > Hand_2.rank(boat.cards)
+    Hand.rank(quads.cards) > Hand.rank(boat.cards)
   }
 
   property("FullHouse: The highest set wins between two boats") = forAll(genFullHouse, genDeucesFullOfTres) {
     (bigBoat, smBoat) =>
       (bigBoat.cards.drop(2).map(_.rank) != smBoat.cards.map(_.rank)) ==> {
         val testList = shuffle(List(smBoat, bigBoat))
-        "BigBoat vs SmallBoat" |: (ShowDown2(testList) ?= List(bigBoat))
+        "BigBoat vs SmallBoat" |: (ShowDown(testList) ?= List(bigBoat))
       }
   }
 
@@ -146,81 +60,81 @@ object ShowDownTest extends Properties("ShowDownTest") {
     forAll(genFullHouse, genNonNutFlush, genStraight, genThreeOfAKind, genTwoPair) {
       (boat, flush, straight, set, twoPair) =>
         val testList = shuffle(List(set, twoPair, flush, boat, straight))
-        ShowDown2(testList) ?= List(boat)
+        ShowDown(testList) ?= List(boat)
     }
 
   property("Flush: NutFlush beats smaller flush") = forAll(genNutFlush, genNonNutFlush) { (nutFlush, nonNut) =>
     val testList = shuffle(List(nonNut, nutFlush))
-    "Nut vs NonNut" |: (ShowDown2(testList) ?= List(nutFlush))
+    "Nut vs NonNut" |: (ShowDown(testList) ?= List(nutFlush))
   }
 
   property("Flush beats a straight, ThreeOfAKind") = forAll(genFlush, genStraight, genThreeOfAKind) {
     (flush, straight, set) =>
       val testList = shuffle(List(straight, set, flush))
-      ShowDown2(testList) ?= List(flush)
+      ShowDown(testList) ?= List(flush)
   }
 
   property("Flush is greater than straight") = forAll(genFlush, genStraight) { (flush, straight) =>
-    Hand_2.rank(flush.cards) > Hand_2.rank(straight.cards)
+    Hand.rank(flush.cards) > Hand.rank(straight.cards)
   }
 
   property("Straight: Two Equally Ranked Straights win vs Lower hands") =
     forAll(genStraight, genThreeOfAKind, genTwoPair) { (straight, set, twoPair) =>
       val straight2 = straight.copy()
       val testList  = List(straight, set, twoPair, straight2)
-      (ShowDown2(testList).size == 2) &&
-      ShowDown2(testList).forall(List(straight2, straight).contains(_))
+      (ShowDown(testList).size == 2) &&
+      ShowDown(testList).forall(List(straight2, straight).contains(_))
     }
 
+  // TODO the Nonnut Still generated broadway
   property("Straight: The highest Ranked Straight wins") = forAll(genNutStraight, genStraight) {
     (broadway, nonNutStraight) =>
-//      (straightOrder.compare(nonNutStraight, broadway) != 0) ==> {
-      (Hand_2.rank(nonNutStraight.cards) != Hand_2.rank(broadway.cards)) ==> {
-        val testList = shuffle(List(broadway, nonNutStraight))
-        ShowDown2(testList) ?= List(broadway)
+      (hand_2Order.compare(nonNutStraight, broadway) != 0) ==> {
+        (Hand.rank(nonNutStraight.cards) != Hand.rank(broadway.cards)) ==> {
+          val testList = shuffle(List(broadway, nonNutStraight))
+          ShowDown(testList) ?= List(broadway)
+        }
       }
   }
   property("Straight: a non wheel beats a wheel straight") = forAll(genNonWheelStraight, genWheelStraight) {
     (straight, wheel) =>
       val testList = shuffle(List(wheel, straight))
-//      println(s"NonWheel: ${straight.rank.value}")
-//      println(s"Wheel: ${wheel.rank.value}")
-      "NonWheel vs Wheel" |: (ShowDown2(testList) ?= List(straight))
+      "NonWheel vs Wheel" |: (ShowDown(testList) ?= List(straight))
   }
 
   property("Straight beats ThreeOfAKind, TwoPair, Pair, HighCard") =
     forAll(genStraight, genThreeOfAKind, genTwoPair, genPair, genHighCard) { (straight, set, twoPair, pair, highCard) =>
       val testList = shuffle(List(set, twoPair, pair, highCard, straight))
-      (ShowDown2(testList) ?= List(straight)) &&
-      ShowDown2(testList) != List(highCard)
+      (ShowDown(testList) ?= List(straight)) &&
+      ShowDown(testList) != List(highCard)
     }
 
   property("Straight is greater then Three of A Kind") = forAll(genStraight, genThreeOfAKind) { (straight, set) =>
-    Hand_2.rank(straight.cards) > Hand_2.rank(set.cards)
+    Hand.rank(straight.cards) > Hand.rank(set.cards)
   }
 
   property("Three of Kind is greater than TwoPair") = forAll(genThreeOfAKind, genTwoPair) { (set, twoPair) =>
-    "Set vs TwoPair" |: (Hand_2.rank(set.cards) > Hand_2.rank(twoPair.cards))
+    "Set vs TwoPair" |: (Hand.rank(set.cards) > Hand.rank(twoPair.cards))
   }
 
   property("Three of a Kind beats TwoPair, Pair, HighCard") =
     forAll(genThreeOfAKind, genTwoPair, genPair, genHighCard) { (set, twoPair, pair, highCard) =>
       val testList = shuffle(List(pair, highCard, set, twoPair))
-      ShowDown2(testList) ?= List(set)
+      ShowDown(testList) ?= List(set)
     }
 
   property("Two Pair beats Pair and HighCard") = forAll(genTwoPair, genPair, genHighCard) { (twoPair, pair, highCard) =>
     val testList = shuffle(List(highCard, twoPair, pair))
     all(
-      "TwoPair, Pair, HighCard" |: (ShowDown2(testList) ?= List(twoPair)),
-      "Not Equal" |: (ShowDown2(testList) != List(highCard))
+      "TwoPair, Pair, HighCard" |: (ShowDown(testList) ?= List(twoPair)),
+      "Not Equal" |: (ShowDown(testList) != List(highCard))
     )
   }
 
   property("A Pair beats HighCard at show down ") = forAll(genPair, genAceHigh) { (pair, aHigh) =>
     val oCardList = aHigh.cards.sorted.reverse
 
-    def createDupe(idx: Int): Hand_2 = {
+    def createDupe(idx: Int): Hand = {
       val cardIdxRank = oCardList(4).rank
       val newCard =
         if (cardIdxRank.value == 2) oCardList(idx)
@@ -231,31 +145,31 @@ object ShowDownTest extends Properties("ShowDownTest") {
     val dupe1    = createDupe(4)
     val testList = shuffle(List(dupe1, pair, aHigh))
 
-    "Pair, Ace High, HighCard" |: (ShowDown2(testList) ?= List(pair))
+    "Pair, Ace High, HighCard" |: (ShowDown(testList) ?= List(pair))
   }
 
   property("HighCard: two high card hands of the same value are equal") = forAll(genAceHigh, genHighCard) {
     (aHigh, highCard) =>
-      (Hand_2.rank(aHigh.cards) > Hand_2.rank(highCard.cards)) ==> {
+      (Hand.rank(aHigh.cards) > Hand.rank(highCard.cards)) ==> {
         val aHigh2   = aHigh.copy()
         val testList = List(aHigh, aHigh2, highCard)
-        List(aHigh, aHigh2).forall(ShowDown2(testList).contains(_)) &&
-        (ShowDown2(testList).size ?= 2) &&
-        (Hand_2.rank(aHigh.cards) ?= Hand_2.rank(aHigh2.cards))
+        List(aHigh, aHigh2).forall(ShowDown(testList).contains(_)) &&
+        (ShowDown(testList).size ?= 2) &&
+        (Hand.rank(aHigh.cards) ?= Hand.rank(aHigh2.cards))
       }
   }
 
   property("HighCard - Ace high is greater than any other high card") = forAll(genAceHigh, genHighCard) {
     (aHigh, other) =>
       (other.cards.sorted.reverse(0).rank != Ace) ==> {
-        "Ace vs Other" |: (ShowDown2(List(aHigh, other)) ?= List(aHigh))
+        "Ace vs Other" |: (ShowDown(List(aHigh, other)) ?= List(aHigh))
       }
   }
 
   property("HighCard - General test of all Corresponding cards") = forAll(genAceHigh) { original =>
     val oCardList = original.cards.sorted.reverse
 
-    def createDupe(idx: Int): Hand_2 = {
+    def createDupe(idx: Int): Hand = {
       val cardIdxRank = oCardList(4).rank
       val newCard =
         if (cardIdxRank.value == 2) oCardList(idx)
@@ -263,16 +177,16 @@ object ShowDownTest extends Properties("ShowDownTest") {
       original.copy(cards = oCardList.take(4) ++ List(newCard))
     }
 
-    val winningHand = Hand_2.rank(oCardList.take(5))
+    val winningHand = Hand.rank(oCardList.take(5))
     val dupe1       = createDupe(4)
     val dupe2       = createDupe(3)
     val dupe3       = createDupe(2)
     val dupe4       = createDupe(1)
 
-    (ShowDown2(List(winningHand, dupe1)) ?= List(winningHand)) &&
-    (ShowDown2(List(dupe2, winningHand)) ?= List(winningHand)) &&
-    (ShowDown2(List(dupe3, winningHand)) ?= List(winningHand)) &&
-    (ShowDown2(List(dupe4, winningHand)) ?= List(winningHand)) && ("Not Equal" |: (ShowDown2(
+    (ShowDown(List(winningHand, dupe1)) ?= List(winningHand)) &&
+    (ShowDown(List(dupe2, winningHand)) ?= List(winningHand)) &&
+    (ShowDown(List(dupe3, winningHand)) ?= List(winningHand)) &&
+    (ShowDown(List(dupe4, winningHand)) ?= List(winningHand)) && ("Not Equal" |: (ShowDown(
       List(dupe1, winningHand)
     ) != List(dupe1)))
   }
@@ -281,17 +195,17 @@ object ShowDownTest extends Properties("ShowDownTest") {
     (other.cards.sorted.reverse(0).rank != Ace) ==> {
 
       val oCardList = aHigh.cards.sorted.reverse
-      def createDupe(idx: Int): Hand_2 = {
+      def createDupe(idx: Int): Hand = {
         val cardIdxRank = oCardList(4).rank
         val newCard =
           if (cardIdxRank.value == 2) oCardList(idx)
           else oCardList(idx).copy(rank = rankMap(cardIdxRank.value - 1))
         aHigh.copy(cards = oCardList.take(4) ++ List(newCard))
       }
-      val winningHand = Hand_2.rank(oCardList.take(5))
+      val winningHand = Hand.rank(oCardList.take(5))
       val dupeAHigh   = createDupe(4)
       val testList    = shuffle(List(winningHand, other, dupeAHigh))
-      (ShowDown2(testList)) ?= List(winningHand)
+      (ShowDown(testList)) ?= List(winningHand)
     }
   }
 }

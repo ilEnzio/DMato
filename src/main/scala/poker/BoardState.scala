@@ -3,7 +3,7 @@ package poker
 import cats.effect.IO
 import cats.implicits._
 import cats.kernel.Monoid
-import poker.Hand_2.UnrankedHand
+import poker.Hand.UnrankedHand
 
 import scala.util.Random
 
@@ -39,12 +39,12 @@ object BoardState {
     }
 
   final case class Preflop(players: List[Player], deck: Deck) extends BoardState {
-    def allHands: List[Hand_2] =
-      players.map { case Player(x, y) => Hand_2.rank(List(x, y)) }
+    def allHands: List[Hand] =
+      players.map { case Player(x, y) => Hand.rank(List(x, y)) }
   }
   final case class Flop(players: List[Player], deck: Deck, card1: Card, card2: Card, card3: Card) extends BoardState {
-    def allHands: List[Hand_2] =
-      players.map { case Player(x, y) => Hand_2.rank(List(x, y, card1, card2, card3)) }
+    def allHands: List[Hand] =
+      players.map { case Player(x, y) => Hand.rank(List(x, y, card1, card2, card3)) }
   }
   final case class Turn(players: List[Player], deck: Deck, card1: Card, card2: Card, card3: Card, turn: Card)
       extends BoardState

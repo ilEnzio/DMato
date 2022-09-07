@@ -1,12 +1,10 @@
 package EquityTest
 
-import cats.implicits.catsSyntaxPartialOrder
 import org.scalacheck.Prop.{forAll, propBoolean, AnyOperators, False}
 import org.scalacheck.Properties
 import poker.BoardState.{Flop, Preflop, River, Turn}
-import poker.{BoardState, Card, Hand_2, ShowDown2}
-import poker.Hand_2._
-import poker.OrderInstances.{hand_2Order}
+import poker.{BoardState, Card, Hand, ShowDown}
+import poker.Hand._
 import pokerData.DataGenerators._
 
 object BoardStateTest extends Properties("BoardState Tests") {
@@ -16,7 +14,7 @@ object BoardStateTest extends Properties("BoardState Tests") {
 
   property("Preflop hands can never be ranked higher than a Pair") = forAll(genPreflop) { preFlop =>
     preFlop.players.exists(p =>
-      Hand_2.rank(List(p.card1, p.card2)) match {
+      Hand.rank(List(p.card1, p.card2)) match {
         case _: Pair | _: HighCard => true
         case _                     => false
       }
@@ -26,7 +24,7 @@ object BoardStateTest extends Properties("BoardState Tests") {
   property("The winning hand Preflop is a pair or less") = forAll(genPreflop) { preFlop =>
 //    ShowDown(preFlop.allHands).exists(HandRank(_) > Pair) ?= false
 
-    ShowDown2(preFlop.allHands).exists(handRank =>
+    ShowDown(preFlop.allHands).exists(handRank =>
       handRank match {
         case _: Pair | _: HighCard => true
         case _                     => false
@@ -48,14 +46,12 @@ object BoardStateTest extends Properties("BoardState Tests") {
   property("Flop: more than one player can not have quads") = forAll(genFlop) { flop =>
 //    ShowDown(flop.allHands).filter(HandRank(_) == FourOfAKind).size <= 1
 
-    ShowDown2(flop.allHands)
-      .filter(p =>
-        p match {
-          case _: FourOfAKind => true
-          case _              => false
-        }
-      )
-      .size <= 1
+    ShowDown(flop.allHands).count(p =>
+      p match {
+        case _: FourOfAKind => true
+        case _              => false
+      }
+    ) <= 1
   }
 
   property("flop deck size equals 49 minus the players cards and maintains uniqueness") = forAll(genFlop) { flop =>

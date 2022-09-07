@@ -3,10 +3,10 @@ package pokerData
 import org.scalacheck.Gen.{choose, frequency, oneOf, pick}
 import org.scalacheck.Gen
 import poker._
-import poker.{Deck, Hand_2, Rank}
+import poker.{Deck, Hand, Rank}
 import poker.Rank._
 import pokerData.DeckGenerators._
-import poker.Hand_2._
+import poker.Hand._
 import poker.OrderInstances._
 
 import scala.util.Random
@@ -20,7 +20,7 @@ object HandGenerators {
   val genStraightFlush: Gen[StraightFlush] = for {
     newSuit  <- genSuit
     straight <- genStraight
-  } yield Hand_2.rank(straight.cards.distinctBy(_.rank).map(x => x.copy(suit = newSuit))).asInstanceOf[StraightFlush]
+  } yield Hand.rank(straight.cards.distinctBy(_.rank).map(x => x.copy(suit = newSuit))).asInstanceOf[StraightFlush]
 
   val genFourOfAKind: Gen[FourOfAKind] =
     for {
@@ -29,7 +29,7 @@ object HandGenerators {
       card1 <- genCard.suchThat(c => c.rank != rank)
       card2 <- genCard.suchThat(c => c != card1 && c.rank != rank)
       card3 <- genCard.suchThat(c => !List(card1, card2).contains(c) && c.rank != rank)
-    } yield Hand_2.rank(card1 :: card2 :: card3 :: quads).asInstanceOf[FourOfAKind]
+    } yield Hand.rank(card1 :: card2 :: card3 :: quads).asInstanceOf[FourOfAKind]
 
   val genFullHouse: Gen[FullHouse] =
     for {
@@ -50,13 +50,13 @@ object HandGenerators {
           c.rank != rank2 &&
           c != card1
       )
-    } yield Hand_2.rank(card1 :: card2 :: pair.toList ++ set.toList).asInstanceOf[FullHouse]
+    } yield Hand.rank(card1 :: card2 :: pair.toList ++ set.toList).asInstanceOf[FullHouse]
 
   val genFlush: Gen[Flush] = for {
     suit <- genSuit
     suited = Deck.all.filter(_.suit == suit)
     flush <- pick(5, suited).suchThat(x =>
-      Hand_2.rank(x.toList) match {
+      Hand.rank(x.toList) match {
         case _: StraightFlush => false
         case _                => true
       }
@@ -68,9 +68,9 @@ object HandGenerators {
       !suited.contains(c) &&
       c != card1
     }
-  } yield Hand_2.rank(card1 :: card2 :: flush.toList).asInstanceOf[Flush]
+  } yield Hand.rank(card1 :: card2 :: flush.toList).asInstanceOf[Flush]
 
-  val genNonFlush: Gen[Hand_2] = for {
+  val genNonFlush: Gen[Hand] = for {
     suit <- genSuit
     suited = Deck.all.filter(_.suit == suit)
     fourFlush <- pick(4, suited)
@@ -86,7 +86,7 @@ object HandGenerators {
       c != card1 &&
       c != card2
     }
-  } yield Hand_2.rank(card1 :: card2 :: card3 :: fourFlush.toList)
+  } yield Hand.rank(card1 :: card2 :: card3 :: fourFlush.toList)
 
   val genWheelStraight: Gen[Straight] = {
     val wheelRanks = List(Ace, Five, Four, Three, Two)
@@ -97,7 +97,7 @@ object HandGenerators {
       suit4 <- genSuit
       suit5 <- genSuit.suchThat(s => List(suit1, suit2, suit3, suit4).count(_ == s) < 4)
       suits = List(suit1, suit2, suit3, suit4, suit5)
-    } yield Hand_2.rank(wheelRanks.zip(suits).map(x => Card(x._1, x._2))).asInstanceOf[Straight]
+    } yield Hand.rank(wheelRanks.zip(suits).map(x => Card(x._1, x._2))).asInstanceOf[Straight]
   }
 
   def genStraight_(high: Int): Gen[Straight] = {
@@ -119,7 +119,7 @@ object HandGenerators {
       c5    <- Gen.oneOf(hslice(4)._2)
       n1    <- genCard.retryUntil(c => !List(c1, c2, c3, c4, c5).contains(c))
       n2    <- genCard.retryUntil(c => !List(c1, c2, c3, c4, c5, n1).contains(c))
-    } yield Hand_2
+    } yield Hand
       .rank(
         List(
           c1.copy(suit = suit1),
@@ -168,7 +168,7 @@ object HandGenerators {
       c.rank == ranks(4) &&
         !(card1 :: card2 :: card3 :: set).map(_.suit).contains(c.suit)
     ) // unique suit
-  } yield Hand_2.rank(card1 :: card2 :: card3 :: card4 :: set).asInstanceOf[ThreeOfAKind]
+  } yield Hand.rank(card1 :: card2 :: card3 :: card4 :: set).asInstanceOf[ThreeOfAKind]
 
   val genTwoPair: Gen[TwoPair] = for {
     rank1 <- genRank
@@ -181,12 +181,12 @@ object HandGenerators {
     card3 <- genCard.retryUntil(c =>
       !List(card1, card2).contains(c) && !List(rank1, rank2, card2.rank).contains(c.rank) &&
         !List(card1, card2).map(_.suit).contains(c.suit) &&
-        (Hand_2.rank(card1 :: card2 :: c :: pair1.toList ++ pair2.toList) match {
+        (Hand.rank(card1 :: card2 :: c :: pair1.toList ++ pair2.toList) match {
           case _: Straight => false
           case _           => true
         }) //TODO again
     )
-  } yield Hand_2.rank(card1 :: card2 :: card3 :: pair1.toList ++ pair2.toList).asInstanceOf[TwoPair]
+  } yield Hand.rank(card1 :: card2 :: card3 :: pair1.toList ++ pair2.toList).asInstanceOf[TwoPair]
 
   val genPair: Gen[Pair] = for {
     rank <- genRank
@@ -194,19 +194,19 @@ object HandGenerators {
     pair <- pick(2, grouped(rank))
     //    rankingList = HandRank.all.filterNot(_ == Pair)
     rest <- pick(5, Deck.all.filterNot(pair.toList.contains(_))).retryUntil(x =>
-      Hand_2.rank(pair.toList ++ x.toList) match {
+      Hand.rank(pair.toList ++ x.toList) match {
         case _: Pair => true
         case _       => false
       }
     )
-  } yield Hand_2
+  } yield Hand
     .rank(pair.toList ++ rest.toList)
     .asInstanceOf[Pair] // Hand_2.rank(pair.toList ++ hand.cards.take(5))[Pair]
 
   val genHighCard: Gen[HighCard] = {
     val suits  = Random.shuffle(Suit.all)
     val offset = choose(0, 3).sample.get
-    val hand1 = Hand_2.rank(
+    val hand1 = Hand.rank(
       List(
         Card(rank = rankMap(11 + offset), suit = suits.head),
         Card(rank = rankMap(10 + offset), suit = suits.head),
@@ -218,7 +218,7 @@ object HandGenerators {
       )
     )
 
-    val hand2 = Hand_2
+    val hand2 = Hand
       .rank(
         List(
           Card(rankMap(11 + offset), suits.head),
@@ -231,7 +231,7 @@ object HandGenerators {
         )
       )
 
-    val hand3 = Hand_2
+    val hand3 = Hand
       .rank(
         List(
           Card(rankMap(10 + offset), suits.head),
