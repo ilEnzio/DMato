@@ -128,15 +128,10 @@ object Hand {
           cards.size >= 5
         }
 
-      groupBySuit5Count.isDefined
-        .guard[Option]
-        .as {
-          for {
-            cards <- groupBySuit5Count._2F
-            rank = cards.sorted.reverse.head.rank
-          } yield Flush(hand, rank)
-        }
-        .flatten
+      groupBySuit5Count.collectFirst { case (_, cards) =>
+        Flush(hand, cards.max.rank)
+      }
+
     }
   }
 
