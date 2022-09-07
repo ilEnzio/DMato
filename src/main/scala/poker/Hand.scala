@@ -171,18 +171,12 @@ object Hand {
         .toList
         .sortBy(_._1.value)
 
-      (pairsGrouped.size > 1)
-        .guard[Option]
-        .as {
-          for {
-            head <- pairsGrouped.headOption
-            rest <- pairsGrouped.tail.headOption
-            usedCards   = head._2 ++ rest._2
-            unUsedCards = hand.filterNot(usedCards.contains(_)).sorted.reverse
-          } yield TwoPair(hand, head._1, rest._1, unUsedCards)
-        }
-        .flatten
-
+      for {
+        head <- pairsGrouped.headOption
+        rest <- pairsGrouped.tail.headOption
+        usedCards   = head._2 ++ rest._2
+        unUsedCards = hand.filterNot(usedCards.contains(_)).sorted.reverse
+      } yield TwoPair(hand, head._1, rest._1, unUsedCards)
     }
   }
 
