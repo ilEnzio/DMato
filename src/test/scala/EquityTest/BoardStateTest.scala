@@ -1,12 +1,11 @@
 package EquityTest
 
-import cats.implicits.catsSyntaxPartialOrder
 import org.scalacheck.Prop.{forAll, propBoolean, AnyOperators, False}
 import org.scalacheck.Properties
 import poker.BoardState.{Flop, Preflop, River, Turn}
-import poker.{BoardState, Card, FourOfAKind, Hand, HandRank, Pair, ShowDown}
-import poker.OrderInstances.handRankingOrder
-import test.pokerData.DataGenerators._
+import poker.{BoardState, Card, Hand, ShowDown}
+import poker.Hand._
+import pokerData.DataGenerators._
 
 object BoardStateTest extends Properties("BoardState Tests") {
 
@@ -14,11 +13,23 @@ object BoardStateTest extends Properties("BoardState Tests") {
   // genPlayer,
 
   property("Preflop hands can never be ranked higher than a Pair") = forAll(genPreflop) { preFlop =>
-    preFlop.players.exists(p => HandRank(Hand(List(p.card1, p.card2))) > Pair) ?= false
+    preFlop.players.exists(p =>
+      Hand.rank(List(p.card1, p.card2)) match {
+        case _: Pair | _: HighCard => true
+        case _                     => false
+      }
+    ) ?= true
   }
 
   property("The winning hand Preflop is a pair or less") = forAll(genPreflop) { preFlop =>
-    ShowDown(preFlop.allHands).exists(HandRank(_) > Pair) ?= false
+//    ShowDown(preFlop.allHands).exists(HandRank(_) > Pair) ?= false
+
+    ShowDown(preFlop.allHands).exists(handRank =>
+      handRank match {
+        case _: Pair | _: HighCard => true
+        case _                     => false
+      }
+    ) ?= true
   }
 
   property("preflop deck size equals 52 minus the players cards and maintains uniqueness") = forAll(genPreflop) {
@@ -33,7 +44,14 @@ object BoardStateTest extends Properties("BoardState Tests") {
   }
 
   property("Flop: more than one player can not have quads") = forAll(genFlop) { flop =>
-    ShowDown(flop.allHands).filter(HandRank(_) == FourOfAKind).size <= 1
+//    ShowDown(flop.allHands).filter(HandRank(_) == FourOfAKind).size <= 1
+
+    ShowDown(flop.allHands).count(p =>
+      p match {
+        case _: FourOfAKind => true
+        case _              => false
+      }
+    ) <= 1
   }
 
   property("flop deck size equals 49 minus the players cards and maintains uniqueness") = forAll(genFlop) { flop =>

@@ -3,6 +3,7 @@ package poker
 import cats.effect.IO
 import cats.implicits._
 import cats.kernel.Monoid
+import poker.Hand.UnrankedHand
 
 import scala.util.Random
 
@@ -24,22 +25,26 @@ object BoardState {
     deck.map(Preflop(players, _))
   }
 
+//TODo: come back and fix the unapply
   def deal(boardState: BoardState): BoardState =
     boardState match {
-      case BoardState.Preflop(ps, d)             => dealFlop(ps, d) // flop factory
-      case BoardState.Flop(ps, d, c1, c2, c3)    => dealTurn(ps, d, c1, c2, c3)
-      case BoardState.Turn(ps, d, c1, c2, c3, t) => dealRiver(ps, d, c1, c2, c3, t)
+//      case Preflop(ps, d)                        => dealFlop(ps, d)
+//      case BoardState.Flop(ps, d, c1, c2, c3)    => dealTurn(ps, d, c1, c2, c3)
+//      case BoardState.Turn(ps, d, c1, c2, c3, t) => dealRiver(ps, d, c1, c2, c3, t)
 //      case BoardState.River(ps, d, c1, c2, c3, t, r) => ???
-      case x: River => x
+      case x: Preflop => dealFlop(x.players, x.deck) // flop factory
+      case x: Flop    => dealTurn(x.players, x.deck, x.card1, x.card2, x.card3)
+      case x: Turn    => dealRiver(x.players, x.deck, x.card1, x.card2, x.card3, x.turn)
+      case x: River   => x
     }
 
   final case class Preflop(players: List[Player], deck: Deck) extends BoardState {
     def allHands: List[Hand] =
-      players.map { case Player(x, y) => Hand(List(x, y)) }
+      players.map { case Player(x, y) => Hand.rank(List(x, y)) }
   }
   final case class Flop(players: List[Player], deck: Deck, card1: Card, card2: Card, card3: Card) extends BoardState {
     def allHands: List[Hand] =
-      players.map { case Player(x, y) => Hand(List(x, y, card1, card2, card3)) }
+      players.map { case Player(x, y) => Hand.rank(List(x, y, card1, card2, card3)) }
   }
   final case class Turn(players: List[Player], deck: Deck, card1: Card, card2: Card, card3: Card, turn: Card)
       extends BoardState
@@ -52,7 +57,7 @@ object BoardState {
     turn: Card,
     river: Card
   ) extends BoardState
-
+// TODo Refactor all the unapplys
   object Preflop {
     def unapply(state: Preflop): Option[(List[Player], Deck)] =
       // TODO: What's suppose to happen here?  validation?
