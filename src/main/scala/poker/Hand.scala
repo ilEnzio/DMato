@@ -2,7 +2,6 @@ package poker
 
 import cats.implicits._
 
-//import cats.syntax.all._
 import OrderInstances._
 
 sealed trait Hand {
@@ -70,17 +69,13 @@ object Hand {
       val suitMap = hand
         .groupBy(_.suit)
         .filter { case (_, cards) => cards.length >= 5 }
+
       if (suitMap.isEmpty) None
       else {
-        val flushCards    = suitMap.toList.head._2.sorted.reverse
-        val wheelStraight = List(Ace, Five, Four, Three, Two)
-        val check4Str: Option[Rank] = {
-          val strPair = flushCards.zip(flushCards.drop(4))
-          strPair
-            .find(x => x._1.rank.value == x._2.rank.value + 4)
-            .map(_._1.rank)
-        }
-        if (check4Str.isDefined) Some(StraightFlush(hand, check4Str.get))
+        val flushCards              = suitMap.toList.head._2.sorted.reverse
+        val wheelStraight           = List(Ace, Five, Four, Three, Two)
+        val rankOfStr: Option[Rank] = rankOfStraight(flushCards)
+        if (rankOfStr.isDefined) Some(StraightFlush(hand, rankOfStr.get))
         else if (flushCards.map(_.rank).count(wheelStraight.contains(_)) == 5) Some(StraightFlush(hand, Five))
         else None
       }
@@ -89,7 +84,7 @@ object Hand {
 
   object FourOfAKind {
     def unapply(hand: List[Card]): Option[FourOfAKind] = {
-      val rankGroups = hand.groupBy(_.rank).toList.sortBy(_._2.size).reverse
+      val rankGroups = hand.groupBy(_.rank).toList.sortBy(_._2.size)
       rankGroups
         .collectFirst {
           case (rank, cards) if cards.length == 4 =>
@@ -100,7 +95,7 @@ object Hand {
 
   object FullHouse {
     def unapply(hand: List[Card]): Option[FullHouse] = {
-      val rankGroups: Seq[(Rank, List[Card])] = hand.groupBy(_.rank).toList.sortBy(_._2.size).reverse
+      val rankGroups: Seq[(Rank, List[Card])] = hand.groupBy(_.rank).toList.sortBy(_._2.size)
 
       // sort; collect the first set
       // remove that set and repeat
@@ -136,18 +131,20 @@ object Hand {
 
   object Straight {
     def unapply(hand: List[Card]): Option[Straight] = {
-      val sorted        = hand.distinctBy(_.rank).sortBy(_.rank).reverse
-      val wheelStraight = List(Ace, Five, Four, Three, Two)
-      val check4Str: Option[Rank] = {
-        val strPair = sorted.zip(sorted.drop(4))
-        strPair
-          .find(x => x._1.rank.value == x._2.rank.value + 4)
-          .map(_._1.rank)
-      }
-      if (check4Str.isDefined) Some(Straight(hand, check4Str.get))
+      val sorted                  = hand.distinctBy(_.rank).sortBy(_.rank).reverse
+      val wheelStraight           = List(Ace, Five, Four, Three, Two)
+      val rankOfStr: Option[Rank] = rankOfStraight(sorted)
+      if (rankOfStr.isDefined) Some(Straight(hand, rankOfStr.get))
       else if (sorted.map(_.rank).count(wheelStraight.contains(_)) == 5) Some(Straight(hand, Five))
       else None
     }
+  }
+
+  private def rankOfStraight(sorted: List[Card]): Option[Rank] = {
+    val strPair = sorted.zip(sorted.drop(4))
+    strPair
+      .find(x => x._1.rank.value == x._2.rank.value + 4)
+      .map(_._1.rank)
   }
 
   object ThreeOfAKind {
@@ -190,21 +187,12 @@ object Hand {
         .sortBy(_._1.value)
 
       // TODO This still seems wrong.
-//      pair.size match {
-//        case 1 =>
-//          val head        = pair.head
-//          val usedCards   = head._2
-//          val unUsedCards = hand.filterNot(usedCards.contains(_)).sorted.reverse
-//          Some(Pair(hand, pair.head._1, unUsedCards))
-//        case _ => None
-//      }
       pair.size match {
         case 1 =>
-          for {
-            head <- pair.headOption
-            usedCards   = head._2
-            unUsedCards = hand.filterNot(usedCards.contains(_)).sorted.reverse
-          } yield Pair(hand, pair.head._1, unUsedCards)
+          val head        = pair.head
+          val usedCards   = head._2
+          val unUsedCards = hand.filterNot(usedCards.contains(_)).sorted.reverse
+          Some(Pair(hand, pair.head._1, unUsedCards))
         case _ => None
       }
 

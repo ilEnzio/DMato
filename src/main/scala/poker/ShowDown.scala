@@ -8,5 +8,4 @@ sealed trait ShowDown
 object ShowDown {
   def apply(hands: List[Hand]): List[Hand] =
     hands.maximumList
-
 }
