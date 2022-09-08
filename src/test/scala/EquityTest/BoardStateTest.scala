@@ -1,11 +1,12 @@
 package EquityTest
 
-import org.scalacheck.Prop.{forAll, propBoolean, AnyOperators, False}
+import org.scalacheck.Prop.{forAll, propBoolean, AnyOperators}
 import org.scalacheck.Properties
-import poker.BoardState.{Flop, Preflop, River, Turn}
+import poker.BoardState.{Flop, River, Turn}
 import poker.{BoardState, Card, Hand, ShowDown}
 import poker.Hand._
-import pokerData.DataGenerators._
+
+import pokerData.BoardGenerators._
 
 object BoardStateTest extends Properties("BoardState Tests") {
 

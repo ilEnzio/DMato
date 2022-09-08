@@ -1,11 +1,11 @@
 package pokerTest
 
 import cats.effect.unsafe.implicits.global
-import org.scalacheck.Gen.{const, pick}
+import org.scalacheck.Gen.{pick}
 import org.scalacheck.Prop.{forAll, propBoolean, AnyOperators}
-import org.scalacheck.{Arbitrary, Gen, Properties}
-import poker.OrderInstances.{cardOrder, rankOrder}
-import poker.{BoardState, Card, Deck, Rank, Suit}
+import org.scalacheck.{Properties}
+import poker.OrderInstances.{rankOrder}
+import poker.{Card, Deck, Suit}
 import pokerData.DeckGenerators._
 
 object DeckPropTest extends Properties("DeckTest") {
@@ -15,7 +15,6 @@ object DeckPropTest extends Properties("DeckTest") {
 
   property("can shuffle a deck") = forAll(genDeck) { deck =>
     val shuffled = deck.shuffle.unsafeRunSync()
-//    val shuffled = deck
     (deck.size ?= shuffled.size) :| "Size is the same" &&
     (deck.size ?= shuffled.cards.distinct.size) &&
     (deck.cards != shuffled.cards)
