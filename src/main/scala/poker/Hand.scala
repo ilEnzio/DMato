@@ -189,16 +189,25 @@ object Hand {
         .toList
         .sortBy(_._1.value)
 
-      (pair.size == 1)
-        .guard[Option]
-        .as {
+      // TODO This still seems wrong.
+//      pair.size match {
+//        case 1 =>
+//          val head        = pair.head
+//          val usedCards   = head._2
+//          val unUsedCards = hand.filterNot(usedCards.contains(_)).sorted.reverse
+//          Some(Pair(hand, pair.head._1, unUsedCards))
+//        case _ => None
+//      }
+      pair.size match {
+        case 1 =>
           for {
             head <- pair.headOption
             usedCards   = head._2
             unUsedCards = hand.filterNot(usedCards.contains(_)).sorted.reverse
           } yield Pair(hand, pair.head._1, unUsedCards)
-        }
-        .flatten
+        case _ => None
+      }
+
     }
   }
   object HighCard {
