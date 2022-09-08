@@ -1,9 +1,9 @@
 package pokerTest
 
 import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
-import org.scalacheck.{Gen, Properties}
+import org.scalacheck.{Properties}
 import cats.implicits.catsSyntaxPartialOrder
-import poker.Hand.{Flush, FullHouse, HighCard, Straight, StraightFlush}
+import poker.Hand.{StraightFlush}
 import poker.OrderInstances._
 import poker.Rank.rankMap
 import poker._
