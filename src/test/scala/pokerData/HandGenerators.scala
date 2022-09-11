@@ -13,14 +13,22 @@ import scala.util.Random
 
 object HandGenerators {
 
-  val genHand: Gen[UnrankedHand] = for {
-    cards <- pick(7, Deck.all)
-  } yield UnrankedHand(cards.toList)
-
   val genStraightFlush: Gen[StraightFlush] = for {
     newSuit  <- genSuit
     straight <- genStraight
-  } yield Hand.rank(straight.cards.distinctBy(_.rank).map(x => x.copy(suit = newSuit))).asInstanceOf[StraightFlush]
+  } yield StraightFlush(straight.cards.distinctBy(_.rank).map(x => x.copy(suit = newSuit)), straight.rank)
+
+//  val genFourOfAKind2: Gen[FourOfAKind] =
+//    for {
+//      rank <- genRank
+//      quads = Deck.all.groupBy(_.rank)(rank)
+//      card1 <- genCard.suchThat(c => c.rank != rank)
+//      card2 <- genCard.suchThat(c => c != card1 && c.rank != rank)
+//      card3 <- genCard.suchThat(c => !List(card1, card2).contains(c) && c.rank != rank)
+//    } yield Hand.rank(card1 :: card2 :: card3 :: quads).asInstanceOf[FourOfAKind]
+
+  // TODO Yiikes!!! I found a bug!!!  Kickers are just collections of ints!  Because suits don't matter to my
+  // ordering.
 
   val genFourOfAKind: Gen[FourOfAKind] =
     for {
@@ -29,6 +37,7 @@ object HandGenerators {
       card1 <- genCard.suchThat(c => c.rank != rank)
       card2 <- genCard.suchThat(c => c != card1 && c.rank != rank)
       card3 <- genCard.suchThat(c => !List(card1, card2).contains(c) && c.rank != rank)
+      kickers = List(card1, card2, card3).sorted.reverse
     } yield Hand.rank(card1 :: card2 :: card3 :: quads).asInstanceOf[FourOfAKind]
 
   val genFullHouse: Gen[FullHouse] =
@@ -193,15 +202,13 @@ object HandGenerators {
     grouped: Map[Rank, List[Card]] = Deck.all.groupBy(_.rank)
     pair <- pick(2, grouped(rank))
     //    rankingList = HandRank.all.filterNot(_ == Pair)
-    rest <- pick(5, Deck.all.filterNot(pair.toList.contains(_))).retryUntil(x =>
+    rest <- pick(5, Deck.all.filterNot(pair.contains(_))).retryUntil(x =>
       Hand.rank(pair.toList ++ x.toList) match {
         case _: Pair => true
         case _       => false
       }
     )
-  } yield Hand
-    .rank(pair.toList ++ rest.toList)
-    .asInstanceOf[Pair] // Hand_2.rank(pair.toList ++ hand.cards.take(5))[Pair]
+  } yield Pair(pair.toList ++ rest.toList, rank, rest.sorted.reverse.toList)
 
   val genHighCard: Gen[HighCard] = {
     val suits  = Random.shuffle(Suit.all)
@@ -247,4 +254,17 @@ object HandGenerators {
     val variations = List(hand1, hand2, hand3).map(_.asInstanceOf[HighCard])
     oneOf(variations)
   }
+
+  val genHand: Gen[Hand] =
+    oneOf(
+      genHighCard,
+      genPair,
+      genTwoPair,
+      genThreeOfAKind,
+      genStraight,
+      genFlush,
+      genFullHouse,
+      genFourOfAKind,
+      genStraightFlush
+    )
 }
