@@ -27,6 +27,11 @@ object ShowDownTest extends Properties("ShowDownTest") {
   property("StraightFlush: the Highest Ranked StraightFlush wins") =
     forAll(genNutStraightFlush, genNonNutStraightFlush) { (nutStrFlush, nonNutStrFlush) =>
       val testList = shuffle(List(nonNutStrFlush, nutStrFlush))
+
+      // Given a board state
+      // deal to the river
+      // evaluate the Showdown result
+      // return a list of player numbers/positions
       ("Nuts vs NonNuts" |: (ShowDown(testList) ?= List(nutStrFlush))) &&
       ("Nuts vs NonNuts2" |: (ShowDown(testList) != List(nonNutStrFlush)))
     }
@@ -36,7 +41,7 @@ object ShowDownTest extends Properties("ShowDownTest") {
       val testList = shuffle(List(quads, boat, strFlush))
       ShowDown(testList) ?= List(strFlush)
   }
-
+// TODO Either I have to change the api/model or change the tests... I think the model
   property("FourOfAKind beats FullHouse, Flush") = forAll(genFourOfAKind, genFullHouse, genNutFlush) {
     (quads, boat, flush) =>
       val testList = shuffle(List(boat, flush, quads))
