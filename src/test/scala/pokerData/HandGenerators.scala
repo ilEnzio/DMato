@@ -154,6 +154,12 @@ object HandGenerators {
     } yield finalHand
   }
 
+  val genNonNutStraight: Gen[Straight] = for {
+    hand1     <- genWheelStraight
+    hand2     <- genStraight_(7)
+    finalHand <- frequency((1, hand1), (10, hand2))
+  } yield finalHand
+
   val genThreeOfAKind: Gen[ThreeOfAKind] = for {
     ranks <- pick(5, Rank.all).retryUntil { r =>
       val x = r.toList.map(_.value).sorted

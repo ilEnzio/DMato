@@ -1,18 +1,10 @@
 package pokerTest
 
-import cats.implicits.catsSyntaxPartialOrder
 import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 import org.scalacheck.Properties
 import poker.Hand._
 import pokerData.HandGenerators._
-import pokerData.SpecialHandsGenerators.{
-  genDeucesFullOfTres,
-  genNonNutFlush,
-  genNonNutStraightFlush,
-  genNutFlush,
-  genNutStraight,
-  genNutStraightFlush
-}
+import pokerData.SpecialHandsGenerators._
 import poker._
 import OrderInstances.handOrder
 
@@ -39,7 +31,7 @@ object RankingTest extends Properties("Ranking Tests") {
         case _: StraightFlush => false
         case _                => true
       }) ==> {
-        ("StraightFlush beats Any other" |: handOrder.compare(strFlush, other) > 0)
+        "StraightFlush beats Any other" |: handOrder.compare(strFlush, other) > 0
       }
   }
 
@@ -99,7 +91,6 @@ object RankingTest extends Properties("Ranking Tests") {
   }
 
   property("Flush: NutFlush beats smaller flush") = forAll(genNutFlush, genNonNutFlush) { (nutFlush, nonNut) =>
-    val testList = shuffle(List(nonNut, nutFlush))
     "Nut flush beats  NonNut flush" |: handOrder.compare(nutFlush, nonNut) > 0
   }
 
@@ -125,8 +116,7 @@ object RankingTest extends Properties("Ranking Tests") {
     }
   }
 
-  // TODO the Nonnut Still generated broadway
-  property("Straight: The highest Ranked Straight wins") = forAll(genNutStraight, genStraight) {
+  property("Straight: The highest Ranked Straight wins") = forAll(genNutStraight, genNonNutStraight) {
     (broadway, nonNutStraight) =>
       (handOrder.compare(nonNutStraight, broadway) != 0) ==> {
         (Hand.rank(nonNutStraight.cards) != Hand.rank(broadway.cards)) ==> {
