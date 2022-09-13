@@ -1,8 +1,10 @@
 package pokerTest
 
+import cats.effect.unsafe.implicits.global
 import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 import org.scalacheck.Properties
-import cats.implicits.{catsSyntaxPartialOrder}
+import cats.implicits.catsSyntaxPartialOrder
+import poker.BoardState.River
 import poker.OrderInstances._
 import poker.Rank.rankMap
 import poker._
@@ -18,6 +20,47 @@ object ShowDownTest extends Properties("ShowDownTest") {
       val testList = shuffle(List(quads, boat, strFlush))
       ShowDown(testList) ?= List(strFlush)
   }
+
+  // TODO This is not a property
+  property("A player with a Straight flush beats a player with Four of a Kind of the River") = {
+    val pl1 = Player(Card(Ace, Spades), Card(Ace, Clubs))
+    val pl2 = Player(Card(King, Hearts), Card(Queen, Hearts))
+    val deck =
+      Deck.makeStartingDeck.remove(List(Card(Ace, Spades), Card(Ace, Clubs), Card(King, Spades), Card(King, Hearts)))
+    val river = River(
+      List(pl1, pl2),
+      deck,
+      Card(Ace, Hearts),
+      Card(Ace, Diamonds),
+      Card(Jack, Hearts),
+      Card(Ten, Hearts),
+      Card(Nine, Hearts)
+    )
+
+    ShowDown.fromRiver(river) ?= WinnerList(Map(1 -> 1, 2 -> 0))
+  }
+//  property("For Two players the Showdown will award all winners") = {
+//    val startDeck  = Deck.makeStartingDeck.shuffle.unsafeRunSync()
+//    val boardCards = startDeck.take(9)
+//    val deck       = startDeck.drop(9)
+//    val pl1        = Player(boardCards(0), boardCards(1))
+//    val pl2        = Player(boardCards(2), boardCards(3))
+//    val river = River(
+//      List(pl1, pl2),
+//      deck,
+//      boardCards(4),
+//      boardCards(5),
+//      boardCards(6),
+//      boardCards(7),
+//      boardCards(8)
+//    )
+//
+//    // if pl1 hand > pl2 => WinnerList(Map(1 -> 1, 2 -> 0))
+//    // pl2 > pl1 => WinnerList(Map(1 -> 0, 2 -> 1))
+//    // pl1 == pl2 => WinnerList(Map(1 -> 1, 2 -> 1))
+//
+//  }
+
 // TODO Either I have to change the api/model or change the tests... I think the model
   property("FourOfAKind beats FullHouse, Flush") = forAll(genFourOfAKind, genFullHouse, genNutFlush) {
     (quads, boat, flush) =>
