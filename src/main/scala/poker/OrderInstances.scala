@@ -8,7 +8,7 @@ object OrderInstances {
   // I should have only one Order instance of hand
   // therefore what I could do is model
 
-  implicit val hand_2Order: Order[Hand] = new Order[Hand] {
+  implicit val handOrder: Order[Hand] = new Order[Hand] {
     override def compare(x: Hand, y: Hand): Int =
       if (x.score != y.score) x.score - y.score
       else
@@ -35,7 +35,7 @@ object OrderInstances {
           case (HighCard(a), HighCard(b)) => compareCorresponding(a.cards, b.cards)
         }
   }
-  implicit val hand_2Ordering: Ordering[Hand] = hand_2Order.toOrdering
+  implicit val handOrdering: Ordering[Hand] = handOrder.toOrdering
 
   implicit val cardOrder: Order[Card] = (x: Card, y: Card) => x.rank.value - y.rank.value
   implicit val cardOrdering           = cardOrder.toOrdering // TODO ask about this.

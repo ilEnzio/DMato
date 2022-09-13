@@ -6,7 +6,7 @@ import poker._
 import pokerData.DeckGenerators._
 import pokerData.HandGenerators._
 import poker.Hand.{Flush, FullHouse, HighCard, Straight, StraightFlush}
-import poker.OrderInstances._
+import poker.OrderInstances.cardOrdering
 
 object SpecialHandsGenerators {
 
