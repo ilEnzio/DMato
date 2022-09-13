@@ -8,8 +8,6 @@ import pokerData.SpecialHandsGenerators._
 import poker._
 import OrderInstances.handOrder
 
-import scala.util.Random.shuffle
-
 object RankingTest extends Properties("Ranking Tests") {
 
   property("A StraightFlush is not Ranked a Straight or Flush ") = forAll(genStraightFlush) { hand =>

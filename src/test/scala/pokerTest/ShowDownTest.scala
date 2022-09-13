@@ -2,7 +2,7 @@ package pokerTest
 
 import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 import org.scalacheck.Properties
-import cats.implicits.{catsSyntaxPartialOrder, toFoldableOps}
+import cats.implicits.{catsSyntaxPartialOrder}
 import poker.OrderInstances._
 import poker.Rank.rankMap
 import poker._
@@ -12,7 +12,6 @@ import pokerData.SpecialHandsGenerators._
 import scala.util.Random.shuffle
 
 object ShowDownTest extends Properties("ShowDownTest") {
-// TODO this is not really a showdown test
 
   property("StraightFlush beats FourOfKind, FullHouse") = forAll(genStraightFlush, genFourOfAKind, genFullHouse) {
     (strFlush, quads, boat) =>

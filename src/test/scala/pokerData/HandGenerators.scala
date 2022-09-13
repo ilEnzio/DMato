@@ -256,7 +256,7 @@ object HandGenerators {
           Card(rankMap(2 + offset), suits(3))
         )
       )
-
+// TODO Ask about this one
     val variations = List(hand1, hand2, hand3).map(_.asInstanceOf[HighCard])
     oneOf(variations)
   }
