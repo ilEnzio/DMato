@@ -4,6 +4,7 @@ import cats.implicits._
 import poker.BoardState.River
 import poker.OrderInstances._
 import cats.kernel.Monoid
+import org.scalactic.anyvals.NonEmptySet
 
 sealed trait ShowDown
 
@@ -11,23 +12,29 @@ object ShowDown {
   def apply(hands: List[Hand]): List[Hand] =
     hands.maximumList
 
-  def fromRiver(board: River): WinnerList = {
+  // what I might do is make the show down pass through all states
+  // then parameterize fromRiver from[A :< River]
+
+  def fromRiver(board: River): Option[NonEmptySet[Int]] = {
 // TODO this map to reverse the zip seems goofy
 
-    // TODO: Also need to refactor/extract the assembling of the hands, because I can use that for the tests
-    val hands = board.players
+    val hands = allHands(board)
+
+    val handsSet = hands
+      .maximumByList[Hand](x => x._2)
+      .map { case (player, _) => player }
+      .toSet
+
+    NonEmptySet.from(handsSet)
+  }
+
+  def allHands(board: River): List[(Int, Hand)] =
+    board.players
       .map { case Player(x, y) =>
         Hand.rank(List(x, y, board.card1, board.card2, board.card3, board.turn, board.river))
       }
       .zipWithIndex
-      .map { case (x, y) => (y, x) }
-
-    hands
-      .maximumByList[Hand](x => x._2)
-      .map { case (player, _) => WinnerList(Map(player -> 1)) }
-      .foldLeft(WinnerList.initial(board.players.size))(_ |+| _)
-  }
-
+      .map { case (x, y) => (y + 1, x) }
 }
 
 case class WinnerList(map: Map[Int, Int]) // ToDo Player position, rather than int ??

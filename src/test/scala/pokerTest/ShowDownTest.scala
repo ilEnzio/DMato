@@ -1,9 +1,11 @@
 package pokerTest
 
+import cats.data.NonEmptyList
 import cats.effect.unsafe.implicits.global
 import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 import org.scalacheck.Properties
-import cats.implicits.catsSyntaxPartialOrder
+import cats.implicits.{catsSyntaxOptionId, catsSyntaxPartialOrder}
+import org.scalactic.anyvals.NonEmptySet
 import poker.BoardState.River
 import poker.OrderInstances._
 import poker.Rank.rankMap
@@ -36,30 +38,35 @@ object ShowDownTest extends Properties("ShowDownTest") {
       Card(Ten, Hearts),
       Card(Nine, Hearts)
     )
-
-    ShowDown.fromRiver(river) ?= WinnerList(Map(1 -> 1, 2 -> 0))
+    ShowDown.fromRiver(river) ?= Some(NonEmptySet(2))
   }
-//  property("For Two players the Showdown will award all winners") = {
-//    val startDeck  = Deck.makeStartingDeck.shuffle.unsafeRunSync()
-//    val boardCards = startDeck.take(9)
-//    val deck       = startDeck.drop(9)
-//    val pl1        = Player(boardCards(0), boardCards(1))
-//    val pl2        = Player(boardCards(2), boardCards(3))
-//    val river = River(
-//      List(pl1, pl2),
-//      deck,
-//      boardCards(4),
-//      boardCards(5),
-//      boardCards(6),
-//      boardCards(7),
-//      boardCards(8)
-//    )
-//
-//    // if pl1 hand > pl2 => WinnerList(Map(1 -> 1, 2 -> 0))
-//    // pl2 > pl1 => WinnerList(Map(1 -> 0, 2 -> 1))
-//    // pl1 == pl2 => WinnerList(Map(1 -> 1, 2 -> 1))
-//
-//  }
+
+  property("For Two players the Showdown will award all winners") = {
+    val startDeck  = Deck.makeStartingDeck.shuffle.unsafeRunSync()
+    val boardCards = startDeck.take(9)
+    val deck       = startDeck.drop(9)
+    val pl1        = Player(boardCards(0), boardCards(1))
+    val pl2        = Player(boardCards(2), boardCards(3))
+    val river = River(
+      List(pl1, pl2),
+      deck,
+      boardCards(4),
+      boardCards(5),
+      boardCards(6),
+      boardCards(7),
+      boardCards(8)
+    )
+    val (fst, snd) = (ShowDown.allHands(river)(0)._2, ShowDown.allHands(river)(1)._2)
+
+    // if pl1 hand > pl2 => WinnerList(Map(1 -> 1, 2 -> 0))
+    // pl2 > pl1 => WinnerList(Map(1 -> 0, 2 -> 1))
+    // pl1 == pl2 => WinnerList(Map(1 -> .5, 2 -> .5))
+    (fst, snd) match {
+      case _ if fst > snd  => ShowDown.fromRiver(river) ?= Some(NonEmptySet(1))
+      case _ if fst < snd  => ShowDown.fromRiver(river) ?= Some(NonEmptySet(2))
+      case _ if fst == snd => ShowDown.fromRiver(river) ?= Some(NonEmptySet(1, 2))
+    }
+  }
 
 // TODO Either I have to change the api/model or change the tests... I think the model
   property("FourOfAKind beats FullHouse, Flush") = forAll(genFourOfAKind, genFullHouse, genNutFlush) {
