@@ -187,17 +187,26 @@ object Hand {
         .sortBy(_._1.value)
 
       // TODO This still seems wrong.
-      pair.size match {
-        case 1 =>
-          val head        = pair.head
+      //      pair.size match {
+      //        case 1 =>
+      //          val head        = pair.head
+      //          val usedCards   = head._2
+      //          val unUsedCards = hand.filterNot(usedCards.contains(_)).sorted.reverse
+      //          Some(Pair(hand, pair.head._1, unUsedCards))
+      //        case _ => None
+      //      }
+
+      pair match {
+        case head :: Nil =>
           val usedCards   = head._2
           val unUsedCards = hand.filterNot(usedCards.contains(_)).sorted.reverse
           Some(Pair(hand, pair.head._1, unUsedCards))
+
         case _ => None
       }
-
     }
   }
+
   object HighCard {
     def unapply(hand: List[Card]): Option[HighCard] = {
       val sorted = hand.sorted.reverse
@@ -205,4 +214,5 @@ object Hand {
       Some(HighCard(sorted, rank))
     }
   }
+
 }
