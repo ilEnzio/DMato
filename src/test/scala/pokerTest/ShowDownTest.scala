@@ -1,10 +1,9 @@
 package pokerTest
 
-import cats.data.NonEmptyList
 import cats.effect.unsafe.implicits.global
 import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 import org.scalacheck.Properties
-import cats.implicits.{catsSyntaxOptionId, catsSyntaxPartialOrder}
+import cats.implicits.{catsSyntaxPartialOrder}
 import org.scalactic.anyvals.NonEmptySet
 import poker.BoardState.{Flop, Preflop, River, Turn}
 import poker.OrderInstances._
@@ -58,9 +57,6 @@ object ShowDownTest extends Properties("ShowDownTest") {
     )
     val (fst, snd) = (ShowDown.allHands(river)(0)._2, ShowDown.allHands(river)(1)._2)
 
-    // if pl1 hand > pl2 => WinnerList(Map(1 -> 1, 2 -> 0))
-    // pl2 > pl1 => WinnerList(Map(1 -> 0, 2 -> 1))
-    // pl1 == pl2 => WinnerList(Map(1 -> .5, 2 -> .5))
     (fst, snd) match {
       case (x, y) if x > y  => ShowDown.from(river) ?= Some(NonEmptySet(1))
       case (x, y) if x < y  => ShowDown.from(river) ?= Some(NonEmptySet(2))
@@ -270,7 +266,7 @@ object ShowDownTest extends Properties("ShowDownTest") {
       val winningHand = Hand.rank(oCardList.take(5))
       val dupeAHigh   = createDupe(4)
       val testList    = shuffle(List(winningHand, other, dupeAHigh))
-      (ShowDown(testList)) ?= List(winningHand)
+      ShowDown(testList) ?= List(winningHand)
     }
   }
 }
