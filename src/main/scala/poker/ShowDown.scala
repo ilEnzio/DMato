@@ -1,7 +1,7 @@
 package poker
 
 import cats.implicits._
-import poker.BoardState.River
+import poker.BoardState.{Flop, Preflop, River, Turn}
 import poker.OrderInstances._
 import cats.kernel.Monoid
 import org.scalactic.anyvals.NonEmptySet
@@ -15,10 +15,38 @@ object ShowDown {
   // what I might do is make the show down pass through all states
   // then parameterize fromRiver from[A :< River]
 
-  def fromRiver(board: River): Option[NonEmptySet[Int]] = {
+  def from[A >: BoardState](board: A): Option[NonEmptySet[Int]] =
+    // TODO this map to reverse the zip seems goofy
+    board match {
+      case x: Preflop => fromPreFlop(x)
+      case x: Flop    => fromFlop(x)
+      case x: Turn    => fromTurn(x)
+      case x: River   => fromRiver(x)
+    }
+
+  def fromPreFlop(preflop: Preflop): Option[NonEmptySet[Int]] = {
+
+    val flop  = BoardState.deal(preflop)
+    val turn  = BoardState.deal(flop)
+    val river = BoardState.deal(turn)
+    from(river)
+  }
+
+  def fromFlop(flop: Flop): Option[NonEmptySet[Int]] = {
+    val turn  = BoardState.deal(flop)
+    val river = BoardState.deal(turn)
+    from(river)
+  }
+
+  def fromTurn(turn: Turn): Option[NonEmptySet[Int]] = {
+    val river = BoardState.deal(turn)
+    from(river)
+  }
+
+  def fromRiver(river: River): Option[NonEmptySet[Int]] = {
 // TODO this map to reverse the zip seems goofy
 
-    val hands = allHands(board)
+    val hands = allHands(river)
 
     val handsSet = hands
       .maximumByList[Hand](x => x._2)
