@@ -16,19 +16,7 @@ object HandGenerators {
   val genStraightFlush: Gen[StraightFlush] = for {
     newSuit  <- genSuit
     straight <- genStraight
-  } yield StraightFlush(straight.cards.distinctBy(_.rank).map(x => x.copy(suit = newSuit)), straight.rank)
-
-//  val genFourOfAKind2: Gen[FourOfAKind] =
-//    for {
-//      rank <- genRank
-//      quads = Deck.all.groupBy(_.rank)(rank)
-//      card1 <- genCard.suchThat(c => c.rank != rank)
-//      card2 <- genCard.suchThat(c => c != card1 && c.rank != rank)
-//      card3 <- genCard.suchThat(c => !List(card1, card2).contains(c) && c.rank != rank)
-//    } yield Hand.rank(card1 :: card2 :: card3 :: quads).asInstanceOf[FourOfAKind]
-
-  // TODO Yiikes!!! I found a bug!!!  Kickers are just collections of ints!  Because suits don't matter to my
-  // ordering.
+  } yield StraightFlush(straight.rank)
 
   val genFourOfAKind: Gen[FourOfAKind] =
     for {
@@ -214,7 +202,7 @@ object HandGenerators {
         case _       => false
       }
     )
-  } yield Pair(pair.toList ++ rest.toList, rank, rest.sorted.reverse.toList)
+  } yield Pair(rank, rest.sorted.reverse.toList)
 
   val genHighCard: Gen[HighCard] = {
     val suits  = Random.shuffle(Suit.all)

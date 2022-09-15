@@ -5,7 +5,6 @@ import cats.implicits._
 import OrderInstances._
 
 sealed trait Hand {
-  val cards: List[Card]
   val score = 0 // do I need this?
 }
 
@@ -24,41 +23,41 @@ object Hand {
       case HighCard(x)      => x
     }
 
-  final case class UnrankedHand(cards: List[Card]) extends Hand
+  final case class UnrankedHand() extends Hand
 
-  final case class StraightFlush(cards: List[Card], rank: Rank) extends Hand {
+  final case class StraightFlush(rank: Rank) extends Hand {
     override val score = 9
   }
 
-  final case class FourOfAKind(cards: List[Card], rank: Rank, kickers: List[Card]) extends Hand {
+  final case class FourOfAKind(rank: Rank, kickers: List[Card]) extends Hand {
     override val score = 8
   }
 
-  final case class FullHouse(cards: List[Card], rank1: Rank, rank2: Rank) extends Hand {
+  final case class FullHouse(rank1: Rank, rank2: Rank) extends Hand {
     override val score = 7
   }
 
-  final case class Flush(cards: List[Card], rank: Rank) extends Hand {
+  final case class Flush(rank: Rank) extends Hand {
     override val score = 6
   }
 
-  final case class Straight(cards: List[Card], rank: Rank) extends Hand {
+  final case class Straight(rank: Rank) extends Hand {
     override val score = 5
   }
 
-  final case class ThreeOfAKind(cards: List[Card], rank: Rank, kickers: List[Card]) extends Hand {
+  final case class ThreeOfAKind(rank: Rank, kickers: List[Card]) extends Hand {
     override val score = 4
   }
 
-  final case class TwoPair(cards: List[Card], rank1: Rank, rank2: Rank, kicker: List[Card]) extends Hand {
+  final case class TwoPair(rank1: Rank, rank2: Rank, kicker: List[Card]) extends Hand {
     override val score = 3
   }
 
-  final case class Pair(cards: List[Card], rank: Rank, kickers: List[Card]) extends Hand {
+  final case class Pair(rank: Rank, kickers: List[Card]) extends Hand {
     override val score = 2
   }
 
-  final case class HighCard(cards: List[Card], rank: Rank) extends Hand {
+  final case class HighCard(rank: Rank, kickers: List[Card]) extends Hand {
     override val score = 1
   }
 
@@ -75,8 +74,8 @@ object Hand {
         val flushCards              = suitMap.toList.head._2.sorted.reverse
         val wheelStraight           = List(Ace, Five, Four, Three, Two)
         val rankOfStr: Option[Rank] = rankOfStraight(flushCards)
-        if (rankOfStr.isDefined) Some(StraightFlush(hand, rankOfStr.get))
-        else if (flushCards.map(_.rank).count(wheelStraight.contains(_)) == 5) Some(StraightFlush(hand, Five))
+        if (rankOfStr.isDefined) Some(StraightFlush(rankOfStr.get))
+        else if (flushCards.map(_.rank).count(wheelStraight.contains(_)) == 5) Some(StraightFlush(Five))
         else None
       }
     }
@@ -88,7 +87,7 @@ object Hand {
       rankGroups
         .collectFirst {
           case (rank, cards) if cards.length == 4 =>
-            FourOfAKind(hand, rank, rankGroups.tail.flatMap(_._2))
+            FourOfAKind(rank, rankGroups.tail.flatMap(_._2))
         }
     }
   }
@@ -109,7 +108,7 @@ object Hand {
           .toList
           .sortBy(_._1)
           .findLast(_._2.size >= 2)
-      } yield FullHouse(hand, rank1, rank2)
+      } yield FullHouse(rank1, rank2)
     }
   }
 
@@ -124,7 +123,7 @@ object Hand {
         }
 
       groupBySuit5Count.collectFirst { case (_, cards) =>
-        Flush(hand, cards.max.rank)
+        Flush(cards.max.rank)
       }
     }
   }
@@ -134,8 +133,8 @@ object Hand {
       val sorted                  = hand.distinctBy(_.rank).sortBy(_.rank).reverse
       val wheelStraight           = List(Ace, Five, Four, Three, Two)
       val rankOfStr: Option[Rank] = rankOfStraight(sorted)
-      if (rankOfStr.isDefined) Some(Straight(hand, rankOfStr.get))
-      else if (sorted.map(_.rank).count(wheelStraight.contains(_)) == 5) Some(Straight(hand, Five))
+      if (rankOfStr.isDefined) Some(Straight(rankOfStr.get))
+      else if (sorted.map(_.rank).count(wheelStraight.contains(_)) == 5) Some(Straight(Five))
       else None
     }
   }
@@ -154,7 +153,7 @@ object Hand {
 
       setGroup.collectFirst { case (rank, cards) =>
         val unusedCards = hand.filterNot(cards.contains(_)).sorted
-        ThreeOfAKind(hand, rank, unusedCards)
+        ThreeOfAKind(rank, unusedCards)
       }
     }
   }
@@ -173,7 +172,7 @@ object Hand {
         rest <- pairsGrouped.tail.headOption
         usedCards   = head._2 ++ rest._2
         unUsedCards = hand.filterNot(usedCards.contains(_)).sorted.reverse
-      } yield TwoPair(hand, head._1, rest._1, unUsedCards)
+      } yield TwoPair(head._1, rest._1, unUsedCards)
     }
   }
 
@@ -184,23 +183,12 @@ object Hand {
         .groupBy(_.rank)
         .filter { case (_, cards) => cards.size == 2 }
         .toList
-        .sortBy(_._1.value)
-
-      // TODO This still seems wrong.
-      //      pair.size match {
-      //        case 1 =>
-      //          val head        = pair.head
-      //          val usedCards   = head._2
-      //          val unUsedCards = hand.filterNot(usedCards.contains(_)).sorted.reverse
-      //          Some(Pair(hand, pair.head._1, unUsedCards))
-      //        case _ => None
-      //      }
 
       pair match {
         case head :: Nil =>
           val usedCards   = head._2
           val unUsedCards = hand.filterNot(usedCards.contains(_)).sorted.reverse
-          Some(Pair(hand, pair.head._1, unUsedCards))
+          Some(Pair(pair.head._1, unUsedCards))
 
         case _ => None
       }
@@ -211,7 +199,7 @@ object Hand {
     def unapply(hand: List[Card]): Option[HighCard] = {
       val sorted = hand.sorted.reverse
       val rank   = sorted.head.rank
-      Some(HighCard(sorted, rank))
+      Some(HighCard(rank, sorted))
     }
   }
 

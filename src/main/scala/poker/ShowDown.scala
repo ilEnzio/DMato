@@ -67,10 +67,10 @@ object ShowDown {
 
 case class WinnerList(map: Map[Int, Int]) // ToDo Player position, rather than int ??
 object WinnerList {
-  def initial(n: Int): WinnerList =
+  def initial(n: Int)(implicit m: Monoid[WinnerList]): WinnerList =
     (1 to n)
       .map(x => WinnerList(Map(x -> 0)))
-      .foldLeft(WinnerList.winnerListMonoid.empty)(_ |+| _)
+      .foldLeft(m.empty)(m.combine)
 
   implicit val winnerListMonoid: Monoid[WinnerList] = new Monoid[WinnerList] {
     override def empty: WinnerList = WinnerList(Map.empty)
