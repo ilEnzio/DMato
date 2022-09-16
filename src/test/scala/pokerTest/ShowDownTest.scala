@@ -66,8 +66,8 @@ object ShowDownTest extends Properties("ShowDownTest") {
 
   property("at the Turn: For Two players the Showdown will award all winners") = {
     val startDeck  = Deck.makeStartingDeck.shuffle.unsafeRunSync()
-    val boardCards = startDeck.take(9)
-    val deck       = startDeck.drop(9)
+    val boardCards = startDeck.take(8)
+    val deck       = startDeck.drop(8)
     val pl1        = Player(boardCards(0), boardCards(1))
     val pl2        = Player(boardCards(2), boardCards(3))
     val turn = Turn(
@@ -92,8 +92,8 @@ object ShowDownTest extends Properties("ShowDownTest") {
 
   property("at the Flop: For Two players the Showdown will award all winners") = {
     val startDeck  = Deck.makeStartingDeck.shuffle.unsafeRunSync()
-    val boardCards = startDeck.take(9)
-    val deck       = startDeck.drop(9)
+    val boardCards = startDeck.take(7)
+    val deck       = startDeck.drop(7)
     val pl1        = Player(boardCards(0), boardCards(1))
     val pl2        = Player(boardCards(2), boardCards(3))
     val flop = Flop(

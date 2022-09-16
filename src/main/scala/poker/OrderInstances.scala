@@ -4,9 +4,6 @@ import cats.Order
 import poker.Hand._
 
 object OrderInstances {
-///  TODO: General, this is wrong, because they are all order of Hand
-  // I should have only one Order instance of hand
-  // therefore what I could do is model
 
   implicit val handOrder: Order[Hand] = new Order[Hand] {
     override def compare(x: Hand, y: Hand): Int =
@@ -38,7 +35,7 @@ object OrderInstances {
   implicit val handOrdering: Ordering[Hand] = handOrder.toOrdering
 
   implicit val cardOrder: Order[Card] = (x: Card, y: Card) => x.rank.value - y.rank.value
-  implicit val cardOrdering           = cardOrder.toOrdering // TODO ask about this.
+  implicit val cardOrdering           = cardOrder.toOrdering
 
   implicit val rankOrder: Order[Rank] = new Order[Rank] {
     override def compare(x: Rank, y: Rank): Int = x.value - y.value
