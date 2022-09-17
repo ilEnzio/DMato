@@ -16,7 +16,6 @@ object ShowDown {
   // then parameterize fromRiver from[A :< River]
 
   def from[A >: BoardState](board: A): Option[NonEmptySet[Int]] =
-    // TODO this map to reverse the zip seems goofy
     board match {
       case x: Preflop => fromPreFlop(x)
       case x: Flop    => fromFlop(x)
@@ -65,12 +64,12 @@ object ShowDown {
       .map { case (x, y) => (y + 1, x) }
 }
 
-case class WinnerList(map: Map[Int, Int]) // ToDo Player position, rather than int ??
+case class WinnerList(map: Map[Int, Int])
 object WinnerList {
-  def initial(n: Int): WinnerList =
+  def initial(n: Int)(implicit m: Monoid[WinnerList]): WinnerList =
     (1 to n)
       .map(x => WinnerList(Map(x -> 0)))
-      .foldLeft(WinnerList.winnerListMonoid.empty)(_ |+| _)
+      .foldLeft(m.empty)(m.combine)
 
   implicit val winnerListMonoid: Monoid[WinnerList] = new Monoid[WinnerList] {
     override def empty: WinnerList = WinnerList(Map.empty)

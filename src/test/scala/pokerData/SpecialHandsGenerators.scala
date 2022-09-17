@@ -20,7 +20,7 @@ object SpecialHandsGenerators {
 
   val genNonNutStraightFlush: Gen[StraightFlush] = for {
     nonNut <- genStraightFlush.retryUntil(x => x.rank != Ace)
-  } yield Hand.rank(nonNut.cards).asInstanceOf[StraightFlush]
+  } yield StraightFlush(nonNut.rank)
 
   val genDeucesFullOfTres: Gen[FullHouse] = {
     val rank1   = Two
@@ -80,7 +80,7 @@ object SpecialHandsGenerators {
     for {
       hand <- genHighCard
       suit <- genSuit
-    } yield Hand.rank(Card(Ace, suit) :: hand.cards.sorted.reverse.tail).asInstanceOf[HighCard]
+    } yield HighCard(Ace, Card(Ace, suit) :: hand.kickers.sorted.reverse.tail)
   }
 
 }
