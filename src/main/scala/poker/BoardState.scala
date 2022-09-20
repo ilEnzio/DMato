@@ -8,32 +8,29 @@ import cats.effect.IO
 /// TODO: I don't understand the proper use of unapply.
 /// I feel like I've just added a bunch of boiler plate
 
-sealed trait BoardState
-
-// TODO: I'm not sure I understand why it was suggested I put this in an object.
-// and I think I've gotten this wrong...
+sealed trait BoardState // Street
 
 object BoardState {
 
   def deal(players: List[Player]): IO[BoardState] = {
-    val deck: IO[Deck] = Deck.makeStartingDeck.shuffle
+    val deck: IO[PreflopDeck] = Deck.shuffle
     deck.map(Preflop(players, _))
   }
 
-//TODo: come back and fix the unapply
+  //TODo: come back and fix the unapply
   def deal(boardState: BoardState): BoardState =
     boardState match {
-//      case Preflop(ps, d)                        => dealFlop(ps, d)
-//      case BoardState.Flop(ps, d, c1, c2, c3)    => dealTurn(ps, d, c1, c2, c3)
-//      case BoardState.Turn(ps, d, c1, c2, c3, t) => dealRiver(ps, d, c1, c2, c3, t)
-//      case BoardState.River(ps, d, c1, c2, c3, t, r) => ???
+      //      case Preflop(ps, d)                        => dealFlop(ps, d)
+      //      case BoardState.Flop(ps, d, c1, c2, c3)    => dealTurn(ps, d, c1, c2, c3)
+      //      case BoardState.Turn(ps, d, c1, c2, c3, t) => dealRiver(ps, d, c1, c2, c3, t)
+      //      case BoardState.River(ps, d, c1, c2, c3, t, r) => ???
       case x: Preflop => dealFlop(x.players, x.deck) // flop factory
       case x: Flop    => dealTurn(x.players, x.deck, x.card1, x.card2, x.card3)
       case x: Turn    => dealRiver(x.players, x.deck, x.card1, x.card2, x.card3, x.turn)
       case x: River   => x
     }
 
-  final case class Preflop(players: List[Player], deck: Deck) extends BoardState {
+  final case class Preflop(players: List[Player], deck: PreflopDeck) extends BoardState {
     def allHands: List[Hand] =
       players.map { case Player(x, y) => Hand.rank(List(x, y)) }
   }
@@ -45,36 +42,20 @@ object BoardState {
       extends BoardState
   final case class River(
     players: List[Player],
-    deck: Deck,
+    deck: Deck, // ToDo remove
     card1: Card,
     card2: Card,
     card3: Card,
     turn: Card,
     river: Card
   ) extends BoardState
-// TODo Refactor all the unapplys
-  object Preflop {
-    def unapply(state: Preflop): Option[(List[Player], Deck)] =
-      // TODO: What's suppose to happen here?  validation?
-      Some(state.players, state.deck)
+  //// TODo Refactor all the unapplys
+  // TODO none of this is safe??
 
-  }
-  object Flop {
-    def unapply(flop: Flop): Option[(List[Player], Deck, Card, Card, Card)] =
-      Some(flop.players, flop.deck, flop.card1, flop.card2, flop.card3)
-  }
-
-  object Turn {
-    def unapply(turn: Turn): Option[(List[Player], Deck, Card, Card, Card, Card)] =
-      Some(turn.players, turn.deck, turn.card1, turn.card2, turn.card3, turn.turn)
-  }
-
-  object River {
-    def unapply(river: River): Option[(List[Player], Deck, Card, Card, Card, Card, Card)] =
-      Some(river.players, river.deck, river.card1, river.card2, river.card3, river.turn, river.river)
-  }
-// TODO none of this is safe??
-  def dealFlop(players: List[Player], deck: Deck): BoardState.Flop = {
+  /// State machine needs to go to the Deck. (FlopCards, FlopDeck)
+  // Flop - street
+  // FlopCards - the three cards
+  def dealFlop(players: List[Player], deck: PreflopDeck): BoardState.Flop = { // (FlopCards, FlopDeck)
     val newDeck = deck.drop(3)
     val flop    = deck.take(3)
     Flop(players, newDeck, flop(0), flop(1), flop(2))
@@ -94,4 +75,4 @@ object BoardState {
 
 }
 
-case class Player(card1: Card, card2: Card)
+case class Player(card1: Card, card2: Card) // position ??
