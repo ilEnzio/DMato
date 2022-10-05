@@ -1,7 +1,7 @@
 package poker
 
 import cats.implicits._
-import poker.BoardState.{Flop, Preflop, River, Turn}
+import poker.Street.{Flop, Preflop, River, Turn}
 import poker.OrderInstances._
 import cats.kernel.Monoid
 import org.scalactic.anyvals.NonEmptySet
@@ -15,7 +15,7 @@ object ShowDown {
   // what I might do is make the show down pass through all states
   // then parameterize fromRiver from[A :< River]
 
-  def from[A >: BoardState](board: A): Option[NonEmptySet[Int]] =
+  def from[A >: Street](board: A): Option[NonEmptySet[Int]] =
     board match {
       case x: Preflop => fromPreFlop(x)
       case x: Flop    => fromFlop(x)
@@ -25,20 +25,20 @@ object ShowDown {
 
   def fromPreFlop(preflop: Preflop): Option[NonEmptySet[Int]] = {
 
-    val flop  = BoardState.deal(preflop)
-    val turn  = BoardState.deal(flop)
-    val river = BoardState.deal(turn)
+    val flop  = Street.deal(preflop)
+    val turn  = Street.deal(flop)
+    val river = Street.deal(turn)
     from(river)
   }
 
   def fromFlop(flop: Flop): Option[NonEmptySet[Int]] = {
-    val turn  = BoardState.deal(flop)
-    val river = BoardState.deal(turn)
+    val turn  = Street.deal(flop)
+    val river = Street.deal(turn)
     from(river)
   }
 
   def fromTurn(turn: Turn): Option[NonEmptySet[Int]] = {
-    val river = BoardState.deal(turn)
+    val river = Street.deal(turn)
     from(river)
   }
 
