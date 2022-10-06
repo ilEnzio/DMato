@@ -16,6 +16,9 @@ sealed trait Street {
 object Street {
 
   def deal(numPlayers: Int): IO[Street] = {
+
+    // TODO Something isn't right here; Find out through test
+
     val players = PreflopDeck.all
       .take(numPlayers * 2)
       .grouped(2)
@@ -23,9 +26,9 @@ object Street {
       .toList
 //    new Preflop(players, PreflopDeck.Impl(PreflopDeck.all.drop(numPlayers * 2)))
     val deck: IO[PreflopDeck] = PreflopDeck.shuffle
-    for {
-      nd <- deck
-    } yield ???
+//    for {
+//      nd <- deck
+//    } yield ???
     deck.map(Preflop(players, _))
   }
 
@@ -50,12 +53,12 @@ object Street {
 
 //
 
-  final case class Flop(players: List[Player], deck: List[Card], card1: Card, card2: Card, card3: Card) extends Street {
+  final case class Flop(players: List[Player], deck: FlopDeck, card1: Card, card2: Card, card3: Card) extends Street {
     val allHands: List[Hand] =
       players.map { case Player(x, y) => Hand.rank(List(x, y, card1, card2, card3)) }
   }
 
-  final case class Turn(players: List[Player], deck: List[Card], card1: Card, card2: Card, card3: Card, turn: Card)
+  final case class Turn(players: List[Player], deck: TurnDeck, card1: Card, card2: Card, card3: Card, turn: Card)
       extends Street {
     val allHands: List[Hand] =
       players.map { case Player(x, y) => Hand.rank(List(x, y, card1, card2, card3, turn)) }
@@ -76,22 +79,22 @@ object Street {
   /// State machine needs to go to the Deck. (FlopCards, FlopDeck)
   // Flop - street
   // FlopCards - the three cards
-  def dealFlop(players: List[Player], deck: PreflopDeck): Street.Flop = { // (FlopCards, FlopDeck)
+  def dealFlop(players: List[Player], deck: PreflopDeck): Flop = { // (FlopCards, FlopDeck)
 
     val (flop, flopDeck) = deck.dealFlop
     Flop(players, flopDeck, flop.card1, flop.card2, flop.card3)
   }
 
-  def dealTurn(players: List[Player], deck: List[Card], fl1: Card, fl2: Card, fl3: Card): Turn = {
+  def dealTurn(players: List[Player], deck: FlopDeck, fl1: Card, fl2: Card, fl3: Card): Turn = {
 
-    val (turn, turnDeck) = FlopDeck.Impl(deck).dealTurn
+    val (turn, turnDeck) = deck.dealTurn
 
     Turn(players, turnDeck, fl1, fl2, fl3, turn.card)
   }
 
-  def dealRiver(players: List[Player], deck: List[Card], fl1: Card, fl2: Card, fl3: Card, t: Card): River = {
+  def dealRiver(players: List[Player], deck: TurnDeck, fl1: Card, fl2: Card, fl3: Card, t: Card): River = {
 
-    val river = TurnDeck.Impl(deck).dealRiver
+    val river = deck.dealRiver
     River(players, fl1, fl2, fl3, t, river.card)
   }
 
