@@ -183,7 +183,7 @@ object Hand {
         .groupBy(_.rank)
         .filter { case (_, cards) => cards.size == 2 }
         .toList
-
+      // pair.headOption.map{h => ...}
       pair match {
         case head :: Nil =>
           val usedCards   = head._2

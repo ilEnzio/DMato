@@ -5,7 +5,7 @@ import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 import org.scalacheck.Properties
 import cats.implicits.{catsSyntaxPartialOrder}
 import org.scalactic.anyvals.NonEmptySet
-import poker.BoardState.{Flop, Preflop, River, Turn}
+import poker.Street.{Flop, Preflop, River, Turn}
 import poker.OrderInstances._
 import poker.Rank.rankMap
 import poker._
@@ -78,7 +78,7 @@ object ShowDownTest extends Properties("ShowDownTest") {
       boardCards(6),
       boardCards(7)
     )
-    BoardState.deal(turn) match {
+    Street.deal(turn) match {
       case r: River =>
         val (fst, snd) = (ShowDown.allHands(r)(0)._2, ShowDown.allHands(r)(1)._2)
         (fst, snd) match {
@@ -104,9 +104,9 @@ object ShowDownTest extends Properties("ShowDownTest") {
       boardCards(6)
     )
 
-    val turn = BoardState.deal(flop)
+    val turn = Street.deal(flop)
 
-    BoardState.deal(turn) match {
+    Street.deal(turn) match {
       case r: River =>
         val (fst, snd) = (ShowDown.allHands(r)(0)._2, ShowDown.allHands(r)(1)._2)
         (fst, snd) match {
@@ -128,10 +128,10 @@ object ShowDownTest extends Properties("ShowDownTest") {
       List(pl1, pl2),
       deck
     )
-    val flop = BoardState.deal(preflop)
-    val turn = BoardState.deal(flop)
+    val flop = Street.deal(preflop)
+    val turn = Street.deal(flop)
 
-    BoardState.deal(turn) match {
+    Street.deal(turn) match {
       case r: River =>
         val (fst, snd) = (ShowDown.allHands(r)(0)._2, ShowDown.allHands(r)(1)._2)
         (fst, snd) match {
