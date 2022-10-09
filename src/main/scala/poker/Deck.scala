@@ -6,6 +6,7 @@ import scala.util.Random
 
 case class Deck(cards: List[Card]) {
   def size: Int = cards.length
+
 // I'm starting to get uncomfortable that outside stuff can reach into
 // cards.  Not sure about this.
 // TODO I think I can get rid of all this
