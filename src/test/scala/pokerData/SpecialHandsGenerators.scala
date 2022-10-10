@@ -2,7 +2,7 @@ package pokerData
 
 import org.scalacheck.Gen.pick
 import org.scalacheck.Gen
-import poker.Deck.PreflopDeck
+import poker.Deck.{PreflopDeck, StartingDeck}
 import poker._
 import pokerData.DeckGenerators._
 import pokerData.HandGenerators._
@@ -26,7 +26,7 @@ object SpecialHandsGenerators {
   val genDeucesFullOfTres: Gen[FullHouse] = {
     val rank1   = Two
     val rank2   = Three
-    val grouped = PreflopDeck.all.groupBy(_.rank)
+    val grouped = StartingDeck.all.groupBy(_.rank)
 
     for {
       set  <- pick(3, grouped(rank1))
@@ -36,7 +36,7 @@ object SpecialHandsGenerators {
 
   val genNutFlush: Gen[Flush] = for {
     suit <- genSuit
-    suited = PreflopDeck.all.filter(_.suit == suit)
+    suited = StartingDeck.all.filter(_.suit == suit)
     flush <- pick(5, suited).retryUntil(x =>
       x.contains(Card(Ace, suit)) &&
         (Hand.rank(x.toList) match {
@@ -55,7 +55,7 @@ object SpecialHandsGenerators {
 
   val genNonNutFlush: Gen[Flush] = for {
     suit <- genSuit
-    suited = PreflopDeck.all.filter(_.suit == suit)
+    suited = StartingDeck.all.filter(_.suit == suit)
     flush <- pick(5, suited).retryUntil(x =>
       !x.contains(Card(Ace, suit)) &&
         (Hand.rank(x.toList) match {

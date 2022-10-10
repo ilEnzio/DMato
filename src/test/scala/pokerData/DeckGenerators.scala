@@ -1,7 +1,6 @@
 package pokerData
 
 import org.scalacheck.Gen
-//import poker.Deck.makeStartingDeck
 import poker.{Card, Deck, Rank, Suit}
 
 object DeckGenerators {

@@ -2,6 +2,9 @@ package poker
 
 import cats.effect.IO
 import Deck._
+import cats.effect.unsafe.implicits.global
+
+import scala.util.Random
 
 // the idea here this that each "state" is a final case class
 // so the state is going through pipeline
@@ -15,21 +18,21 @@ sealed trait Street {
 
 object Street {
 
-  def deal(numPlayers: Int): IO[Street] = {
+  def dealHoleCards(numPlayers: Int): IO[Preflop] = {
 
     // TODO Something isn't right here; Find out through test
+    val shuffledDeck = IO(Random.shuffle(StartingDeck.all))
 
-    val players = PreflopDeck.all
-      .take(numPlayers * 2)
-      .grouped(2)
-      .map { case List(x, y) => Player(x, y) }
-      .toList
-//    new Preflop(players, PreflopDeck.Impl(PreflopDeck.all.drop(numPlayers * 2)))
-    val deck: IO[PreflopDeck] = PreflopDeck.shuffle
-//    for {
-//      nd <- deck
-//    } yield ???
-    deck.map(Preflop(players, _))
+    for {
+      cards <- shuffledDeck
+      players = cards
+        .take(numPlayers * 2)
+        .grouped(2)
+        .map { case List(x, y) => Player(x, y) }
+        .toList
+    } yield Preflop(players, PreFlopDeckImpl(cards)) // TODO I've broken encapuslation here
+
+//    deck.map(Preflop(players, _))
   }
 
   //TODo: come back and fix the unapply

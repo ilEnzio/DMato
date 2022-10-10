@@ -2,8 +2,8 @@ package pokerData
 
 import org.scalacheck.Gen.{choose, frequency, oneOf, pick}
 import org.scalacheck.Gen
-import poker.Deck.PreflopDeck
-import poker.Deck.PreflopDeck.startingDeck
+import poker.Deck.{PreflopDeck, StartingDeck}
+//import poker.Deck.PreflopDeck.startingDeck
 import poker._
 import poker.{Deck, Hand, Rank}
 import poker.Rank._
@@ -25,7 +25,7 @@ object HandGenerators {
     for {
       rank <- genRank
 //      quads = Deck.all.groupBy(_.rank)(rank)
-      quads = PreflopDeck.all.groupBy(_.rank)(rank)
+      quads = StartingDeck.all.groupBy(_.rank)(rank)
 
       card1 <- genCard.suchThat(c => c.rank != rank)
       card2 <- genCard.suchThat(c => c != card1 && c.rank != rank)
@@ -37,7 +37,7 @@ object HandGenerators {
     for {
       (rank1, rank2) <- pick(2, Rank.all).map(x => (x.head, x.last))
 //      grouped = Deck.all.groupBy(_.rank)
-      grouped = PreflopDeck.all.groupBy(_.rank)
+      grouped = StartingDeck.all.groupBy(_.rank)
       set  <- pick(3, grouped(rank1))
       pair <- pick(2, grouped(rank2))
       card1 <- genCard.suchThat { c =>
@@ -57,7 +57,7 @@ object HandGenerators {
 
   val genFlush: Gen[Flush] = for {
     suit <- genSuit
-    suited = PreflopDeck.all.filter(_.suit == suit)
+    suited = StartingDeck.all.filter(_.suit == suit)
     flush <- pick(5, suited).suchThat(x =>
       Hand.rank(x.toList) match {
         case _: StraightFlush => false
@@ -75,7 +75,7 @@ object HandGenerators {
 
   val genNonFlush: Gen[Hand] = for {
     suit <- genSuit
-    suited = PreflopDeck.all.filter(_.suit == suit)
+    suited = StartingDeck.all.filter(_.suit == suit)
     fourFlush <- pick(4, suited)
     card1 <- genCard.suchThat { c =>
       !suited.contains(c)
@@ -105,7 +105,7 @@ object HandGenerators {
 
   def genStraight_(high: Int): Gen[Straight] = {
     val idx                               = choose(0, high).sample.get
-    val grouped: List[(Rank, List[Card])] = PreflopDeck.all.groupBy(_.rank).toList.sortBy(_._1)
+    val grouped: List[(Rank, List[Card])] = StartingDeck.all.groupBy(_.rank).toList.sortBy(_._1)
     val hslice: List[(Rank, List[Card])]  = grouped.slice(idx, idx + 5)
     for {
       suit1 <- genSuit
@@ -182,7 +182,7 @@ object HandGenerators {
   val genTwoPair: Gen[TwoPair] = for {
     rank1 <- genRank
     rank2 <- genRank.retryUntil(_ != rank1)
-    grouped = PreflopDeck.all.groupBy(_.rank)
+    grouped = StartingDeck.all.groupBy(_.rank)
     pair1 <- pick(2, grouped(rank1))
     pair2 <- pick(2, grouped(rank2))
     card1 <- genCard.retryUntil(c => !List(rank1, rank2).contains(c.rank))
@@ -199,10 +199,10 @@ object HandGenerators {
 
   val genPair: Gen[Pair] = for {
     rank <- genRank
-    grouped: Map[Rank, List[Card]] = PreflopDeck.all.groupBy(_.rank)
+    grouped: Map[Rank, List[Card]] = StartingDeck.all.groupBy(_.rank)
     pair <- pick(2, grouped(rank))
     //    rankingList = HandRank.all.filterNot(_ == Pair)
-    rest <- pick(5, PreflopDeck.all.filterNot(pair.contains(_))).retryUntil(x =>
+    rest <- pick(5, StartingDeck.all.filterNot(pair.contains(_))).retryUntil(x =>
       Hand.rank(pair.toList ++ x.toList) match {
         case _: Pair => true
         case _       => false
