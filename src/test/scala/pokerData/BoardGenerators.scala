@@ -11,11 +11,13 @@ import poker.Deck.PreflopDeck._
 
 object BoardGenerators {
 
+  val genNumberOfPlayers: Gen[Int] =
+    choose(2, 10).sample.get
   val genPreflopBoard: Gen[Preflop] = {
     // Deck
     // 2-9 players
     // for each player take 2 cards from the deck
-    val numPlayers = choose(2, 9).sample.get
+    val numPlayers = genNumberOfPlayers.sample.get
 //    val deck       = Preflop(2)
 //    val cards      = deck.take(numPlayers * 2)
 //    val newDeck    = deck.drop(numPlayers * 2)

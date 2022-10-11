@@ -1,14 +1,17 @@
 package pokerTest
 
+import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 import org.scalacheck.Properties
-import cats.implicits.{catsSyntaxPartialOrder}
+import cats.implicits.catsSyntaxPartialOrder
 import org.scalactic.anyvals.NonEmptySet
-import poker.Street.{Flop, Preflop, River, Turn}
+import poker.Deck.StartingDeck
+import poker.Street.{deal, Flop, Preflop, River, Turn}
 import poker.OrderInstances._
 import poker.Rank.rankMap
 import poker._
+import pokerData.BoardGenerators.genRiverBoard
 import pokerData.HandGenerators._
 import pokerData.SpecialHandsGenerators._
 
@@ -27,10 +30,12 @@ object ShowDownTest extends Properties("ShowDownTest") {
     val pl1 = Player(Card(Ace, Spades), Card(Ace, Clubs))
     val pl2 = Player(Card(King, Hearts), Card(Queen, Hearts))
     val deck =
-      Deck.makeStartingDeck.remove(List(Card(Ace, Spades), Card(Ace, Clubs), Card(King, Spades), Card(King, Hearts)))
+      StartingDeck.all.filterNot(
+        List(Card(Ace, Spades), Card(Ace, Clubs), Card(King, Spades), Card(King, Hearts))
+          .contains(_)
+      )
     val river = River(
       List(pl1, pl2),
-      deck,
       Card(Ace, Hearts),
       Card(Ace, Diamonds),
       Card(Jack, Hearts),
@@ -41,21 +46,26 @@ object ShowDownTest extends Properties("ShowDownTest") {
   }
 
   property("at the River: For Two players the Showdown will award all winners") = {
-    val startDeck  = Deck.makeStartingDeck.shuffle.unsafeRunSync()
-    val boardCards = startDeck.take(9)
-    val deck       = startDeck.drop(9)
-    val pl1        = Player(boardCards(0), boardCards(1))
-    val pl2        = Player(boardCards(2), boardCards(3))
-    val river = River(
-      List(pl1, pl2),
-      deck,
-      boardCards(4),
-      boardCards(5),
-      boardCards(6),
-      boardCards(7),
-      boardCards(8)
-    )
-    val (fst, snd) = (ShowDown.allHands(river)(0)._2, ShowDown.allHands(river)(1)._2)
+//    val startDeck  = Deck.makeStartingDeck.shuffle.unsafeRunSync()
+//    val boardCards = startDeck.take(9)
+//    val deck       = startDeck.drop(9)
+//    val pl1        = Player(boardCards(0), boardCards(1))
+//    val pl2        = Player(boardCards(2), boardCards(3))
+//    val river = River(
+//      List(pl1, pl2),
+//      boardCards(4),
+//      boardCards(5),
+//      boardCards(6),
+//      boardCards(7),
+//      boardCards(8)
+//    )
+    val twoPlayerPreFlop = Street.dealHoleCards(2).unsafeRunSync()
+    val flop             = deal(twoPlayerPreFlop)
+    val turn             = deal(flop)
+    val river            = deal(turn)
+    val (fst, snd)       = ShowDown(river.allHands) match { case x :: y :: Nil => Tuple2(x, y) }
+
+//    val (fst, snd) = (ShowDown.allHands(riverBoard)(0)._2, ShowDown.allHands(riverBoard)(1)._2)
 
     (fst, snd) match {
       case (x, y) if x > y  => ShowDown.from(river) ?= Some(NonEmptySet(1))
@@ -63,85 +73,87 @@ object ShowDownTest extends Properties("ShowDownTest") {
       case (x, y) if x == y => ShowDown.from(river) ?= Some(NonEmptySet(1, 2))
     }
   }
-
-  property("at the Turn: For Two players the Showdown will award all winners") = {
-    val startDeck  = Deck.makeStartingDeck.shuffle.unsafeRunSync()
-    val boardCards = startDeck.take(8)
-    val deck       = startDeck.drop(8)
-    val pl1        = Player(boardCards(0), boardCards(1))
-    val pl2        = Player(boardCards(2), boardCards(3))
-    val turn = Turn(
-      List(pl1, pl2),
-      deck,
-      boardCards(4),
-      boardCards(5),
-      boardCards(6),
-      boardCards(7)
-    )
-    Street.deal(turn) match {
-      case r: River =>
-        val (fst, snd) = (ShowDown.allHands(r)(0)._2, ShowDown.allHands(r)(1)._2)
-        (fst, snd) match {
-          case (x, y) if x > y  => ShowDown.from(r) ?= Some(NonEmptySet(1))
-          case (x, y) if x < y  => ShowDown.from(r) ?= Some(NonEmptySet(2))
-          case (x, y) if x == y => ShowDown.from(r) ?= Some(NonEmptySet(1, 2))
-        }
-      case _ => false
-    }
+// TODO Change this to N players
+  property("At the River: For any number of players the Showdown will award all winners") = forAll(genRiverBoard) {
+    riverBoard =>
+//    val startDeck  = Deck.makeStartingDeck.shuffle.unsafeRunSync()
+//    val boardCards = startDeck.take(8)
+//    val deck       = startDeck.drop(8)
+//    val pl1        = Player(boardCards(0), boardCards(1))
+//    val pl2        = Player(boardCards(2), boardCards(3))
+//    val turn = Turn(
+//      List(pl1, pl2),
+//      deck,
+//      boardCards(4),
+//      boardCards(5),
+//      boardCards(6),
+//      boardCards(7)
+//    )
+      val numPlayers = riverBoard.players.size
+      Street.deal(turn) match {
+        case r: River =>
+          val (fst, snd) = (ShowDown.allHands(r)(0)._2, ShowDown.allHands(r)(1)._2)
+          (fst, snd) match {
+            case (x, y) if x > y  => ShowDown.from(r) ?= Some(NonEmptySet(1))
+            case (x, y) if x < y  => ShowDown.from(r) ?= Some(NonEmptySet(2))
+            case (x, y) if x == y => ShowDown.from(r) ?= Some(NonEmptySet(1, 2))
+          }
+        case _ => false
+      }
   }
 
-  property("at the Flop: For Two players the Showdown will award all winners") = {
-    val startDeck  = Deck.makeStartingDeck.shuffle.unsafeRunSync()
-    val boardCards = startDeck.take(7)
-    val deck       = startDeck.drop(7)
-    val pl1        = Player(boardCards(0), boardCards(1))
-    val pl2        = Player(boardCards(2), boardCards(3))
-    val flop = Flop(
-      List(pl1, pl2),
-      deck,
-      boardCards(4),
-      boardCards(5),
-      boardCards(6)
-    )
+//  property("at the Flop: For Two players the Showdown will award all winners") = {
+//    val startDeck  = Deck.makeStartingDeck.shuffle.unsafeRunSync()
+//    val boardCards = startDeck.take(7)
+//    val deck       = startDeck.drop(7)
+//    val pl1        = Player(boardCards(0), boardCards(1))
+//    val pl2        = Player(boardCards(2), boardCards(3))
+//    val flop = Flop(
+//      List(pl1, pl2),
+//      deck,
+//      boardCards(4),
+//      boardCards(5),
+//      boardCards(6)
+//    )
+//
+//    val turn = Street.deal(flop)
+//
+//    Street.deal(turn) match {
+//      case r: River =>
+//        val (fst, snd) = (ShowDown.allHands(r)(0)._2, ShowDown.allHands(r)(1)._2)
+//        (fst, snd) match {
+//          case (x, y) if x > y  => ShowDown.from(r) ?= Some(NonEmptySet(1))
+//          case (x, y) if x < y  => ShowDown.from(r) ?= Some(NonEmptySet(2))
+//          case (x, y) if x == y => ShowDown.from(r) ?= Some(NonEmptySet(1, 2))
+//        }
+//      case _ => false
+//    }
+//  }
 
-    val turn = Street.deal(flop)
-
-    Street.deal(turn) match {
-      case r: River =>
-        val (fst, snd) = (ShowDown.allHands(r)(0)._2, ShowDown.allHands(r)(1)._2)
-        (fst, snd) match {
-          case (x, y) if x > y  => ShowDown.from(r) ?= Some(NonEmptySet(1))
-          case (x, y) if x < y  => ShowDown.from(r) ?= Some(NonEmptySet(2))
-          case (x, y) if x == y => ShowDown.from(r) ?= Some(NonEmptySet(1, 2))
-        }
-      case _ => false
-    }
-  }
-
-  property("at the PreFlop: For Two players the Showdown will award all winners") = {
-    val startDeck  = Deck.makeStartingDeck.shuffle.unsafeRunSync()
-    val boardCards = startDeck.take(9)
-    val deck       = startDeck.drop(9)
-    val pl1        = Player(boardCards(0), boardCards(1))
-    val pl2        = Player(boardCards(2), boardCards(3))
-    val preflop = Preflop(
-      List(pl1, pl2),
-      deck
-    )
-    val flop = Street.deal(preflop)
-    val turn = Street.deal(flop)
-
-    Street.deal(turn) match {
-      case r: River =>
-        val (fst, snd) = (ShowDown.allHands(r)(0)._2, ShowDown.allHands(r)(1)._2)
-        (fst, snd) match {
-          case _ if fst > snd  => ShowDown.from(r) ?= Some(NonEmptySet(1))
-          case _ if fst < snd  => ShowDown.from(r) ?= Some(NonEmptySet(2))
-          case _ if fst == snd => ShowDown.from(r) ?= Some(NonEmptySet(1, 2))
-        }
-      case _ => false
-    }
-  }
+//  property("at the PreFlop: For Two players the Showdown will award all winners") = {
+//    val startDeck  = Deck.makeStartingDeck.shuffle.unsafeRunSync()
+//    val boardCards = startDeck.take(9)
+//    val deck       = startDeck.drop(9)
+//    val pl1        = Player(boardCards(0), boardCards(1))
+//    val pl2        = Player(boardCards(2), boardCards(3))
+//    val preflop = Preflop(
+//      List(pl1, pl2),
+//      deck
+//    )
+//    val flop = Street.deal(preflop)
+//    val turn = Street.deal(flop)
+//
+//    Street.deal(turn) match {
+//      case r: River =>
+//        val (fst, snd) = (ShowDown.allHands(r)(0)._2, ShowDown.allHands(r)(1)._2)
+//        (fst, snd) match {
+//          case _ if fst > snd  => ShowDown.from(r) ?= Some(NonEmptySet(1))
+//          case _ if fst < snd  => ShowDown.from(r) ?= Some(NonEmptySet(2))
+//          case _ if fst == snd => ShowDown.from(r) ?= Some(NonEmptySet(1, 2))
+//        }
+//      case _ => false
+//    }
+//  }
 
   property("FourOfAKind beats FullHouse, Flush") = forAll(genFourOfAKind, genFullHouse, genNutFlush) {
     (quads, boat, flush) =>
