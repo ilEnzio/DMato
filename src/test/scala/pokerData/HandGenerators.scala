@@ -16,10 +16,6 @@ import scala.util.Random
 
 object HandGenerators {
 //So the strange thing here is that it's not generating the cards involved.
-  val genStraightFlush: Gen[StraightFlush] = for {
-//    newSuit  <- genSuit
-    straight <- genStraight
-  } yield StraightFlush(straight.rank)
 
   val genFourOfAKind: Gen[FourOfAKind] =
     for {
@@ -31,7 +27,8 @@ object HandGenerators {
       card2 <- genCard.suchThat(c => c != card1 && c.rank != rank)
       card3 <- genCard.suchThat(c => !List(card1, card2).contains(c) && c.rank != rank)
       kickers = List(card1, card2, card3).sorted.reverse
-    } yield Hand.rank(card1 :: card2 :: card3 :: quads).asInstanceOf[FourOfAKind]
+    } yield FourOfAKind(rank, kickers)
+//  yield Hand.rank(card1 :: card2 :: card3 :: quads)
 
   val genFullHouse: Gen[FullHouse] =
     for {
@@ -153,6 +150,11 @@ object HandGenerators {
     hand2     <- genStraight_(7)
     finalHand <- frequency((1, hand1), (10, hand2))
   } yield finalHand
+
+  val genStraightFlush: Gen[StraightFlush] = for {
+    newSuit  <- genSuit
+    straight <- genStraight
+  } yield StraightFlush(straight.rank)
 
   val genThreeOfAKind: Gen[ThreeOfAKind] = for {
     ranks <- pick(5, Rank.all).retryUntil { r =>

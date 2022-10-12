@@ -9,6 +9,7 @@ import org.scalactic.anyvals.NonEmptySet
 sealed trait ShowDown
 
 object ShowDown {
+  // TODO - this is a strange api choice
   def apply(hands: List[Hand]): List[Hand] =
     hands.maximumList
 
