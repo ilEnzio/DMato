@@ -30,10 +30,10 @@ object HandGenerators {
     } yield FourOfAKind(rank, kickers)
 //  yield Hand.rank(card1 :: card2 :: card3 :: quads)
 
-  val genFullHouse: Gen[FullHouse] =
+  val genFullHouseCards: Gen[FullHouse] =
     for {
       (rank1, rank2) <- pick(2, Rank.all).map(x => (x.head, x.last))
-//      grouped = Deck.all.groupBy(_.rank)
+      //      grouped = Deck.all.groupBy(_.rank)
       grouped = StartingDeck.all.groupBy(_.rank)
       set  <- pick(3, grouped(rank1))
       pair <- pick(2, grouped(rank2))
@@ -51,6 +51,13 @@ object HandGenerators {
           c != card1
       )
     } yield Hand.rank(card1 :: card2 :: pair.toList ++ set.toList).asInstanceOf[FullHouse]
+
+  val genFullHouse: Gen[FullHouse] =
+    for {
+      (rank1, rank2) <- pick(2, Rank.all)
+        .map(x => List(x.head, x.last).sortBy(_.value))
+        .map(x => (x.head, x.last))
+    } yield FullHouse(rank1, rank2)
 
   val genFlush: Gen[Flush] = for {
     suit <- genSuit
@@ -265,7 +272,7 @@ object HandGenerators {
       genThreeOfAKind,
       genStraight,
       genFlush,
-      genFullHouse,
+      genFullHouseCards,
       genFourOfAKind,
       genStraightFlush
     )
