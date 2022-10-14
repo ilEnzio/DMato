@@ -12,20 +12,13 @@ import poker.Deck.PreflopDeck._
 object BoardGenerators {
 
   val genNumberOfPlayers: Gen[Int] =
-    choose(2, 10).sample.get
+    choose(2, 10)
   val genPreflopBoard: Gen[Preflop] = {
-    // Deck
-    // 2-9 players
-    // for each player take 2 cards from the deck
-    val numPlayers = genNumberOfPlayers.sample.get
-//    val deck       = Preflop(2)
-//    val cards      = deck.take(numPlayers * 2)
-//    val newDeck    = deck.drop(numPlayers * 2)
-//    // TODO still not safe!!
-//    val players = cards.grouped(2).map { case h :: t => Player(h, t.headOption.get) }.toList
-//    val testDeck: PreflopDeck = PreflopDeck.shuffle.unsafeRunSync()
-    Street.dealHoleCards(numPlayers).unsafeRunSync()
-//    Preflop(???, testDeck)
+
+    for {
+      numPlayers <- genNumberOfPlayers
+    } yield dealHoleCards(numPlayers).unsafeRunSync()
+
   }
 
   val genFlopBoard: Gen[Flop] = {

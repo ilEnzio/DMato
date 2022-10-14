@@ -4,12 +4,13 @@ import cats.effect.unsafe.implicits.global
 import org.scalacheck.Prop.{forAll, propBoolean, AnyOperators}
 import org.scalacheck.Properties
 import poker.Deck.StartingDeck
-import poker.Street.{Flop, River, Turn}
+import poker.Street.{deal, Flop, River, Turn}
 import poker.{Card, Hand, ShowDown, Street}
 import poker.Hand._
+import poker.OrderInstances.handOrdering
 import pokerData.BoardGenerators._
 
-object BoardStateTest extends Properties("BoardState Tests") {
+object StreetTest extends Properties("BoardState Tests") {
 
   // genFlop, genTurn, genRiver
   // genPlayer,
@@ -34,7 +35,18 @@ object BoardStateTest extends Properties("BoardState Tests") {
     ) ?= true
   }
 
-//  property("preflop deck size equals 52 minus the players cards and maintains uniqueness") = forAll(genPreflopBoard, genNumberOfPlayers) {
+  property("No card is ever dealt more than once through to the River") = forAll(genPreflopBoard) { preflop =>
+    val flop          = deal(preflop)
+    val turn          = deal(flop)
+    val river         = deal(turn).asInstanceOf[River] // TODo Does this mean that I need to change the Street trait/contract
+    val riverCards    = List(river.card1, river.card2, river.card3, river.turn, river.river)
+    val holeCards     = preflop.players.collect(p => List(p.card1, p.card2)).flatten
+    val allDealtCards = holeCards :: riverCards
+    allDealtCards.distinct ?= allDealtCards
+
+  }
+
+  //  property("preflop deck size equals 52 minus the players cards and maintains uniqueness") = forAll(genPreflopBoard, genNumberOfPlayers) {
 //    (preFlopBoard, numPlayers) =>
 //      val numPlayers = preFlopBoard.players.size
 //      val playerCards = preFlopBoard.players.foldLeft(List.empty[Card]) { (s, v) =>
@@ -45,10 +57,12 @@ object BoardStateTest extends Properties("BoardState Tests") {
 //      playerCards.distinct.size == playerCards.size &&
 //      preFlopBoard.deck.cards.distinct.size == preFlopBoard.deck.size
 //  }
-
+  //TODO -  make sure that the same card is never dealt more than once. this is failing!!
+  // Cards are being dealt in the flop and also in the players hands
+// TODO This is not a ShowDown operation, I'm asking what the current hand street is!!!
   property("Flop: more than one player can not have quads") = forAll(genFlopBoard) { flop =>
 //    ShowDown(flop.allHands).filter(HandRank(_) == FourOfAKind).size <= 1
-
+//    println(flop.allHands.sorted.reverse)
     ShowDown(flop.allHands).count(p =>
       p match {
         case _: FourOfAKind => true

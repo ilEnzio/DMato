@@ -14,6 +14,7 @@ import scala.util.Random
 
 sealed trait Street {
   val allHands: List[Hand]
+  val players: List[Player]
 } // Street
 
 object Street {
@@ -22,15 +23,15 @@ object Street {
 
     // TODO Something isn't right here; Find out through test
     val shuffledDeck = IO(Random.shuffle(StartingDeck.all))
-
+    val numHoleCards = numPlayers * 2
     for {
       cards <- shuffledDeck
       players = cards
-        .take(numPlayers * 2)
+        .take(numHoleCards)
         .grouped(2)
         .map { case List(x, y) => Player(x, y) }
         .toList
-    } yield Preflop(players, PreFlopDeckImpl(cards)) // TODO I've broken encapuslation here
+    } yield Preflop(players, PreFlopDeckImpl(cards.drop(numHoleCards))) // TODO I've broken encapuslation here
 
 //    deck.map(Preflop(players, _))
   }
