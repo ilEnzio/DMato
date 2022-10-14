@@ -1,7 +1,6 @@
 package pokerData
 
 import org.scalacheck.Gen
-import poker.Deck.makeStartingDeck
 import poker.{Card, Deck, Rank, Suit}
 
 object DeckGenerators {
@@ -12,7 +11,9 @@ object DeckGenerators {
     suit <- genSuit
   } yield Card(rank, suit)
 
-  val startingDeck: Deck = makeStartingDeck //
-  val genDeck: Gen[Deck] =
-    Gen.const(makeStartingDeck)
+// TODO - Do I even need either of these?
+
+//  val startingDeck: Deck = makeStartingDeck //
+//  val genDeck: Gen[Deck] =
+//    Gen.const(makeStartingDeck)
 }

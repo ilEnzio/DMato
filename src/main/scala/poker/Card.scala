@@ -9,6 +9,8 @@ object Card {
     ???
 
 }
+// ADT - Algebraic Data Type
+// Sum vs Product type
 
 sealed trait Suit
 object Suit {

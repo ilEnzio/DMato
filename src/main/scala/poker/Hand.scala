@@ -83,7 +83,7 @@ object Hand {
 
   object FourOfAKind {
     def unapply(hand: List[Card]): Option[FourOfAKind] = {
-      val rankGroups = hand.groupBy(_.rank).toList.sortBy(_._2.size)
+      val rankGroups: List[(Rank, List[Card])] = hand.groupBy(_.rank).toList.sortBy(_._2.size).reverse
       rankGroups
         .collectFirst {
           case (rank, cards) if cards.length == 4 =>

@@ -9,6 +9,7 @@ import org.scalactic.anyvals.NonEmptySet
 sealed trait ShowDown
 
 object ShowDown {
+  // TODO - this is a strange api choice
   def apply(hands: List[Hand]): List[Hand] =
     hands.maximumList
 
@@ -45,9 +46,9 @@ object ShowDown {
   def fromRiver(river: River): Option[NonEmptySet[Int]] = {
 // TODO this map to reverse the zip seems goofy
 
-    val hands = allHands(river)
+    val hands: Seq[(Int, Hand)] = allHands(river)
 
-    val handsSet = hands
+    val handsSet: Set[Int] = hands
       .maximumByList[Hand](x => x._2)
       .map { case (player, _) => player }
       .toSet
@@ -62,6 +63,20 @@ object ShowDown {
       }
       .zipWithIndex
       .map { case (x, y) => (y + 1, x) }
+}
+
+object PlayerStanding {
+  def apply(board: Street): List[(Int, Player, Hand)] =
+    board.players
+      .zip(board.allHands)
+      .zipWithIndex
+      .map { case ((p, h), i) => (i, p, h) }
+
+  def winnerList(board: Street): Option[NonEmptySet[(Int, Player, Hand)]] = {
+    val winners = PlayerStanding(board).maximumByList { case (_, _, hand) => hand }.toSet
+
+    NonEmptySet.from(winners)
+  }
 }
 
 case class WinnerList(map: Map[Int, Int])

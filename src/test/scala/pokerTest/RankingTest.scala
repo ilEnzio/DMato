@@ -54,7 +54,7 @@ object RankingTest extends Properties("Ranking Tests") {
 //    }) :| "Not ThreeOfAKind"
 //  }
 
-  property("Four of a Kind is greater than FullHouse") = forAll(genFourOfAKind, genFullHouse) { (quads, boat) =>
+  property("Four of a Kind is greater than FullHouse") = forAll(genFourOfAKind, genFullHouseCards) { (quads, boat) =>
     handOrder.compare(quads, boat) > 0
   }
 

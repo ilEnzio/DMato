@@ -2,36 +2,39 @@ package pokerData
 
 import org.scalacheck.Gen.{choose, frequency, oneOf, pick}
 import org.scalacheck.Gen
+import poker.Deck.{PreflopDeck, StartingDeck}
+//import poker.Deck.PreflopDeck.startingDeck
 import poker._
 import poker.{Deck, Hand, Rank}
 import poker.Rank._
 import pokerData.DeckGenerators._
 import poker.Hand._
 import poker.OrderInstances._
+import poker.Street.Preflop
 
 import scala.util.Random
 
 object HandGenerators {
-
-  val genStraightFlush: Gen[StraightFlush] = for {
-    newSuit  <- genSuit
-    straight <- genStraight
-  } yield StraightFlush(straight.rank)
+//So the strange thing here is that it's not generating the cards involved.
 
   val genFourOfAKind: Gen[FourOfAKind] =
     for {
       rank <- genRank
-      quads = Deck.all.groupBy(_.rank)(rank)
+//      quads = Deck.all.groupBy(_.rank)(rank)
+      quads = StartingDeck.all.groupBy(_.rank)(rank)
+
       card1 <- genCard.suchThat(c => c.rank != rank)
       card2 <- genCard.suchThat(c => c != card1 && c.rank != rank)
       card3 <- genCard.suchThat(c => !List(card1, card2).contains(c) && c.rank != rank)
       kickers = List(card1, card2, card3).sorted.reverse
-    } yield Hand.rank(card1 :: card2 :: card3 :: quads).asInstanceOf[FourOfAKind]
+    } yield FourOfAKind(rank, kickers)
+//  yield Hand.rank(card1 :: card2 :: card3 :: quads)
 
-  val genFullHouse: Gen[FullHouse] =
+  val genFullHouseCards: Gen[FullHouse] =
     for {
       (rank1, rank2) <- pick(2, Rank.all).map(x => (x.head, x.last))
-      grouped = Deck.all.groupBy(_.rank)
+      //      grouped = Deck.all.groupBy(_.rank)
+      grouped = StartingDeck.all.groupBy(_.rank)
       set  <- pick(3, grouped(rank1))
       pair <- pick(2, grouped(rank2))
       card1 <- genCard.suchThat { c =>
@@ -49,9 +52,16 @@ object HandGenerators {
       )
     } yield Hand.rank(card1 :: card2 :: pair.toList ++ set.toList).asInstanceOf[FullHouse]
 
+  val genFullHouse: Gen[FullHouse] =
+    for {
+      (rank1, rank2) <- pick(2, Rank.all)
+        .map(x => List(x.head, x.last).sortBy(_.value))
+        .map(x => (x.head, x.last))
+    } yield FullHouse(rank1, rank2)
+
   val genFlush: Gen[Flush] = for {
     suit <- genSuit
-    suited = Deck.all.filter(_.suit == suit)
+    suited = StartingDeck.all.filter(_.suit == suit)
     flush <- pick(5, suited).suchThat(x =>
       Hand.rank(x.toList) match {
         case _: StraightFlush => false
@@ -69,7 +79,7 @@ object HandGenerators {
 
   val genNonFlush: Gen[Hand] = for {
     suit <- genSuit
-    suited = Deck.all.filter(_.suit == suit)
+    suited = StartingDeck.all.filter(_.suit == suit)
     fourFlush <- pick(4, suited)
     card1 <- genCard.suchThat { c =>
       !suited.contains(c)
@@ -99,7 +109,7 @@ object HandGenerators {
 
   def genStraight_(high: Int): Gen[Straight] = {
     val idx                               = choose(0, high).sample.get
-    val grouped: List[(Rank, List[Card])] = Deck.all.groupBy(_.rank).toList.sortBy(_._1)
+    val grouped: List[(Rank, List[Card])] = StartingDeck.all.groupBy(_.rank).toList.sortBy(_._1)
     val hslice: List[(Rank, List[Card])]  = grouped.slice(idx, idx + 5)
     for {
       suit1 <- genSuit
@@ -148,6 +158,11 @@ object HandGenerators {
     finalHand <- frequency((1, hand1), (10, hand2))
   } yield finalHand
 
+  val genStraightFlush: Gen[StraightFlush] = for {
+    newSuit  <- genSuit
+    straight <- genStraight
+  } yield StraightFlush(straight.rank)
+
   val genThreeOfAKind: Gen[ThreeOfAKind] = for {
     ranks <- pick(5, Rank.all).retryUntil { r =>
       val x = r.toList.map(_.value).sorted
@@ -176,7 +191,7 @@ object HandGenerators {
   val genTwoPair: Gen[TwoPair] = for {
     rank1 <- genRank
     rank2 <- genRank.retryUntil(_ != rank1)
-    grouped = Deck.all.groupBy(_.rank)
+    grouped = StartingDeck.all.groupBy(_.rank)
     pair1 <- pick(2, grouped(rank1))
     pair2 <- pick(2, grouped(rank2))
     card1 <- genCard.retryUntil(c => !List(rank1, rank2).contains(c.rank))
@@ -193,10 +208,10 @@ object HandGenerators {
 
   val genPair: Gen[Pair] = for {
     rank <- genRank
-    grouped: Map[Rank, List[Card]] = Deck.all.groupBy(_.rank)
+    grouped: Map[Rank, List[Card]] = StartingDeck.all.groupBy(_.rank)
     pair <- pick(2, grouped(rank))
     //    rankingList = HandRank.all.filterNot(_ == Pair)
-    rest <- pick(5, Deck.all.filterNot(pair.contains(_))).retryUntil(x =>
+    rest <- pick(5, StartingDeck.all.filterNot(pair.contains(_))).retryUntil(x =>
       Hand.rank(pair.toList ++ x.toList) match {
         case _: Pair => true
         case _       => false
@@ -257,7 +272,7 @@ object HandGenerators {
       genThreeOfAKind,
       genStraight,
       genFlush,
-      genFullHouse,
+      genFullHouseCards,
       genFourOfAKind,
       genStraightFlush
     )
