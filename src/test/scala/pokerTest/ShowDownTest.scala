@@ -46,33 +46,14 @@ object ShowDownTest extends Properties("ShowDownTest") {
   }
 
   property("at the River: For Two players the Showdown will award all winners") = {
-//    val startDeck  = Deck.makeStartingDeck.shuffle.unsafeRunSync()
-//    val boardCards = startDeck.take(9)
-//    val deck       = startDeck.drop(9)
-//    val pl1        = Player(boardCards(0), boardCards(1))
-//    val pl2        = Player(boardCards(2), boardCards(3))
-//    val river = River(
-//      List(pl1, pl2),
-//      boardCards(4),
-//      boardCards(5),
-//      boardCards(6),
-//      boardCards(7),
-//      boardCards(8)
-//    )
+
     val twoPlayerPreFlop = Street.dealHoleCards(2).unsafeRunSync()
     val flop             = deal(twoPlayerPreFlop)
     val turn             = deal(flop)
     val river            = deal(turn)
-//    val (fst, snd)       = ShowDown(river.allHands) match { case x :: y :: Nil => Tuple2(x, y) }
-    val winningHands   = ShowDown(river.allHands)
-    val winningPlayers = ShowDown.from(river).get
-//    val (fst, snd) = (ShowDown.allHands(riverBoard)(0)._2, ShowDown.allHands(riverBoard)(1)._2)
-//
-//    (fst, snd) match {
-//      case (x, y) if x > y  => ShowDown.from(river) ?= Some(NonEmptySet(1))
-//      case (x, y) if x < y  => ShowDown.from(river) ?= Some(NonEmptySet(2))
-//      case (x, y) if x == y => ShowDown.from(river) ?= Some(NonEmptySet(1, 2))
-//    }
+    val winningHands     = ShowDown(river.allHands)
+    val winningPlayers   = ShowDown.from(river).get
+
     winningHands.size ?= winningPlayers.size
   }
 // TODO Change this to N players

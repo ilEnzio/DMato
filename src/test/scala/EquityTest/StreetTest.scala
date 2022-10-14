@@ -1,13 +1,14 @@
 package EquityTest
 
 import cats.effect.unsafe.implicits.global
+import cats.implicits.catsSyntaxPartialOrder
 import org.scalacheck.Prop.{forAll, propBoolean, AnyOperators}
 import org.scalacheck.Properties
 import poker.Deck.StartingDeck
 import poker.Street.{deal, Flop, River, Turn}
-import poker.{Card, Hand, ShowDown, Street}
+import poker.{Card, Hand, PlayerStanding, ShowDown, Street, Two}
 import poker.Hand._
-import poker.OrderInstances.handOrdering
+import poker.OrderInstances.{handOrder, handOrdering}
 import pokerData.BoardGenerators._
 
 object StreetTest extends Properties("BoardState Tests") {
@@ -25,8 +26,6 @@ object StreetTest extends Properties("BoardState Tests") {
   }
 
   property("The winning hand Preflop is a pair or less") = forAll(genPreflopBoard) { preFlop =>
-//    ShowDown(preFlop.allHands).exists(HandRank(_) > Pair) ?= false
-
     ShowDown(preFlop.allHands).exists(handRank =>
       handRank match {
         case _: Pair | _: HighCard => true
@@ -45,6 +44,17 @@ object StreetTest extends Properties("BoardState Tests") {
     allDealtCards.distinct ?= allDealtCards
 
   }
+  property("Preflop: If the winner is a pair, no more than two players can be winning ") = forAll(genPreflopBoard) {
+    preFlop =>
+      val winnerList = PlayerStanding.winnerList(preFlop)
+
+      val winningRank = winnerList.get.map(_._3).fold(HighCard(Two, List.empty[Card])) { case (s: Hand, v: Hand) =>
+        if (handOrder.compare(s, v) > 0) s else v
+      }
+      if ((winningRank == Pair) && (winnerList.get.size > 2)) false
+      else if (winningRank.score > 2) false
+      else true
+  }
 
   //  property("preflop deck size equals 52 minus the players cards and maintains uniqueness") = forAll(genPreflopBoard, genNumberOfPlayers) {
 //    (preFlopBoard, numPlayers) =>
@@ -57,12 +67,9 @@ object StreetTest extends Properties("BoardState Tests") {
 //      playerCards.distinct.size == playerCards.size &&
 //      preFlopBoard.deck.cards.distinct.size == preFlopBoard.deck.size
 //  }
-  //TODO -  make sure that the same card is never dealt more than once. this is failing!!
-  // Cards are being dealt in the flop and also in the players hands
+
 // TODO This is not a ShowDown operation, I'm asking what the current hand street is!!!
-  property("Flop: more than one player can not have quads") = forAll(genFlopBoard) { flop =>
-//    ShowDown(flop.allHands).filter(HandRank(_) == FourOfAKind).size <= 1
-//    println(flop.allHands.sorted.reverse)
+  property("Flop: more than one player can NOT have quads") = forAll(genFlopBoard) { flop =>
     ShowDown(flop.allHands).count(p =>
       p match {
         case _: FourOfAKind => true
@@ -70,49 +77,5 @@ object StreetTest extends Properties("BoardState Tests") {
       }
     ) <= 1
   }
-//
-//  property("flop deck size equals 49 minus the players cards and maintains uniqueness") = forAll(genFlopBoard) { flop =>
-//    val numPlayers = flop.players.size
-//    val playerCards = flop.players.foldLeft(List.empty[Card]) { (s, v) =>
-//      v.card1 :: v.card2 :: s
-//    }
-//    ("Flop Deck size" |: (flop.deck.size ?= 49 - (numPlayers * 2))) &&
-//    ("Player card count" |: (playerCards.distinct.size ?= playerCards.size)) &&
-//    ("Flop deck still unique" |: (flop.deck.cards.distinct.size ?= flop.deck.size))
-//  }
-//
-//  property("After dealing a flop deck has less cards than a preflop deck") = forAll(genPreflopBoard) { preflop =>
-//    val flop: Street = Street.deal(preflop)
-//
-//    (flop match {
-//      case Flop(_) => true
-//      case _       => false
-//    }) &&
-//    (preflop.deck.size > (flop match {
-//      case Flop(_, deck, _, _, _) => deck.size
-//    }))
-//  }
-//
-//  property("After dealing a turn deck has less cards than a flop deck") = forAll(genFlopBoard) { flop =>
-//    val turn: Street = Street.deal(flop)
-//    (turn match {
-//      case Turn(_) => true
-//      case _       => false
-//    }) &&
-//    (flop.deck.size > (turn match {
-//      case Turn(_, deck, _, _, _, _) => deck.size
-//    }))
-//  }
-//
-//  property("After dealing a river deck has less cards than a turn deck") = forAll(genTurnBoard) { turn =>
-//    val river: Street = Street.deal(turn)
-//    (river match {
-//      case River(_) => true
-//      case _        => false
-//    }) &&
-//    (turn.deck.size > (river match {
-//      case River(_, deck, _, _, _, _, _) => deck.size
-//    }))
-//  }
 
 }
