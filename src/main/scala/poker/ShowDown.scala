@@ -72,6 +72,7 @@ object PlayerStanding {
       .zipWithIndex
       .map { case ((p, h), i) => (i, p, h) }
 
+//TODO this must be wrong??
   def winnerList(board: Street): Option[NonEmptySet[(Int, Player, Hand)]] = {
     val winners = PlayerStanding(board).maximumByList { case (_, _, hand) => hand }.toSet
 

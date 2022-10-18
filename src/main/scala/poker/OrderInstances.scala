@@ -17,7 +17,9 @@ object OrderInstances {
           case (a: FullHouse, b: FullHouse) =>
             if (a.rank1.value - b.rank1.value != 0) a.rank1.value - b.rank1.value
             else a.rank2.value - b.rank2.value
-          case (a: Flush, b: Flush)       => a.rank.value - b.rank.value
+          case (a: Flush, b: Flush) => // a.rank.value - b.rank.value
+            if (a.rank.value - b.rank.value != 0) a.rank.value - b.rank.value
+            else compareCorresponding(a.kickers, b.kickers)
           case (a: Straight, b: Straight) => a.rank.value - b.rank.value
           case (a: ThreeOfAKind, b: ThreeOfAKind) =>
             if (a.rank.value - b.rank.value != 0) a.rank.value - b.rank.value
