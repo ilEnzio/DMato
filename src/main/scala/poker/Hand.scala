@@ -23,8 +23,6 @@ object Hand {
       case HighCard(x)      => x
     }
 
-  final case class UnrankedHand() extends Hand
-
   final case class StraightFlush(rank: Rank) extends Hand {
     override val score = 9
   }
