@@ -1,8 +1,8 @@
 package poker
 
-import cats.effect.IO
-
-import scala.util.Random
+import cats._
+import cats.effect.std._
+import cats.syntax.all._
 
 case class Deck(cards: List[Card]) {
 //  def size: Int = cards.length
@@ -21,12 +21,17 @@ case class Deck(cards: List[Card]) {
 
 object Deck {
 
-  trait StartingDeck {}
+  trait StartingDeck {
+    def shuffle[F[_]: Functor: Random]: F[StartingDeck]
+  }
 
-  final private case class StartingDeckImpl(cards: List[Card]) extends StartingDeck {}
+  final private case class StartingDeckImpl(cards: List[Card]) extends StartingDeck {
+    override def shuffle[F[_]: Functor: Random]: F[StartingDeck] =
+      Random[F].shuffleList(cards).map(StartingDeckImpl.apply)
+  }
 
-  object StartingDeck {
-//    def shuffle: IO[StartingDeck] = IO(StartingDeckImpl(Random.shuffle(startingDeckImpl.cards)))
+  object StartingDeck { // TODO flatten nesting?
+//    def shuffle: IO[StartingDeck] =
 
     private def startingDeckImpl: StartingDeckImpl = {
       val cardList = for {

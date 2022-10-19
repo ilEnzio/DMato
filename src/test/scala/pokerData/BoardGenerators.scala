@@ -2,43 +2,43 @@ package pokerData
 
 import cats.effect.unsafe.implicits.global
 import org.scalacheck.Gen.choose
-import org.scalacheck.Gen
+import org.scalacheck._
 import poker.Deck.PreflopDeck
 import poker.Street
-import poker.Street.{deal, dealHoleCards, Flop, Preflop, River, Turn}
-//import poker.Deck.makeStartingDeck
+import poker.Street._
 import poker.Deck.PreflopDeck._
 
 object BoardGenerators {
 
   val genNumberOfPlayers: Gen[Int] =
     choose(2, 10)
-  val genPreflopBoard: Gen[Preflop] = {
 
+  def genPreflopBoard(numPlayers: Int): Gen[Preflop] =
+    dealHoleCards(numPlayers).unsafeRunSync()
+
+  implicit val arbPreflop: Arbitrary[Preflop] =
+    Arbitrary(genNumberOfPlayers.flatMap(genPreflopBoard))
+
+  def genFlopBoard(numPlayers: Int): Gen[Flop] =
     for {
-      numPlayers <- genNumberOfPlayers
-    } yield dealHoleCards(numPlayers).unsafeRunSync()
+      preflop <- genPreflopBoard(numPlayers)
+    } yield dealFlop(preflop)
 
-  }
-
-  val genFlopBoard: Gen[Flop] = {
-    for {
-      preflop <- genPreflopBoard
-    } yield deal(preflop).asInstanceOf[Flop]
-
-  }
+  implicit val arbFlop: Arbitrary[Flop] =
+    Arbitrary(genNumberOfPlayers.flatMap(genFlopBoard))
 
   val genTurnBoard: Gen[Turn] = {
     for {
-      flop <- genFlopBoard
-    } yield deal(flop).asInstanceOf[Turn]
+      numPlayers <- genNumberOfPlayers
+      flop <- genFlopBoard(numPlayers)
+    } yield dealTurn(flop)
 
   }
 
   val genRiverBoard: Gen[River] = {
     for {
       turn <- genTurnBoard
-    } yield deal(turn).asInstanceOf[River]
+    } yield dealRiver(turn)
   }
 
 }

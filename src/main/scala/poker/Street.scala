@@ -29,25 +29,12 @@ object Street {
       players = cards
         .take(numHoleCards)
         .grouped(2)
-        .map { case List(x, y) => Player(x, y) }
+        .map { case List(x, y) => Player(x, y) } // TODO unsafe
         .toList
     } yield Preflop(players, PreFlopDeckImpl(cards.drop(numHoleCards))) // TODO I've broken encapuslation here
 
 //    deck.map(Preflop(players, _))
   }
-
-  //TODo: come back and fix the unapply
-  def deal(boardState: Street): Street =
-    boardState match {
-      //      case Preflop(ps, d)                        => dealFlop(ps, d)
-      //      case BoardState.Flop(ps, d, c1, c2, c3)    => dealTurn(ps, d, c1, c2, c3)
-      //      case BoardState.Turn(ps, d, c1, c2, c3, t) => dealRiver(ps, d, c1, c2, c3, t)
-      //      case BoardState.River(ps, d, c1, c2, c3, t, r) => ???
-      case x: Preflop => dealFlop(x.players, x.deck) // flop factory
-      case x: Flop    => dealTurn(x.players, x.deck, x.card1, x.card2, x.card3)
-      case x: Turn    => dealRiver(x.players, x.deck, x.card1, x.card2, x.card3, x.turn)
-      case x: River   => x
-    }
 
   final case class Preflop(players: List[Player], deck: PreflopDeck) extends Street {
 
@@ -83,23 +70,21 @@ object Street {
   /// State machine needs to go to the Deck. (FlopCards, FlopDeck)
   // Flop - street
   // FlopCards - the three cards
-  def dealFlop(players: List[Player], deck: PreflopDeck): Flop = { // (FlopCards, FlopDeck)
+  def dealFlop(preflop: Preflop): Flop = { // (FlopCards, FlopDeck)
 
-    val (flop, flopDeck) = deck.dealFlop
-    Flop(players, flopDeck, flop.card1, flop.card2, flop.card3)
+    val (flop, flopDeck) = preflop.deck.dealFlop
+    Flop(preflop.players, flopDeck, flop.card1, flop.card2, flop.card3)
   }
 
-  def dealTurn(players: List[Player], deck: FlopDeck, fl1: Card, fl2: Card, fl3: Card): Turn = {
+  def dealTurn(flop: Flop): Turn = {
+    val (turn, turnDeck) = flop.deck.dealTurn
 
-    val (turn, turnDeck) = deck.dealTurn
-
-    Turn(players, turnDeck, fl1, fl2, fl3, turn.card)
+    Turn(flop.players, turnDeck, flop.card1, flop.card2, flop.card3, turn.card)
   }
 
-  def dealRiver(players: List[Player], deck: TurnDeck, fl1: Card, fl2: Card, fl3: Card, t: Card): River = {
-
-    val river = deck.dealRiver
-    River(players, fl1, fl2, fl3, t, river.card)
+  def dealRiver(turn: Turn): River = {
+    val river = turn.deck.dealRiver
+    River(turn.players, turn.card1, turn.card2, turn.card3, turn.turn, river.card)
   }
 
 }

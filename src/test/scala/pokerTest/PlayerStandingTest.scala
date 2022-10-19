@@ -1,17 +1,18 @@
 package pokerTest
 
-import org.scalacheck.Prop.{forAll, AnyOperators}
+import org.scalacheck.Prop._
 import org.scalacheck.Properties
-import poker.Hand.{Flush, FourOfAKind, FullHouse, HighCard, Straight, StraightFlush, ThreeOfAKind, TwoPair}
+import poker.Hand._
 import poker.OrderInstances.handOrder
-import poker.{Card, Hand, PlayerStanding, Two}
-import pokerData.BoardGenerators.{genFlopBoard, genPreflopBoard}
+import poker._
+import pokerData.BoardGenerators._
+import poker.Street
 
 object PlayerStandingTest extends Properties("Player Standing Tests") {
 
-  property("Preflop: If the winner is a pair, no more than two players can be winning ") = forAll(genPreflopBoard) {
-    preFlop =>
-      val winnerList = PlayerStanding.winnerList(preFlop)
+  property("Preflop: If the winner is a pair, no more than two players can be winning ") = forAll {
+    (preflop: Street.Preflop) =>
+      val winnerList = PlayerStanding.winnerList(preflop)
 
       val winningRank = winnerList.get.map(_._3).fold(HighCard(Two, List.empty[Card])) { case (s: Hand, v: Hand) =>
         if (handOrder.compare(s, v) > 0) s else v
@@ -21,9 +22,9 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
       else true
   }
 
-  property("Preflop: If the winner is a HighCard, no more than 4 players can be winning ") = forAll(genPreflopBoard) {
-    preFlop =>
-      val winnerList = PlayerStanding.winnerList(preFlop)
+  property("Preflop: If the winner is a HighCard, no more than 4 players can be winning ") = forAll {
+    (preflop: Street.Preflop) =>
+      val winnerList = PlayerStanding.winnerList(preflop)
 
       val winningRank = winnerList.get.map(_._3).fold(HighCard(Two, List.empty[Card])) { case (s: Hand, v: Hand) =>
         if (handOrder.compare(s, v) > 0) s else v
@@ -33,7 +34,7 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
       else true
   }
 
-  property("No more than one player can have quads on the Flop") = forAll(genFlopBoard) { flop =>
+  property("No more than one player can have quads on the Flop") = forAll { (flop: Street.Flop) =>
     PlayerStanding(flop).count { case (_, _, hand) =>
       hand match {
         case _: FourOfAKind => true
@@ -42,7 +43,7 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
     } <= 1
   }
 
-  property("No more than two players can have a StraightFlush on the Flop") = forAll(genFlopBoard) { flop =>
+  property("No more than two players can have a StraightFlush on the Flop") = forAll { (flop: Street.Flop) =>
     PlayerStanding(flop).count { case (_, _, hand) =>
       hand match {
         case _: StraightFlush => true
@@ -51,7 +52,7 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
     } <= 2
   }
 
-  property("No more than two players can have a winning FullHouse on the Flop") = forAll(genFlopBoard) { flop =>
+  property("No more than two players can have a winning FullHouse on the Flop") = forAll { (flop: Street.Flop) =>
     val strFLWinners = for {
       winners <- PlayerStanding.winnerList(flop)
     } yield winners.count { case (_, _, hand) =>
@@ -63,7 +64,7 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
     strFLWinners.get // TODO why do I always end up with something unsafe??
   }
 
-  property("No more than one player can have a winning Flush on the Flop") = forAll(genFlopBoard) { flop =>
+  property("No more than one player can have a winning Flush on the Flop") = forAll { (flop: Street.Flop) =>
     val flushWinners = for {
       winners <- PlayerStanding.winnerList(flop)
     } yield winners.count { case (_, _, hand) =>
@@ -75,7 +76,7 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
     flushWinners.get ?= true // TODO why do I always end up with something unsafe??
   }
 
-  property("No more than 5 players can have a Flush on the Flop") = forAll(genFlopBoard) { flop =>
+  property("No more than 5 players can have a Flush on the Flop") = forAll { (flop: Street.Flop) =>
     PlayerStanding(flop).count { case (_, _, hand) =>
       hand match {
         case _: Flush => true
@@ -84,7 +85,7 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
     } <= 5
   }
 
-  property("No more than 4 players can have a winning Straight on the Flop") = forAll(genFlopBoard) { flop =>
+  property("No more than 4 players can have a winning Straight on the Flop") = forAll { (flop: Street.Flop) =>
     val straightWinners = for {
       winners <- PlayerStanding.winnerList(flop)
     } yield winners.count { case (_, _, hand) =>
@@ -96,7 +97,7 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
     straightWinners.get ?= true // TODO why do I always end up with something unsafe??
   }
 
-  property("No more than 4 players can have a winning ThreeOfAKind on the Flop") = forAll(genFlopBoard) { flop =>
+  property("No more than 4 players can have a winning ThreeOfAKind on the Flop") = forAll { (flop: Street.Flop) =>
     val setWinners = for {
       winners <- PlayerStanding.winnerList(flop)
     } yield winners.count { case (_, _, hand) =>
@@ -108,7 +109,7 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
     setWinners.get ?= true
   }
 
-  property("No more than 3 players can have a winning TwoPair on the Flop") = forAll(genFlopBoard) { flop =>
+  property("No more than 3 players can have a winning TwoPair on the Flop") = forAll { (flop: Street.Flop) =>
     val twoPairWinners = for {
       winners <- PlayerStanding.winnerList(flop)
     } yield winners.count { case (_, _, hand) =>
