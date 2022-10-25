@@ -163,6 +163,17 @@ object RankingTest extends Properties("Ranking Tests") {
     }
   }
 
+//  property("Highest Ranked Two pair wins ") = forAll(genTwoPair) { hand =>
+//    //    (hand match {
+//    //      case _: StraightFlush | _: Flush | _: Straight => false
+//    //      case _                                         => true
+//    //    }) ==> {
+//    hand match {
+//      case _: TwoPair => true
+//      case _          => false
+//    }
+//  }
+
 // This seems dumb now.  I need to generator groups of cards
   // not the hand???
   property("at least two cards of the same rank is a Pair") = forAll(genPair) { hand =>

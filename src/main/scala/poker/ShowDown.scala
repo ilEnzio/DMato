@@ -26,20 +26,20 @@ object ShowDown {
 
   def fromPreFlop(preflop: Preflop): Option[NonEmptySet[Int]] = {
 
-    val flop  = Street.deal(preflop)
-    val turn  = Street.deal(flop)
-    val river = Street.deal(turn)
+    val flop  = Street.dealFlop(preflop)
+    val turn  = Street.dealTurn(flop)
+    val river = Street.dealRiver(turn)
     from(river)
   }
 
   def fromFlop(flop: Flop): Option[NonEmptySet[Int]] = {
-    val turn  = Street.deal(flop)
-    val river = Street.deal(turn)
+    val turn  = Street.dealTurn(flop)
+    val river = Street.dealRiver(turn)
     from(river)
   }
 
   def fromTurn(turn: Turn): Option[NonEmptySet[Int]] = {
-    val river = Street.deal(turn)
+    val river = Street.dealRiver(turn)
     from(river)
   }
 
@@ -72,6 +72,7 @@ object PlayerStanding {
       .zipWithIndex
       .map { case ((p, h), i) => (i, p, h) }
 
+//TODO this must be wrong??
   def winnerList(board: Street): Option[NonEmptySet[(Int, Player, Hand)]] = {
     val winners = PlayerStanding(board).maximumByList { case (_, _, hand) => hand }.toSet
 

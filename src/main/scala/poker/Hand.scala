@@ -23,8 +23,6 @@ object Hand {
       case HighCard(x)      => x
     }
 
-  final case class UnrankedHand() extends Hand
-
   final case class StraightFlush(rank: Rank) extends Hand {
     override val score = 9
   }
@@ -37,7 +35,7 @@ object Hand {
     override val score = 7
   }
 
-  final case class Flush(rank: Rank) extends Hand {
+  final case class Flush(rank: Rank, kickers: List[Card]) extends Hand {
     override val score = 6
   }
 
@@ -123,7 +121,7 @@ object Hand {
         }
 
       groupBySuit5Count.collectFirst { case (_, cards) =>
-        Flush(cards.max.rank)
+        Flush(cards.max.rank, cards.sorted.reverse)
       }
     }
   }
@@ -166,6 +164,7 @@ object Hand {
         .filter(_._2.size == 2)
         .toList
         .sortBy(_._1.value)
+        .reverse
 
       for {
         head <- pairsGrouped.headOption

@@ -1,20 +1,20 @@
 package pokerTest
 
-import cats.effect.IO
+import cats.effect._
+import cats.effect.std._
 import cats.effect.unsafe.implicits.global
-import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
+import cats.syntax.all._
+import org.scalacheck.Prop._
 import org.scalacheck.Properties
-import cats.implicits.catsSyntaxPartialOrder
 import org.scalactic.anyvals.NonEmptySet
 import poker.Deck.StartingDeck
-import poker.Street.{deal, Flop, Preflop, River, Turn}
 import poker.OrderInstances._
 import poker.Rank.rankMap
+import poker.Street._
 import poker._
-import pokerData.BoardGenerators.{genPreflopBoard, genRiverBoard}
+import pokerData.BoardGenerators._
 import pokerData.HandGenerators._
 import pokerData.SpecialHandsGenerators._
-
 import scala.util.Random.shuffle
 
 object ShowDownTest extends Properties("ShowDownTest") {
@@ -48,9 +48,9 @@ object ShowDownTest extends Properties("ShowDownTest") {
   property("at the River: For Two players the Showdown will award all winners") = {
 
     val twoPlayerPreFlop = Street.dealHoleCards(2).unsafeRunSync()
-    val flop             = deal(twoPlayerPreFlop)
-    val turn             = deal(flop)
-    val river            = deal(turn)
+    val flop             = dealFlop(twoPlayerPreFlop)
+    val turn             = dealTurn(flop)
+    val river            = dealRiver(turn)
     val winningHands     = ShowDown(river.allHands)
     val winningPlayers   = ShowDown.from(river).get
 
@@ -87,41 +87,30 @@ object ShowDownTest extends Properties("ShowDownTest") {
 
 //  }
 
-  property("At Showdown there is at least one winner") = forAll(genPreflopBoard) { preflopBoard =>
+  property("At Showdown there is at least one winner") = forAll { (preflopBoard: Preflop) =>
     val numPlayers = preflopBoard.players.size
-    val flop       = deal(preflopBoard)
-    val turn       = deal(flop)
-    val river      = deal(turn)
+    val flop       = dealFlop(preflopBoard)
+    val turn       = dealTurn(flop)
+    val river      = dealRiver(turn)
     val winners    = ShowDown.from(river).get
     winners.size >= 1
   }
-//  property("at the Flop: For Two players the Showdown will award all winners") = {
-//    val startDeck  = Deck.makeStartingDeck.shuffle.unsafeRunSync()
-//    val boardCards = startDeck.take(7)
-//    val deck       = startDeck.drop(7)
-//    val pl1        = Player(boardCards(0), boardCards(1))
-//    val pl2        = Player(boardCards(2), boardCards(3))
-//    val flop = Flop(
-//      List(pl1, pl2),
-//      deck,
-//      boardCards(4),
-//      boardCards(5),
-//      boardCards(6)
-//    )
-//
-//    val turn = Street.deal(flop)
-//
-//    Street.deal(turn) match {
-//      case r: River =>
-//        val (fst, snd) = (ShowDown.allHands(r)(0)._2, ShowDown.allHands(r)(1)._2)
-//        (fst, snd) match {
-//          case (x, y) if x > y  => ShowDown.from(r) ?= Some(NonEmptySet(1))
-//          case (x, y) if x < y  => ShowDown.from(r) ?= Some(NonEmptySet(2))
-//          case (x, y) if x == y => ShowDown.from(r) ?= Some(NonEmptySet(1, 2))
-//        }
-//      case _ => false
-//    }
-//  }
+
+  property("at the Flop: For Two players the Showdown will award all winners") =
+    forAll(genFlopBoard(2)) { flop =>
+      val turn = Street.dealTurn(flop)
+
+      Street.dealRiver(turn) match {
+        case r: River =>
+          val xy = (ShowDown.allHands(r)(0)._2, ShowDown.allHands(r)(1)._2)
+          xy match {
+            case (x, y) if x > y  => ShowDown.from(r) ?= Some(NonEmptySet(1))
+            case (x, y) if x < y  => ShowDown.from(r) ?= Some(NonEmptySet(2))
+            case (x, y)           => ShowDown.from(r) ?= Some(NonEmptySet(1, 2))
+          }
+        case _ => falsified
+      }
+    }
 
 //  property("at the PreFlop: For Two players the Showdown will award all winners") = {
 //    val startDeck  = Deck.makeStartingDeck.shuffle.unsafeRunSync()
