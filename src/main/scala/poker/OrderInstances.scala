@@ -54,7 +54,7 @@ object OrderInstances {
     sortedCards1: List[Card],
     sortedCards2: List[Card]
   ): Int =
-    sortedCards1.reverse.zip(sortedCards2).foldLeft(0) { (s, v) =>
+    sortedCards1.zip(sortedCards2).foldLeft(0) { (s, v) =>
       s match {
         case 0          => cardOrder.compare(v._1, v._2)
         case x if x < 0 => -1
