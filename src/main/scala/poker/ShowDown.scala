@@ -59,7 +59,17 @@ object ShowDown {
   def allHands(board: River): List[(Int, Hand)] =
     board.players
       .map { case Player(x, y) =>
-        Hand.rank(List(x, y, board.card1, board.card2, board.card3, board.turn, board.river))
+        Hand.rank(
+          List(
+            x,
+            y,
+            board.card1,
+            board.card2,
+            board.card3,
+            board.turn,
+            board.river
+          )
+        )
       }
       .zipWithIndex
       .map { case (x, y) => (y + 1, x) }
@@ -74,7 +84,9 @@ object PlayerStanding {
 
 //TODO this must be wrong??
   def winnerList(board: Street): Option[NonEmptySet[(Int, Player, Hand)]] = {
-    val winners = PlayerStanding(board).maximumByList { case (_, _, hand) => hand }.toSet
+    val winners: Set[(Int, Player, Hand)] = PlayerStanding(board)
+      .maximumByList[Hand](x => x._3)
+      .toSet
 
     NonEmptySet.from(winners)
   }
