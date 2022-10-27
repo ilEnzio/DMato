@@ -47,7 +47,8 @@ object Hand {
     override val score = 4
   }
 
-  final case class TwoPair(rank1: Rank, rank2: Rank, kicker: List[Card]) extends Hand {
+  final case class TwoPair(rank1: Rank, rank2: Rank, kicker: List[Card])
+      extends Hand {
     override val score = 3
   }
 
@@ -73,7 +74,8 @@ object Hand {
         val wheelStraight           = List(Ace, Five, Four, Three, Two)
         val rankOfStr: Option[Rank] = rankOfStraight(flushCards)
         if (rankOfStr.isDefined) Some(StraightFlush(rankOfStr.get))
-        else if (flushCards.map(_.rank).count(wheelStraight.contains(_)) == 5) Some(StraightFlush(Five))
+        else if (flushCards.map(_.rank).count(wheelStraight.contains(_)) == 5)
+          Some(StraightFlush(Five))
         else None
       }
     }
@@ -81,7 +83,8 @@ object Hand {
 
   object FourOfAKind {
     def unapply(hand: List[Card]): Option[FourOfAKind] = {
-      val rankGroups: List[(Rank, List[Card])] = hand.groupBy(_.rank).toList.sortBy(_._2.size).reverse
+      val rankGroups: List[(Rank, List[Card])] =
+        hand.groupBy(_.rank).toList.sortBy(_._2.size).reverse
       rankGroups
         .collectFirst {
           case (rank, cards) if cards.length == 4 =>
@@ -92,7 +95,8 @@ object Hand {
 
   object FullHouse {
     def unapply(hand: List[Card]): Option[FullHouse] = {
-      val rankGroups: Seq[(Rank, List[Card])] = hand.groupBy(_.rank).toList.sortBy(_._2.size)
+      val rankGroups: Seq[(Rank, List[Card])] =
+        hand.groupBy(_.rank).toList.sortBy(_._2.size)
 
       // sort; collect the first set
       // remove that set and repeat
@@ -132,7 +136,8 @@ object Hand {
       val wheelStraight           = List(Ace, Five, Four, Three, Two)
       val rankOfStr: Option[Rank] = rankOfStraight(sorted)
       if (rankOfStr.isDefined) Some(Straight(rankOfStr.get))
-      else if (sorted.map(_.rank).count(wheelStraight.contains(_)) == 5) Some(Straight(Five))
+      else if (sorted.map(_.rank).count(wheelStraight.contains(_)) == 5)
+        Some(Straight(Five))
       else None
     }
   }
@@ -147,7 +152,8 @@ object Hand {
   object ThreeOfAKind {
     def unapply(hand: List[Card]): Option[ThreeOfAKind] = {
 
-      val setGroup = hand.groupBy(_.rank).toList.find { case (_, cards) => cards.size == 3 }
+      val setGroup =
+        hand.groupBy(_.rank).toList.find { case (_, cards) => cards.size == 3 }
 
       setGroup.collectFirst { case (rank, cards) =>
         val unusedCards = hand.filterNot(cards.contains(_)).sorted
@@ -198,7 +204,7 @@ object Hand {
     def unapply(hand: List[Card]): Option[HighCard] = {
       val sorted = hand.sorted.reverse
       val rank   = sorted.head.rank
-      Some(HighCard(rank, sorted))
+      Some(HighCard(rank, sorted.tail))
     }
   }
 
