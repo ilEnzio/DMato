@@ -2,7 +2,7 @@ package pokerData
 
 import org.scalacheck.Gen.{choose, frequency, oneOf, pick}
 import org.scalacheck.Gen
-import poker.Deck.{PreflopDeck, StartingDeck}
+import poker.Deck.{startingDeck, StartingDeck}
 //import poker.Deck.PreflopDeck.startingDeck
 import poker._
 import poker.{Deck, Hand, Rank}
@@ -21,11 +21,13 @@ object HandGenerators {
     for {
       rank <- genRank
 //      quads = Deck.all.groupBy(_.rank)(rank)
-      quads = StartingDeck.all.groupBy(_.rank)(rank)
+      quads = Deck.all.groupBy(_.rank)(rank)
 
       card1 <- genCard.suchThat(c => c.rank != rank)
       card2 <- genCard.suchThat(c => c != card1 && c.rank != rank)
-      card3 <- genCard.suchThat(c => !List(card1, card2).contains(c) && c.rank != rank)
+      card3 <- genCard.suchThat(c =>
+        !List(card1, card2).contains(c) && c.rank != rank
+      )
       kickers = List(card1, card2, card3).sorted.reverse
     } yield FourOfAKind(rank, kickers)
 //  yield Hand.rank(card1 :: card2 :: card3 :: quads)
@@ -34,7 +36,7 @@ object HandGenerators {
     for {
       (rank1, rank2) <- pick(2, Rank.all).map(x => (x.head, x.last))
       //      grouped = Deck.all.groupBy(_.rank)
-      grouped = StartingDeck.all.groupBy(_.rank)
+      grouped = Deck.all.groupBy(_.rank)
       set  <- pick(3, grouped(rank1))
       pair <- pick(2, grouped(rank2))
       card1 <- genCard.suchThat { c =>
@@ -50,7 +52,9 @@ object HandGenerators {
           c.rank != rank2 &&
           c != card1
       )
-    } yield Hand.rank(card1 :: card2 :: pair.toList ++ set.toList).asInstanceOf[FullHouse]
+    } yield Hand
+      .rank(card1 :: card2 :: pair.toList ++ set.toList)
+      .asInstanceOf[FullHouse]
 
   val genFullHouse: Gen[FullHouse] =
     for {
@@ -61,7 +65,7 @@ object HandGenerators {
 
   val genFlush: Gen[Flush] = for {
     suit <- genSuit
-    suited = StartingDeck.all.filter(_.suit == suit)
+    suited = Deck.all.filter(_.suit == suit)
     flush <- pick(5, suited).suchThat(x =>
       Hand.rank(x.toList) match {
         case _: StraightFlush => false
@@ -79,7 +83,7 @@ object HandGenerators {
 
   val genNonFlush: Gen[Hand] = for {
     suit <- genSuit
-    suited = StartingDeck.all.filter(_.suit == suit)
+    suited = Deck.all.filter(_.suit == suit)
     fourFlush <- pick(4, suited)
     card1 <- genCard.suchThat { c =>
       !suited.contains(c)
@@ -102,30 +106,41 @@ object HandGenerators {
       suit2 <- genSuit
       suit3 <- genSuit
       suit4 <- genSuit
-      suit5 <- genSuit.suchThat(s => List(suit1, suit2, suit3, suit4).count(_ == s) < 4)
+      suit5 <- genSuit.suchThat(s =>
+        List(suit1, suit2, suit3, suit4).count(_ == s) < 4
+      )
       suits = List(suit1, suit2, suit3, suit4, suit5)
-    } yield Hand.rank(wheelRanks.zip(suits).map(x => Card(x._1, x._2))).asInstanceOf[Straight]
+    } yield Hand
+      .rank(wheelRanks.zip(suits).map(x => Card(x._1, x._2)))
+      .asInstanceOf[Straight]
   }
 
   def genStraight_(high: Int): Gen[Straight] = {
-    val idx                               = choose(0, high).sample.get
-    val grouped: List[(Rank, List[Card])] = StartingDeck.all.groupBy(_.rank).toList.sortBy(_._1)
-    val hslice: List[(Rank, List[Card])]  = grouped.slice(idx, idx + 5)
+    val idx = choose(0, high).sample.get
+    val grouped: List[(Rank, List[Card])] =
+      Deck.all.groupBy(_.rank).toList.sortBy(_._1)
+    val hslice: List[(Rank, List[Card])] = grouped.slice(idx, idx + 5)
     for {
       suit1 <- genSuit
       suit2 <- genSuit
       suit3 <- genSuit
       suit4 <- genSuit
-      suit5 <- genSuit.retryUntil(s => List(suit1, suit2, suit3, suit4).count(_ == s) < 4)
-      suit6 <- genSuit.retryUntil(s => List(suit1, suit2, suit3, suit4, suit5).count(_ == s) < 4)
-      suit7 <- genSuit.retryUntil(s => List(suit1, suit2, suit3, suit4, suit5, suit6).count(_ == s) < 4)
-      c1    <- Gen.oneOf(hslice.head._2)
-      c2    <- Gen.oneOf(hslice(1)._2)
-      c3    <- Gen.oneOf(hslice(2)._2)
-      c4    <- Gen.oneOf(hslice(3)._2)
-      c5    <- Gen.oneOf(hslice(4)._2)
-      n1    <- genCard.retryUntil(c => !List(c1, c2, c3, c4, c5).contains(c))
-      n2    <- genCard.retryUntil(c => !List(c1, c2, c3, c4, c5, n1).contains(c))
+      suit5 <- genSuit.retryUntil(s =>
+        List(suit1, suit2, suit3, suit4).count(_ == s) < 4
+      )
+      suit6 <- genSuit.retryUntil(s =>
+        List(suit1, suit2, suit3, suit4, suit5).count(_ == s) < 4
+      )
+      suit7 <- genSuit.retryUntil(s =>
+        List(suit1, suit2, suit3, suit4, suit5, suit6).count(_ == s) < 4
+      )
+      c1 <- Gen.oneOf(hslice.head._2)
+      c2 <- Gen.oneOf(hslice(1)._2)
+      c3 <- Gen.oneOf(hslice(2)._2)
+      c4 <- Gen.oneOf(hslice(3)._2)
+      c5 <- Gen.oneOf(hslice(4)._2)
+      n1 <- genCard.retryUntil(c => !List(c1, c2, c3, c4, c5).contains(c))
+      n2 <- genCard.retryUntil(c => !List(c1, c2, c3, c4, c5, n1).contains(c))
     } yield Hand
       .rank(
         List(
@@ -169,49 +184,70 @@ object HandGenerators {
       x.head + 4 != x(4) && x.head + 12 != x(4)
     }
     suits <- pick(3, Suit.all)
-    set = List(Card(ranks.head, suits.head), Card(ranks.head, suits(1)), Card(ranks.head, suits(2)))
+    set = List(
+      Card(ranks.head, suits.head),
+      Card(ranks.head, suits(1)),
+      Card(ranks.head, suits(2))
+    )
     card1 <- genCard.retryUntil(c =>
       c.rank == ranks(1) &&
         set.map(_.suit).contains(c.suit)
     ) // 1 of suit already
     card2 <- genCard.retryUntil(c =>
       c.rank == ranks(2) &&
-        c.suit == (card1 :: set).groupBy(_.suit).filter(_._2.size == 1).toList.head._1
+        c.suit == (card1 :: set)
+          .groupBy(_.suit)
+          .filter(_._2.size == 1)
+          .toList
+          .head
+          ._1
     ) // 1 of suit already
     card3 <- genCard.retryUntil(c =>
       c.rank == ranks(3) &&
-        c.suit == (card1 :: card2 :: set).groupBy(_.suit).filter(_._2.size == 2).toList.head._1
+        c.suit == (card1 :: card2 :: set)
+          .groupBy(_.suit)
+          .filter(_._2.size == 2)
+          .toList
+          .head
+          ._1
     ) // 2 of suit already
     card4 <- genCard.retryUntil(c =>
       c.rank == ranks(4) &&
         !(card1 :: card2 :: card3 :: set).map(_.suit).contains(c.suit)
     ) // unique suit
-  } yield Hand.rank(card1 :: card2 :: card3 :: card4 :: set).asInstanceOf[ThreeOfAKind]
+  } yield Hand
+    .rank(card1 :: card2 :: card3 :: card4 :: set)
+    .asInstanceOf[ThreeOfAKind]
 
   val genTwoPair: Gen[TwoPair] = for {
     rank1 <- genRank
     rank2 <- genRank.retryUntil(_ != rank1)
-    grouped = StartingDeck.all.groupBy(_.rank)
+    grouped = Deck.all.groupBy(_.rank)
     pair1 <- pick(2, grouped(rank1))
     pair2 <- pick(2, grouped(rank2))
     card1 <- genCard.retryUntil(c => !List(rank1, rank2).contains(c.rank))
-    card2 <- genCard.retryUntil(c => c != card1 && !List(rank1, rank2).contains(c.rank))
+    card2 <- genCard.retryUntil(c =>
+      c != card1 && !List(rank1, rank2).contains(c.rank)
+    )
     card3 <- genCard.retryUntil(c =>
-      !List(card1, card2).contains(c) && !List(rank1, rank2, card2.rank).contains(c.rank) &&
+      !List(card1, card2).contains(c) && !List(rank1, rank2, card2.rank)
+        .contains(c.rank) &&
         !List(card1, card2).map(_.suit).contains(c.suit) &&
         (Hand.rank(card1 :: card2 :: c :: pair1.toList ++ pair2.toList) match {
           case _: Straight => false
           case _           => true
         }) //TODO again
     )
-  } yield Hand.rank(card1 :: card2 :: card3 :: pair1.toList ++ pair2.toList).asInstanceOf[TwoPair]
+  } yield Hand
+    .rank(card1 :: card2 :: card3 :: pair1.toList ++ pair2.toList)
+    .asInstanceOf[TwoPair]
 
   val genPair: Gen[Pair] = for {
     rank <- genRank
-    grouped: Map[Rank, List[Card]] = StartingDeck.all.groupBy(_.rank)
+    grouped: Map[Rank, List[Card]] = Deck.all.groupBy(_.rank)
     pair <- pick(2, grouped(rank))
     //    rankingList = HandRank.all.filterNot(_ == Pair)
-    rest <- pick(5, StartingDeck.all.filterNot(pair.contains(_))).retryUntil(x =>
+    rest <- pick(5, Deck.all.filterNot(pair.contains(_))).retryUntil(x =>
       Hand.rank(pair.toList ++ x.toList) match {
         case _: Pair => true
         case _       => false

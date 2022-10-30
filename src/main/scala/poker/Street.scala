@@ -19,24 +19,8 @@ sealed trait Street {
 
 object Street {
 
-  def dealHoleCards(numPlayers: Int): IO[Preflop] = {
-
-    // TODO Something isn't right here; Find out through test
-    val shuffledDeck = IO(Random.shuffle(StartingDeck.all))
-    val numHoleCards = numPlayers * 2
-    for {
-      cards <- shuffledDeck
-      players = cards
-        .take(numHoleCards)
-        .grouped(2)
-        .map { case List(x, y) => Player(x, y) } // TODO unsafe
-        .toList
-    } yield Preflop(players, PreFlopDeckImpl(cards.drop(numHoleCards))) // TODO I've broken encapuslation here
-
-//    deck.map(Preflop(players, _))
-  }
-
-  final case class Preflop(players: List[Player], deck: PreflopDeck) extends Street {
+  final case class Preflop(players: List[Player], deck: PreflopDeck)
+      extends Street {
 
     val allHands: List[Hand] =
       players.map { case Player(x, y) => Hand.rank(List(x, y)) }
@@ -44,15 +28,31 @@ object Street {
 
 //
 
-  final case class Flop(players: List[Player], deck: FlopDeck, card1: Card, card2: Card, card3: Card) extends Street {
+  final case class Flop(
+    players: List[Player],
+    deck: FlopDeck,
+    card1: Card,
+    card2: Card,
+    card3: Card
+  ) extends Street {
     val allHands: List[Hand] =
-      players.map { case Player(x, y) => Hand.rank(List(x, y, card1, card2, card3)) }
+      players.map { case Player(x, y) =>
+        Hand.rank(List(x, y, card1, card2, card3))
+      }
   }
 
-  final case class Turn(players: List[Player], deck: TurnDeck, card1: Card, card2: Card, card3: Card, turn: Card)
-      extends Street {
+  final case class Turn(
+    players: List[Player],
+    deck: TurnDeck,
+    card1: Card,
+    card2: Card,
+    card3: Card,
+    turn: Card
+  ) extends Street {
     val allHands: List[Hand] =
-      players.map { case Player(x, y) => Hand.rank(List(x, y, card1, card2, card3, turn)) }
+      players.map { case Player(x, y) =>
+        Hand.rank(List(x, y, card1, card2, card3, turn))
+      }
   }
 
   final case class River(
@@ -64,7 +64,9 @@ object Street {
     river: Card
   ) extends Street {
     val allHands: List[Hand] =
-      players.map { case Player(x, y) => Hand.rank(List(x, y, card1, card2, card3, turn, river)) }
+      players.map { case Player(x, y) =>
+        Hand.rank(List(x, y, card1, card2, card3, turn, river))
+      }
   }
 
   /// State machine needs to go to the Deck. (FlopCards, FlopDeck)
@@ -84,7 +86,14 @@ object Street {
 
   def dealRiver(turn: Turn): River = {
     val river = turn.deck.dealRiver
-    River(turn.players, turn.card1, turn.card2, turn.card3, turn.turn, river.card)
+    River(
+      turn.players,
+      turn.card1,
+      turn.card2,
+      turn.card3,
+      turn.turn,
+      river.card
+    )
   }
 
 }

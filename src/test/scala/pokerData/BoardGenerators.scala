@@ -3,10 +3,9 @@ package pokerData
 import cats.effect.unsafe.implicits.global
 import org.scalacheck.Gen.choose
 import org.scalacheck._
-import poker.Deck.PreflopDeck
-import poker.Street
+import poker.Deck.{startingDeck, StartingDeck, StartingDeckImpl}
 import poker.Street._
-import poker.Deck.PreflopDeck._
+import poker.Deck
 
 object BoardGenerators {
 
@@ -14,7 +13,7 @@ object BoardGenerators {
     choose(2, 10)
 
   def genPreflopBoard(numPlayers: Int): Gen[Preflop] =
-    dealHoleCards(numPlayers).unsafeRunSync()
+    startingDeck.dealHoleCards(numPlayers).unsafeRunSync()
 
   implicit val arbPreflop: Arbitrary[Preflop] =
     Arbitrary(genNumberOfPlayers.flatMap(genPreflopBoard))
@@ -30,7 +29,7 @@ object BoardGenerators {
   val genTurnBoard: Gen[Turn] = {
     for {
       numPlayers <- genNumberOfPlayers
-      flop <- genFlopBoard(numPlayers)
+      flop       <- genFlopBoard(numPlayers)
     } yield dealTurn(flop)
 
   }

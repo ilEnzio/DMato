@@ -1,102 +1,94 @@
 package poker
 
 import cats._
+import cats.effect.IO
 import cats.effect.std._
+import cats.implicits.toFunctorOps
 import cats.syntax.all._
+import poker.Street.Preflop
 
-case class Deck(cards: List[Card]) {
-//  def size: Int = cards.length
-
-// I'm starting to get uncomfortable that outside stuff can reach into
-// cards.  Not sure about this.
-// TODO I think I can get rid of all this
-// TODO - Create some compensating action tests for these
-//  def add(card: Card): Deck                = Deck(card +: cards)
-//  def add(cardList: List[Card]): Deck      = Deck(cards ++ cardList)
-//  def take(n: Int): List[Card]             = cards.take(n)
-//  def drop(n: Int): Deck                   = Deck(cards.drop(n))
-//  def remove(card: Card): Deck             = Deck(cards.filterNot(_ == card))
-//  def remove(otherCards: List[Card]): Deck = Deck(cards.filterNot(otherCards.contains(_)))
-}
+case class Deck(cards: List[Card]) {}
 
 object Deck {
 
   trait StartingDeck {
     def shuffle[F[_]: Functor: Random]: F[StartingDeck]
+    def dealHoleCards(numPlayers: Int): IO[Preflop]
   }
-
-  final private case class StartingDeckImpl(cards: List[Card]) extends StartingDeck {
+  final private case class StartingDeckImpl(cards: List[Card])
+      extends StartingDeck {
     override def shuffle[F[_]: Functor: Random]: F[StartingDeck] =
       Random[F].shuffleList(cards).map(StartingDeckImpl.apply)
-  }
 
-  object StartingDeck { // TODO flatten nesting?
-//    def shuffle: IO[StartingDeck] =
+    // StartingDeck(Shuffle, Dealhole cards) => PreflopDeck => FlopDeck => TurnDeck => [RiverBoard]
 
-    private def startingDeckImpl: StartingDeckImpl = {
-      val cardList = for {
-        rank <- Rank.all
-        suit <- Suit.all
-      } yield Card(rank, suit)
-      StartingDeckImpl(cardList)
+    def shuffle2 = IO(scala.util.Random.shuffle(all))
+    override def dealHoleCards(numPlayers: Int): IO[Preflop] = {
+      // TODO Erg Can't figure this out yet.
+      //        val shuffledDeck =
+      //          shuffle[F[StartingDeck]] //IO(Random.shuffle(StartingDeck.all))
+      val shuffledDeck = shuffle2
+      val numHoleCards = numPlayers * 2
+      for {
+        cards <- shuffledDeck
+        players = cards
+          .take(numHoleCards)
+          .grouped(2)
+          .map { case List(x, y) => Player(x, y) } // TODO unsafe??? old comment
+          .toList
+      } yield Preflop(
+        players,
+        PreFlopDeckImpl(cards.drop(numHoleCards))
+      )
     }
-
-    def startingDeck: StartingDeck = startingDeckImpl
-
-    val all: List[Card] = startingDeckImpl.cards
-
   }
 
-  trait PreflopDeck {
-    def dealFlop: (FlopCards, FlopDeck)
-  }
-// TODO I've broken encapsulation here.
-  final case class PreFlopDeckImpl(cards: List[Card]) extends PreflopDeck {
-    override def dealFlop: (FlopCards, FlopDeck) =
-      cards match {
-        case fst :: snd :: thr :: deck => (FlopCards(fst, snd, thr), FlopImpl(deck))
-      }
+  private def startingDeckImpl: StartingDeckImpl = {
+    val cardList = for {
+      rank <- Rank.all
+      suit <- Suit.all
+    } yield Card(rank, suit)
+    StartingDeckImpl(cardList)
   }
 
-  trait FlopDeck {
-    def dealTurn: (TurnCard, TurnDeck)
-  }
+  def startingDeck: StartingDeck = startingDeckImpl
+  val all: List[Card]            = startingDeckImpl.cards
 
-  final private case class FlopImpl(cards: List[Card]) extends FlopDeck {
-    override def dealTurn: (TurnCard, TurnDeck) =
-      cards match {
-        case h :: deck => (TurnCard(h), TurnImpl(deck))
-      }
-  }
+}
 
-  trait TurnDeck {
-    def dealRiver: RiverCard
-  }
+trait PreflopDeck {
+  def dealFlop: (FlopCards, FlopDeck)
+}
 
-  final private case class TurnImpl(cards: List[Card]) extends TurnDeck {
-    override def dealRiver: RiverCard =
-      cards match {
-        case h :: _ => (RiverCard(h))
-      }
-  }
-  object PreflopDeck {
+final private case class PreFlopDeckImpl(cards: List[Card])
+    extends PreflopDeck {
+  override def dealFlop: (FlopCards, FlopDeck) =
+    cards match {
+      case fst :: snd :: thr :: deck =>
+        (FlopCards(fst, snd, thr), FlopImpl(deck))
+    }
+}
 
-//    def shuffle: IO[PreflopDeck] = IO(PreFlopImpl(Random.shuffle(startingDeckImpl.cards)))
-//
-//    private def startingDeckImpl: PreFlopImpl = {
-//      val cardList = for {
-//        rank <- Rank.all
-//        suit <- Suit.all
-//      } yield Card(rank, suit)
-//      PreFlopImpl(cardList)
-//    }
-//
-//    def startingDeck: StartingDeck = startingDeckImpl
-//
-//    val all: List[Card] = startingDeckImpl.cards
+trait FlopDeck {
+  def dealTurn: (TurnCard, TurnDeck)
+}
 
-  }
+final private case class FlopImpl(cards: List[Card]) extends FlopDeck {
+  override def dealTurn: (TurnCard, TurnDeck) =
+    cards match {
+      case h :: deck => (TurnCard(h), TurnImpl(deck))
+    }
+}
 
+trait TurnDeck {
+  def dealRiver: RiverCard
+}
+
+final private case class TurnImpl(cards: List[Card]) extends TurnDeck {
+  override def dealRiver: RiverCard =
+    cards match {
+      case h :: _ => (RiverCard(h))
+    }
 }
 
 final case class FlopCards(card1: Card, card2: Card, card3: Card)
