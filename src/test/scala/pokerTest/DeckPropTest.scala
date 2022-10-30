@@ -12,7 +12,7 @@ import pokerData.DeckGenerators._
 object DeckPropTest extends Properties("DeckTest") {
 
   property("a starting deck contains one of every card") =
-    StartingDeck.all.size == 52 && (for (card <- StartingDeck.all)
-      yield StartingDeck.all.count(_ == card) == 1).forall(_ == true)
+    Deck.all.size == 52 && (for (card <- Deck.all)
+      yield Deck.all.count(_ == card) == 1).forall(_ == true)
 
 }

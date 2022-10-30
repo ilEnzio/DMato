@@ -2,7 +2,7 @@ package pokerData
 
 import org.scalacheck.Gen.pick
 import org.scalacheck.Gen
-import poker.Deck.{PreflopDeck, StartingDeck}
+import poker.Deck.{StartingDeck}
 import poker._
 import pokerData.DeckGenerators._
 import pokerData.HandGenerators._
@@ -16,7 +16,9 @@ object SpecialHandsGenerators {
     for {
       suit <- genSuit
       suitList = List.fill(5)(suit)
-    } yield Hand.rank(broadWayRanks.zip(suitList).map(x => Card(x._1, x._2))).asInstanceOf[StraightFlush]
+    } yield Hand
+      .rank(broadWayRanks.zip(suitList).map(x => Card(x._1, x._2)))
+      .asInstanceOf[StraightFlush]
   }
 
   val genNonNutStraightFlush: Gen[StraightFlush] = for {
@@ -26,7 +28,7 @@ object SpecialHandsGenerators {
   val genDeucesFullOfTres: Gen[FullHouse] = {
     val rank1   = Two
     val rank2   = Three
-    val grouped = StartingDeck.all.groupBy(_.rank)
+    val grouped = Deck.all.groupBy(_.rank)
 
     for {
       set  <- pick(3, grouped(rank1))
@@ -36,7 +38,7 @@ object SpecialHandsGenerators {
 
   val genNutFlush: Gen[Flush] = for {
     suit <- genSuit
-    suited = StartingDeck.all.filter(_.suit == suit)
+    suited = Deck.all.filter(_.suit == suit)
     flush <- pick(5, suited).retryUntil(x =>
       x.contains(Card(Ace, suit)) &&
         (Hand.rank(x.toList) match {
@@ -55,7 +57,7 @@ object SpecialHandsGenerators {
 
   val genNonNutFlush: Gen[Flush] = for {
     suit <- genSuit
-    suited = StartingDeck.all.filter(_.suit == suit)
+    suited = Deck.all.filter(_.suit == suit)
     flush <- pick(5, suited).retryUntil(x =>
       !x.contains(Card(Ace, suit)) &&
         (Hand.rank(x.toList) match {
@@ -72,9 +74,13 @@ object SpecialHandsGenerators {
       suit2 <- genSuit
       suit3 <- genSuit
       suit4 <- genSuit
-      suit5 <- genSuit.suchThat(s => List(suit1, suit2, suit3, suit4).count(_ == s) < 4)
+      suit5 <- genSuit.suchThat(s =>
+        List(suit1, suit2, suit3, suit4).count(_ == s) < 4
+      )
       suits = List(suit1, suit2, suit3, suit4, suit5)
-    } yield Hand.rank(broadWayRanks.zip(suits).map(x => Card(x._1, x._2))).asInstanceOf[Straight]
+    } yield Hand
+      .rank(broadWayRanks.zip(suits).map(x => Card(x._1, x._2)))
+      .asInstanceOf[Straight]
   }
 
   val genAceHigh: Gen[HighCard] = {

@@ -8,7 +8,7 @@ import cats.syntax.all._
 import org.scalacheck.Prop._
 import org.scalacheck.Properties
 import org.scalactic.anyvals.NonEmptySet
-import poker.Deck.StartingDeck
+import poker.Deck.{startingDeck, StartingDeck}
 import poker.OrderInstances._
 import poker.Rank.rankMap
 import poker.Street._
@@ -35,7 +35,7 @@ object ShowDownTest extends Properties("ShowDownTest") {
     val pl1 = Player(Card(Ace, Spades), Card(Ace, Clubs))
     val pl2 = Player(Card(King, Hearts), Card(Queen, Hearts))
     val deck =
-      StartingDeck.all.filterNot(
+      Deck.all.filterNot(
         List(
           Card(Ace, Spades),
           Card(Ace, Clubs),
@@ -59,7 +59,7 @@ object ShowDownTest extends Properties("ShowDownTest") {
     "at the River: For Two players the Showdown will award all winners"
   ) = {
 
-    val twoPlayerPreFlop = Street.dealHoleCards(2).unsafeRunSync()
+    val twoPlayerPreFlop = startingDeck.dealHoleCards(2).unsafeRunSync()
     val flop             = dealFlop(twoPlayerPreFlop)
     val turn             = dealTurn(flop)
     val river            = dealRiver(turn)
