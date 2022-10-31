@@ -4,13 +4,11 @@ import cats.implicits._
 import org.scalacheck.Gen._
 import org.scalacheck.Gen
 import poker._
-import poker.Rank._
 import pokerData.DeckGenerators._
 import poker.Hand._
 import poker.OrderInstances._
 
 import scala.annotation.tailrec
-import scala.util.Random
 
 object HandGenerators {
 //So the strange thing here is that it's not generating the cards involved.
@@ -244,16 +242,20 @@ object HandGenerators {
     rank <- genRank
     grouped: Map[Rank, List[Card]] = Deck.all.groupBy(_.rank)
     pair <- pick(2, grouped(rank))
-
     deck = Deck.all.filterNot(_.rank == rank)
     optHand: List[Option[Card]] = List(
-      Some(pair(0)),
+      Some(pair.head),
       Some(pair(1)),
       none,
       none,
       none,
       none,
       none
+    )
+    prohibitedHandTypes = List(
+      TwoPair.getClass,
+      Flush.getClass,
+      Straight.getClass
     )
     (_, cards) = optHand.foldLeft((deck, List(pair(0).some, pair(1).some))) {
       (s: (List[Card], List[Option[Card]]), v) =>
@@ -262,69 +264,102 @@ object HandGenerators {
             s // Something is fishy... Like I'm missing a combinator or something..
           case None =>
             val (deck, hand) =
-              ensureNotTwoPairFlushStraight(s._1, s._2.sequence)
+              ensureNotXHandRank(
+                s._1,
+                s._2.sequence,
+                prohibitedHandTypes
+              )
             (deck, hand.sequence)
         }
     }
+
     rest = cards.sequence.get // TODO Get???!!!! arrghhh
   } yield Pair(rank, rest.sorted.reverse)
 
-  @tailrec
-  def ensureNotTwoPairFlushStraight(
-    deck: List[Card],
-    hand: Option[List[Card]]
-  ): (List[Card], Option[List[Card]]) = {
-    val card: Card = oneOf(deck).sample.get // TODO Get???!!!! arrghhh
-    Hand.rank(card :: hand.get) match {
-      case _: TwoPair | _: Straight | _: Flush =>
-        ensureNotTwoPairFlushStraight(deck.filterNot(_ == card), hand)
-      case _ => (deck.filterNot(_ == card), hand)
-    }
-  }
+//  @tailrec
+//  def ensureNotTwoPairFlushStraight(
+//    deck: List[Card],
+//    hand: Option[List[Card]]
+//  ): (List[Card], Option[List[Card]]) = {
+//    val card: Card = oneOf(deck).sample.get // TODO Get???!!!! arrghhh
+//    Hand.rank(card :: hand.get) match {
+//      case _: TwoPair | _: Straight | _: Flush =>
+//        ensureNotTwoPairFlushStraight(deck.filterNot(_ == card), hand)
+//      case _ => (deck.filterNot(_ == card), hand)
+//    }
+//  }
 
-  val genHighCard: Gen[HighCard] = {
-    val suits  = Random.shuffle(Suit.all)
-    val offset = choose(0, 3).sample.get
-    val hand1 = Hand.rank(
-      List(
-        Card(rank = rankMap(11 + offset), suit = suits.head),
-        Card(rank = rankMap(10 + offset), suit = suits.head),
-        Card(rank = rankMap(8 + offset), suit = suits(1)),
-        Card(rank = rankMap(7 + offset), suit = suits(1)),
-        Card(rank = rankMap(5 + offset), suit = suits(2)),
-        Card(rank = rankMap(4 + offset), suit = suits(2)),
-        Card(rank = rankMap(2 + offset), suit = suits(3))
-      )
+  val genHighCard: Gen[HighCard] = for {
+    card <- genCard
+    deck = Deck.all.filterNot(_ == card)
+    optHand: List[Option[Card]] = List(
+      Some(card),
+      none,
+      none,
+      none,
+      none,
+      none,
+      none
+    )
+    prohibitedHandTypes = List(
+      Pair.getClass,
+      TwoPair.getClass,
+      ThreeOfAKind.getClass,
+      Straight.getClass,
+      Flush.getClass,
+      FullHouse.getClass,
+      FourOfAKind.getClass,
+      StraightFlush.getClass
     )
 
-    val hand2 = Hand
-      .rank(
-        List(
-          Card(rankMap(11 + offset), suits.head),
-          Card(rankMap(9 + offset), suits.head),
-          Card(rankMap(8 + offset), suits(1)),
-          Card(rankMap(6 + offset), suits(1)),
-          Card(rankMap(5 + offset), suits(2)),
-          Card(rankMap(3 + offset), suits(2)),
-          Card(rankMap(2 + offset), suits(3))
-        )
-      )
+    // TODO -Erg this is the next part to generalize
+    (_, cards) = optHand.foldLeft((deck, List(card.some))) {
+      (s: (List[Card], List[Option[Card]]), v) =>
+        v match {
+          case Some(_) =>
+            s // Something is fishy... Like I'm missing a combinator or something..
+          case None =>
+            val (deck, hand) =
+              ensureNotXHandRank(
+                s._1,
+                s._2.sequence,
+                prohibitedHandTypes
+              )
+            (deck, hand.sequence)
+        }
+    }
+    allCards = (card :: cards.sequence.get).sorted.reverse
 
-    val hand3 = Hand
-      .rank(
-        List(
-          Card(rankMap(10 + offset), suits.head),
-          Card(rankMap(9 + offset), suits.head),
-          Card(rankMap(8 + offset), suits(1)),
-          Card(rankMap(7 + offset), suits(1)),
-          Card(rankMap(5 + offset), suits(2)),
-          Card(rankMap(4 + offset), suits(2)),
-          Card(rankMap(2 + offset), suits(3))
-        )
-      )
-// TODO Ask about this one
-    val variations = List(hand1, hand2, hand3).map(_.asInstanceOf[HighCard])
-    oneOf(variations)
+  } yield HighCard(allCards.head.rank, allCards.tail)
+
+//
+  @tailrec
+  def ensureNotXHandRank(
+    deck: List[Card],
+    hand: Option[List[Card]],
+    handTypes: List[Class[_ <: Object]]
+  ): (List[Card], Option[List[Card]]) = {
+    val card: Card = oneOf(deck).sample.get // TODO Get???!!!! arrghhh
+    handTypes match {
+      case Nil => (deck, hand)
+      case h :: _ =>
+        Hand.rank(card :: hand.get) match {
+          case x if x.getClass == h =>
+            ensureNotXHandRank(
+              deck.filterNot(_ == card),
+              hand,
+              handTypes.drop(1)
+            )
+          case _ => (deck.filterNot(_ == card), hand)
+        }
+
+    }
+
+//    Hand.rank(card :: hand.get) match {
+//      case _: TwoPair | _: Straight | _: Flush =>
+//        ensureNotTwoPairFlushStraight(deck.filterNot(_ == card), hand)
+//      case _ => (deck.filterNot(_ == card), hand)
+//    }
   }
 
   val genHand: Gen[Hand] =
