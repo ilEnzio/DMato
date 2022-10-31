@@ -276,19 +276,6 @@ object HandGenerators {
     rest = cards.sequence.get // TODO Get???!!!! arrghhh
   } yield Pair(rank, rest.sorted.reverse)
 
-//  @tailrec
-//  def ensureNotTwoPairFlushStraight(
-//    deck: List[Card],
-//    hand: Option[List[Card]]
-//  ): (List[Card], Option[List[Card]]) = {
-//    val card: Card = oneOf(deck).sample.get // TODO Get???!!!! arrghhh
-//    Hand.rank(card :: hand.get) match {
-//      case _: TwoPair | _: Straight | _: Flush =>
-//        ensureNotTwoPairFlushStraight(deck.filterNot(_ == card), hand)
-//      case _ => (deck.filterNot(_ == card), hand)
-//    }
-//  }
-
   val genHighCard: Gen[HighCard] = for {
     card <- genCard
     deck = Deck.all.filterNot(_ == card)
