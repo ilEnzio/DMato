@@ -9,18 +9,18 @@ import poker._
 import OrderInstances.handOrder
 
 object RankingTest extends Properties("Ranking Tests") {
-//
+
 //  property("A StraightFlush is not Ranked a Straight or Flush") = forAll(genStraightFlush) { hand =>
-////    ( hand match {
-////      case _: Straight(x)      => false
-////      case _: StraightFlush => true
-////      case _                => false
-////    }) :| "Not Ranked Straight" &&
-////    (Hand.rank(hand.cards) match {
-////      case _: Flush         => false
-////      case _: StraightFlush => true
-////      case _                => false
-////    }) :| "Not Ranked Flush"
+//    ( hand match {
+//      case _: Straight      => false
+//      case _: StraightFlush => true
+//      case _                => false
+//    }) :| "Not Ranked Straight" &&
+//    (Hand.rank(hand.cards) match {
+//      case _: Flush         => false
+//      case _: StraightFlush => true
+//      case _                => false
+//    }) :| "Not Ranked Flush"
 //
 //  }
 
@@ -35,9 +35,16 @@ object RankingTest extends Properties("Ranking Tests") {
 //  }
 
   property("StraightFlush: the Highest Ranked StraightFlush wins") =
-    forAll(genNutStraightFlush, genNonNutStraightFlush) { (nutStrFlush, nonNutStrFlush) =>
-      ("Nuts beats NonNuts" |: handOrder.compare(nutStrFlush, nonNutStrFlush) > 0) &&
-      ("NonNuts loses to Nuts" |: handOrder.compare(nonNutStrFlush, nutStrFlush) < 0)
+    forAll(genNutStraightFlush, genNonNutStraightFlush) {
+      (nutStrFlush, nonNutStrFlush) =>
+        ("Nuts beats NonNuts" |: handOrder.compare(
+          nutStrFlush,
+          nonNutStrFlush
+        ) > 0) &&
+        ("NonNuts loses to Nuts" |: handOrder.compare(
+          nonNutStrFlush,
+          nutStrFlush
+        ) < 0)
     }
 
 //  property("FourOfAKind must have 4 cards of same rank") = forAll(genFourOfAKind) { hand =>
@@ -54,9 +61,10 @@ object RankingTest extends Properties("Ranking Tests") {
 //    }) :| "Not ThreeOfAKind"
 //  }
 
-  property("Four of a Kind is greater than FullHouse") = forAll(genFourOfAKind, genFullHouseCards) { (quads, boat) =>
-    handOrder.compare(quads, boat) > 0
-  }
+  property("Four of a Kind is greater than FullHouse") =
+    forAll(genFourOfAKind, genFullHouseCards) { (quads, boat) =>
+      handOrder.compare(quads, boat) > 0
+    }
 
 //  property("a FullHouse has 4 or less ranks") = forAll(genFullHouse) { hand =>
 //    hand.cards.groupBy(_.rank).size <= 4
@@ -89,12 +97,14 @@ object RankingTest extends Properties("Ranking Tests") {
 //    hand.cards.groupBy(c => c.suit).size <= 3
 //  }
 
-  property("Flush: NutFlush beats smaller flush") = forAll(genNutFlush, genNonNutFlush) { (nutFlush, nonNut) =>
-    "Nut flush beats  NonNut flush" |: handOrder.compare(nutFlush, nonNut) > 0
-  }
+  property("Flush: NutFlush beats smaller flush") =
+    forAll(genNutFlush, genNonNutFlush) { (nutFlush, nonNut) =>
+      "Nut flush beats  NonNut flush" |: handOrder.compare(nutFlush, nonNut) > 0
+    }
 
-  property("Flush is greater than straight") = forAll(genFlush, genStraight) { (flush, straight) =>
-    handOrder.compare(flush, straight) > 0
+  property("Flush is greater than straight") = forAll(genFlush, genStraight) {
+    (flush, straight) =>
+      handOrder.compare(flush, straight) > 0
   }
 
 //  property("sequential cards rank a Straight") = forAll(genStraight) { hand =>
@@ -124,14 +134,15 @@ object RankingTest extends Properties("Ranking Tests") {
 //      }
 //  }
 
-  property("Straight: a non wheel beats a wheel straight") = forAll(genNonWheelStraight, genWheelStraight) {
-    (straight, wheel) =>
+  property("Straight: a non wheel beats a wheel straight") =
+    forAll(genNonWheelStraight, genWheelStraight) { (straight, wheel) =>
       "NonWheel vs Wheel" |: handOrder.compare(straight, wheel) > 0
-  }
+    }
 
-  property("Straight is greater then Three of A Kind") = forAll(genStraight, genThreeOfAKind) { (straight, set) =>
-    handOrder.compare(straight, set) > 0
-  }
+  property("Straight is greater then Three of A Kind") =
+    forAll(genStraight, genThreeOfAKind) { (straight, set) =>
+      handOrder.compare(straight, set) > 0
+    }
 
 //  property("3 cards of the same rank is ThreeOfAKind") = forAll(genThreeOfAKind) { hand =>
 //    Hand.rank(hand.cards) match {
@@ -148,20 +159,22 @@ object RankingTest extends Properties("Ranking Tests") {
 //    })
 //  }
 
-  property("Three of Kind is greater than TwoPair") = forAll(genThreeOfAKind, genTwoPair) { (set, twoPair) =>
-    "Set vs TwoPair" |: handOrder.compare(set, twoPair) > 0
-  }
+  property("Three of Kind is greater than TwoPair") =
+    forAll(genThreeOfAKind, genTwoPair) { (set, twoPair) =>
+      "Set vs TwoPair" |: handOrder.compare(set, twoPair) > 0
+    }
 
-  property("at least 2 pair of cards in a hand is TwoPair") = forAll(genTwoPair) { hand =>
+  property("at least 2 pair of cards in a hand is TwoPair") =
+    forAll(genTwoPair) { hand =>
 //    (hand match {
 //      case _: StraightFlush | _: Flush | _: Straight => false
 //      case _                                         => true
 //    }) ==> {
-    hand match {
-      case _: TwoPair => true
-      case _          => false
+      hand match {
+        case _: TwoPair => true
+        case _          => false
+      }
     }
-  }
 
 //  property("Highest Ranked Two pair wins ") = forAll(genTwoPair) { hand =>
 //    //    (hand match {
@@ -176,11 +189,12 @@ object RankingTest extends Properties("Ranking Tests") {
 
 // This seems dumb now.  I need to generator groups of cards
   // not the hand???
-  property("at least two cards of the same rank is a Pair") = forAll(genPair) { hand =>
-    hand match {
-      case _: Pair => true
-      case _       => false
-    }
+  property("at least two cards of the same rank is a Pair") = forAll(genPair) {
+    hand =>
+      hand match {
+        case _: Pair => true
+        case _       => false
+      }
   }
 
   property("A HighCard hand has no other rank") = forAll(genHighCard) { hand =>
