@@ -274,11 +274,10 @@ object HandGenerators {
     else {
       val newDeck    = deck.filterNot(cards.contains(_))
       val card: Card = oneOf(newDeck).sample.get // TODO get !!!
-      rankTest(Hand.rank(card :: cards).score) match {q
-        case true => buildHand(newDeck, cards, rankTest)
-        case false =>
-          buildHand(newDeck.filterNot(_ === card), card :: cards, rankTest)
-      }
+      if (rankTest(Hand.rank(card :: cards).score))
+        buildHand(newDeck, cards, rankTest)
+      else
+        buildHand(newDeck.filterNot(_ === card), card :: cards, rankTest)
     }
 
   //    Hand.rank(card :: hand.get) match {
