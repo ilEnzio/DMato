@@ -1,6 +1,6 @@
 package pokerTest
 
-import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
+import org.scalacheck.Prop.{all, falsified, forAll, propBoolean, AnyOperators}
 import org.scalacheck.Properties
 import poker.Hand._
 import pokerData.HandGenerators._
@@ -196,9 +196,9 @@ object RankingTest extends Properties("Ranking Tests") {
         case _       => false
       }
   }
-
+// TODO I need another set of generators - hand card list genertors.
   property("A HighCard hand has no other rank") = forAll(genHighCard) { hand =>
-    Hand.rank(hand.kickers) match {
+    hand match {
       case _: HighCard => true
       case _           => false
     }
