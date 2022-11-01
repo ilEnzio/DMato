@@ -242,112 +242,50 @@ object HandGenerators {
     rank <- genRank
     grouped: Map[Rank, List[Card]] = Deck.all.groupBy(_.rank)
     pair <- pick(2, grouped(rank))
-    deck = Deck.all.filterNot(_.rank == rank)
-    optHand: List[Option[Card]] = List(
-      Some(pair.head),
-      Some(pair(1)),
-      none,
-      none,
-      none,
-      none,
-      none
-    )
-    prohibitedHandTypes = List(
-      TwoPair.getClass,
-      Flush.getClass,
-      Straight.getClass
-    )
-    (_, cards) = optHand.foldLeft((deck, List(pair(0).some, pair(1).some))) {
-      (s: (List[Card], List[Option[Card]]), v) =>
-        v match {
-          case Some(_) =>
-            s // Something is fishy... Like I'm missing a combinator or something..
-          case None =>
-            val (deck, hand) =
-              ensureNotXHandRank(
-                s._1,
-                s._2.sequence,
-                prohibitedHandTypes
-              )
-            (deck, hand.sequence)
-        }
-    }
+    deck             = Deck.all.filterNot(_.rank == rank)
+    hand: List[Card] = List(pair.head, pair(1))
+    rankTest         = Set(1, 3, 4, 5, 6, 7, 8, 9)
+    (_, cards) =
+      if (hand.length === 7) (deck, hand)
+      else buildHand(deck, hand, rankTest)
 
-    rest = cards.sequence.get // TODO Get???!!!! arrghhh
+    rest = cards.filterNot(hand.contains(_))
   } yield Pair(rank, rest.sorted.reverse)
 
   val genHighCard: Gen[HighCard] = for {
     card <- genCard
-    deck = Deck.all.filterNot(_ == card)
-    optHand: List[Option[Card]] = List(
-      Some(card),
-      none,
-      none,
-      none,
-      none,
-      none,
-      none
-    )
-    prohibitedHandTypes = List(
-      Pair.getClass,
-      TwoPair.getClass,
-      ThreeOfAKind.getClass,
-      Straight.getClass,
-      Flush.getClass,
-      FullHouse.getClass,
-      FourOfAKind.getClass,
-      StraightFlush.getClass
-    )
-
+    deck             = Deck.all.filterNot(_ === card)
+    hand: List[Card] = List(card)
+    highCardRankTest = Set(2, 3, 4, 5, 6, 7, 8, 9)
     // TODO -Erg this is the next part to generalize
-    (_, cards) = optHand.foldLeft((deck, List(card.some))) {
-      (s: (List[Card], List[Option[Card]]), v) =>
-        v match {
-          case Some(_) =>
-            s // Something is fishy... Like I'm missing a combinator or something..
-          case None =>
-            val (deck, hand) =
-              ensureNotXHandRank(
-                s._1,
-                s._2.sequence,
-                prohibitedHandTypes
-              )
-            (deck, hand.sequence)
-        }
-    }
-    allCards = (card :: cards.sequence.get).sorted.reverse
+    (_, cards) =
+      if (hand.length === 7) (deck, hand)
+      else buildHand(deck, hand, highCardRankTest)
 
-  } yield HighCard(allCards.head.rank, allCards.tail)
+  } yield HighCard(cards.head.rank, cards.tail)
 
-//
   @tailrec
-  def ensureNotXHandRank(
+  def buildHand(
     deck: List[Card],
-    hand: Option[List[Card]],
-    handTypes: List[Class[_ <: Object]]
-  ): (List[Card], Option[List[Card]]) = {
-    val card: Card = oneOf(deck).sample.get // TODO Get???!!!! arrghhh
-    handTypes match {
-      case Nil => (deck, hand)
-      case h :: _ =>
-        Hand.rank(card :: hand.get) match {
-          case x if x.getClass == h =>
-            ensureNotXHandRank(
-              deck.filterNot(_ == card),
-              hand,
-              handTypes.drop(1)
-            )
-          case _ => (deck.filterNot(_ == card), hand)
-        }
-
+    cards: List[Card],
+    rankTest: Int => Boolean
+  ): (List[Card], List[Card]) =
+    if (cards.length === 7) (deck, cards) // TODO magic number
+    else {
+      val newDeck    = deck.filterNot(cards.contains(_))
+      val card: Card = oneOf(newDeck).sample.get // TODO get !!!
+      rankTest(Hand.rank(card :: cards).score) match {q
+        case true => buildHand(newDeck, cards, rankTest)
+        case false =>
+          buildHand(newDeck.filterNot(_ === card), card :: cards, rankTest)
+      }
     }
 
-//    Hand.rank(card :: hand.get) match {
+  //    Hand.rank(card :: hand.get) match {
 //      case _: TwoPair | _: Straight | _: Flush =>
 //        ensureNotTwoPairFlushStraight(deck.filterNot(_ == card), hand)
 //      case _ => (deck.filterNot(_ == card), hand)
 //    }
-  }
 
   val genHand: Gen[Hand] =
     oneOf(
