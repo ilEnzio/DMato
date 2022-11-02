@@ -1,12 +1,21 @@
 package pokerTest
 
-import org.scalacheck.Prop.{all, falsified, forAll, propBoolean, AnyOperators}
+import org.scalacheck.Prop.{
+  ?=,
+  all,
+  falsified,
+  forAll,
+  propBoolean,
+  AnyOperators
+}
 import org.scalacheck.Properties
 import poker.Hand._
 import pokerData.HandGenerators._
 import pokerData.SpecialHandsGenerators._
 import poker._
 import OrderInstances.handOrder
+import cats.kernel.Comparison.GreaterThan
+import org.scalacheck.Gen.const
 
 object RankingTest extends Properties("Ranking Tests") {
 
@@ -62,7 +71,7 @@ object RankingTest extends Properties("Ranking Tests") {
 //  }
 
   property("Four of a Kind is greater than FullHouse") =
-    forAll(genFourOfAKind, genFullHouseCards) { (quads, boat) =>
+    forAll(genFourOfAKind, genFullHouse) { (quads, boat) =>
       handOrder.compare(quads, boat) > 0
     }
 

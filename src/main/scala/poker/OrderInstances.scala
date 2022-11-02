@@ -43,12 +43,12 @@ object OrderInstances {
 
   implicit val cardOrder: Order[Card] = (x: Card, y: Card) =>
     x.rank.value - y.rank.value
-  implicit val cardOrdering = cardOrder.toOrdering
+  implicit val cardOrdering: Ordering[Card] = cardOrder.toOrdering
 
   implicit val rankOrder: Order[Rank] = new Order[Rank] {
     override def compare(x: Rank, y: Rank): Int = x.value - y.value
   }
-  implicit val rankOrdering = rankOrder.toOrdering
+  implicit val rankOrdering: Ordering[Rank] = rankOrder.toOrdering
 
   private def compareCorresponding(
     sortedCards1: List[Card],
