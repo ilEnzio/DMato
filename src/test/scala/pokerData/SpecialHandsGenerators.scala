@@ -92,13 +92,17 @@ object SpecialHandsGenerators {
       suit5 <- genSuit.suchThat(s =>
         List(suit1, suit2, suit3, suit4).count(_ == s) < 4
       )
-      suits            = List(suit1, suit2, suit3, suit4, suit5)
-      hand: List[Card] = broadWayRanks.zip(suits).map(x => Card(x._1, x._2))
+      suits = List(suit1, suit2, suit3, suit4, suit5)
+      hand: List[Card] = broadWayRanks
+        .zip(suits)
+        .map(x => Card(x._1, x._2))
+        .sorted
+        .reverse
       straightRankTest = Set(1, 2, 3, 4, 6, 7, 8, 9)
       deck             = Deck.all.filterNot(hand.contains(_))
       (_, cards)       = buildHand(deck, hand, straightRankTest)
       rest             = cards.filterNot(hand.contains(_))
-    } yield Straight(Ace)
+    } yield Straight(hand.head.rank)
   }
 
   val genAceHigh: Gen[HighCard] = {
