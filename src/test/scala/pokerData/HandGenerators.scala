@@ -53,32 +53,25 @@ object HandGenerators {
         case _                => true
       }
     )
-    card1 <- genCard.suchThat { c =>
-      !suited.contains(c)
-    }
-    card2 <- genCard.suchThat { c =>
-      !suited.contains(c) &&
-      c != card1
-    }
-  } yield Hand.rank(card1 :: card2 :: flush.toList).asInstanceOf[Flush]
+    deck             = Deck.all.filterNot(flush.contains(_))
+    hand: List[Card] = flush.toList.sorted.reverse
+    flushRankTest    = Set(1, 2, 3, 4, 5, 7, 8, 9)
+    (_, cards)       = buildHand(deck, hand, flushRankTest)
+    rest             = cards.filterNot(hand.contains(_))
+
+  } yield Flush(flush.head.rank, rest) // TODO Flushes don't have kickers...
 
   val genNonFlush: Gen[Hand] = for {
     suit <- genSuit
     suited = Deck.all.filter(_.suit == suit)
     fourFlush <- pick(4, suited)
-    card1 <- genCard.suchThat { c =>
-      !suited.contains(c)
-    }
-    card2 <- genCard.suchThat { c =>
-      !suited.contains(c) &&
-      c != card1
-    }
-    card3 <- genCard.suchThat { c =>
-      !suited.contains(c) &&
-      c != card1 &&
-      c != card2
-    }
-  } yield Hand.rank(card1 :: card2 :: card3 :: fourFlush.toList)
+    deck             = Deck.all.filterNot(fourFlush.contains(_))
+    hand: List[Card] = fourFlush.toList.sorted.reverse
+    nonFlushRankTest = Set(6)
+    (_, cards)       = buildHand(deck, hand, nonFlushRankTest)
+    rest             = cards.filterNot(hand.contains(_))
+
+  } yield Hand.rank(cards)
 
   val genWheelStraight: Gen[Straight] = {
     val wheelRanks = List(Ace, Five, Four, Three, Two)
