@@ -22,7 +22,7 @@ import scala.util.Random.shuffle
 object ShowDownTest extends Properties("ShowDownTest") {
 
   property("StraightFlush beats FourOfKind, FullHouse") =
-    forAll(genStraightFlush, genFourOfAKind, genFullHouseCards) {
+    forAll(genStraightFlush, genFourOfAKind, genFullHouse) {
       (strFlush, quads, boat) =>
         val testList = shuffle(List(quads, boat, strFlush))
         ShowDown(testList) ?= List(strFlush)
@@ -121,16 +121,14 @@ object ShowDownTest extends Properties("ShowDownTest") {
 //  }
 
   property("FourOfAKind beats FullHouse, Flush") =
-    forAll(genFourOfAKind, genFullHouseCards, genNutFlush) {
-
-      (quads, boat, flush) =>
-        val testList = shuffle(List(boat, flush, quads))
-        (ShowDown(testList) ?= List(quads)) &&
-        (ShowDown(testList) != List(flush))
+    forAll(genFourOfAKind, genFullHouse, genNutFlush) { (quads, boat, flush) =>
+      val testList = shuffle(List(boat, flush, quads))
+      (ShowDown(testList) ?= List(quads)) &&
+      (ShowDown(testList) != List(flush))
     }
 
   property("FullHouse beats Flush, Straight, ThreeOfKind, TwoPair") = forAll(
-    genFullHouseCards,
+    genFullHouse,
     genNonNutFlush,
     genStraight,
     genThreeOfAKind,
