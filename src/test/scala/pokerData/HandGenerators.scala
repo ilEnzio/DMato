@@ -35,8 +35,10 @@ object HandGenerators {
       pair <- pick(2, grouped(rank2))
       hand: List[Card]  = (set ++ pair).toList
       fullHouseRankTest = Set(1, 2, 3, 4, 5, 6, 8, 9)
-      deck              = Deck.all.filterNot(hand.contains(_))
-      (_, cards)        = buildHand(deck, hand, fullHouseRankTest)
+      deck = Deck.all.filterNot(x =>
+        hand.contains(x) && x.rank === rank1 && x.rank === rank2
+      )
+      (_, cards) = buildHand(deck, hand, fullHouseRankTest)
     } yield cards
 
   val genFullHouse: Gen[FullHouse] =
@@ -245,6 +247,19 @@ object HandGenerators {
         buildHand(newDeck.filterNot(_ === card), card :: cards, rankTest)
     }
 
+  val genHandCards: Gen[List[Card]] =
+    oneOf(
+      genHighCardCards,
+      genPairCards,
+      genTwoPairCards,
+      genThreeOfAKindCards,
+      genStraightCards,
+      genFlushCards,
+      genFullHouseCards,
+      genFourOfAKindCards,
+      genStraightFlushCards
+    )
+
   val genHand: Gen[Hand] =
     oneOf(
       genHighCard,
@@ -257,4 +272,5 @@ object HandGenerators {
       genFourOfAKind,
       genStraightFlush
     )
+
 }
