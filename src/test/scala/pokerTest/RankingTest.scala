@@ -1,12 +1,24 @@
 package pokerTest
 
-import org.scalacheck.Prop.{?=, all, forAll, propBoolean, AnyOperators}
+import org.scalacheck.Prop.{
+  ?=,
+  all,
+  falsified,
+  forAll,
+  propBoolean,
+  AnyOperators
+}
 import org.scalacheck.Properties
 import poker.Hand._
 import pokerData.HandGenerators._
 import pokerData.SpecialHandsGenerators._
 import poker._
-import OrderInstances.handOrder
+import OrderInstances.{handOrder, rankOrder}
+import cats.implicits.{catsSyntaxEq, catsSyntaxPartialOrder}
+import cats.kernel.Comparison
+import cats.kernel.Comparison.{GreaterThan, LessThan}
+import org.scalacheck.Gen.pick
+import pokerData.DeckGenerators._
 
 object RankingTest extends Properties("Ranking Tests") {
 
@@ -68,8 +80,8 @@ object RankingTest extends Properties("Ranking Tests") {
     }
 
   property("Four of a Kind is greater than FullHouse") =
-    forAll(genFourOfAKindCards, genFullHouseCards) { (quads, boat) =>
-      handOrder.compare(Hand.rank(quads), Hand.rank(boat)) > 0
+    forAll(genFourOfAKind, genFullHouse) { (quads, boat) =>
+      handOrder.compare(quads, boat) > 0
     }
 
   property("a FullHouse has 4 or less ranks") = forAll(genFullHouseCards) {
@@ -77,16 +89,34 @@ object RankingTest extends Properties("Ranking Tests") {
       cards.groupBy(_.rank).size <= 4
   }
 
-  // TODO - Broken
-//  property("FullHouse: The highest set wins between two boats") =
-//    forAll(genFullHouseCards, genDeucesFullOfTresCards) { (bigBoat, smBoat) =>
-//      (bigBoat.drop(2).head.rank != Two) ==> {
-//        "BigBoat beats SmallBoat" |: handOrder.compare(
-//          Hand.rank(bigBoat),
-//          Hand.rank(smBoat)
-//        ) > 0
-//      }
-//    }
+  property("FullHouse: The highest set wins between two boats") = forAll {
+    (bigSetRank: Rank, smSetRank: Rank) =>
+      // rather than this use this constraint, just identify the bigger one
+      (bigSetRank > smSetRank) ==> {
+        val bigBoat = genFullHouseCards_(bigSetRank, Two).sample.get
+        val smBoat  = genFullHouseCards_(smSetRank, Two).sample.get
+//        println(s"big: $bigBoat \nsmall: $smBoat")
+//        "BigBoat beats SmallBoat" |:
+        //        rankOrder.compare(
+        //        bigBoat.slice(2, 4).head.rank,
+        //        smBoat.drop(2).head.rank
+        //      ) > 0 ==
+        handOrder.compare(
+          Hand.rank(bigBoat),
+          Hand.rank(smBoat)
+        ) > 0
+      }
+  }
+
+  property("FullHouse is properly Ranked") = forAll(genFullHouseCards)(cards =>
+    Hand.rank(cards) match {
+      case x: FullHouse =>
+        cards.count(_.rank === x.rank1) > cards.count(
+          _.rank === x.rank2
+        ) || x.rank1 > x.rank2
+      case _ => false
+    }
+  )
 
   property("5 or more cards of a suit is a Flush") =
     forAll(genFlushCards, genNonFlushCards) { (flushHand, nonFlushHand) =>
@@ -165,13 +195,14 @@ object RankingTest extends Properties("Ranking Tests") {
       handOrder.compare(straight, set) > 0
     }
 
-//  property("3 cards of the same rank is ThreeOfAKind") = forAll(genThreeOfAKind) { hand =>
-//    Hand.rank(hand.cards) match {
-//      case _: ThreeOfAKind => true
-//      case _               => false
-//    }
-//  }
-//
+  property("3 cards of the same rank is ThreeOfAKind") =
+    forAll(genThreeOfAKindCards) { cards =>
+      Hand.rank(cards) match {
+        case _: ThreeOfAKind => true
+        case _               => false
+      }
+    }
+
   property("ThreeOfAKind has 5 ranks and is NOT a Straight") =
     forAll(genThreeOfAKindCards) { cards =>
       (cards.groupBy(_.rank).size ?= 5) &&

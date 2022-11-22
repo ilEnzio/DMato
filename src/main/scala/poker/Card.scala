@@ -1,6 +1,6 @@
 package poker
 
-case class Card(rank: Rank, suit: Suit) {}
+final case class Card(rank: Rank, suit: Suit) {}
 
 object Card {
   //TODO
@@ -42,7 +42,21 @@ object Rank {
     2  -> Two
   )
 
-  val all: List[Rank] = List(Ace, King, Queen, Jack, Ten, Nine, Eight, Seven, Six, Five, Four, Three, Two)
+  val all: List[Rank] = List(
+    Ace,
+    King,
+    Queen,
+    Jack,
+    Ten,
+    Nine,
+    Eight,
+    Seven,
+    Six,
+    Five,
+    Four,
+    Three,
+    Two
+  )
 }
 
 case object Ace extends Rank {

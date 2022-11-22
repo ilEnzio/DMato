@@ -96,12 +96,12 @@ object Hand {
   object FullHouse {
     def unapply(hand: List[Card]): Option[FullHouse] = {
       val rankGroups: Seq[(Rank, List[Card])] =
-        hand.groupBy(_.rank).toList.sortBy(_._2.size)
+        hand.groupBy(_.rank).toList
 
       // sort; collect the first set
       // remove that set and repeat
       for {
-        (rank1, set1) <- rankGroups.find { case (_, cards) =>
+        (rank1, set1) <- rankGroups.sortBy(_._1).findLast { case (_, cards) =>
           cards.size == 3
         }
         remain = hand.filterNot(set1.contains(_))
@@ -109,7 +109,7 @@ object Hand {
           .groupBy(_.rank)
           .toList
           .sortBy(_._1)
-          .findLast(_._2.size >= 2)
+          .find(_._2.size >= 2)
       } yield FullHouse(rank1, rank2)
     }
   }
@@ -203,8 +203,10 @@ object Hand {
   object HighCard {
     def unapply(hand: List[Card]): Option[HighCard] = {
       val sorted = hand.sorted.reverse
-      val rank   = sorted.head.rank
-      Some(HighCard(rank, sorted.tail))
+      sorted match {
+        case head :: _ => Some(HighCard(head.rank, sorted.tail))
+        case _         => None
+      }
     }
   }
 

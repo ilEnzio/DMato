@@ -1,11 +1,12 @@
 package pokerData
 
-import org.scalacheck.Gen
+import org.scalacheck.{Arbitrary, Gen}
 import poker.{Card, Deck, Rank, Suit}
 
 object DeckGenerators {
   val genSuit: Gen[Suit] = Gen.oneOf(Suit.all)
   val genRank: Gen[Rank] = Gen.oneOf(Rank.all)
+  implicit val arbRank   = Arbitrary(genRank)
   val genCard: Gen[Card] = for {
     rank <- genRank
     suit <- genSuit

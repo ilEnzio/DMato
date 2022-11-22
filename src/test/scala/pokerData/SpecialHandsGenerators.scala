@@ -32,25 +32,48 @@ object SpecialHandsGenerators {
   } yield StraightFlush(cards.drop(2).head.rank)
 
 // ToDO - create
-  val genNonNutStraightFlush: Gen[StraightFlush] = for {
-    nonNut <- genStraightFlush.retryUntil(x => x.rank != Ace)
-  } yield StraightFlush(nonNut.rank)
 
-  val genDeucesFullOfTresCards: Gen[List[Card]] = {
-    val rank1   = Two
-    val rank2   = Three
-    val grouped = Deck.all.groupBy(_.rank)
-    for {
-      set  <- pick(3, grouped(rank1))
-      pair <- pick(2, grouped(rank2))
-      hand              = (set ++ pair).toList
-      fullHouseRankTest = Set(1, 2, 3, 4, 5, 6, 8, 9)
-      deck = Deck.all.filterNot(x =>
-        hand.contains(x) && x.rank === rank1 && x.rank === rank2
-      )
-      (_, cards) = buildHand(deck, hand, fullHouseRankTest)
-    } yield cards
-  }
+  val genNonNutStraightFlushCards: Gen[List[Card]] = for {
+    hand1   <- genWheelStraightCards
+    hand2   <- genStraightCards_(King)
+    strHand <- frequency((1, hand1), (10, hand2))
+    newSuit <- genSuit
+    hand                  = strHand.map(_.copy(suit = newSuit))
+    straightFlushRankTest = Set(1, 2, 3, 4, 5, 6, 7, 8)
+    deck = Deck.all
+      .filterNot(hand.contains(_))
+      .filterNot(_ === Card(Ace, newSuit))
+    (_, cards) = buildHand(deck, hand, straightFlushRankTest)
+  } yield cards
+
+  val genNonNutStraightFlush: Gen[StraightFlush] = for {
+    cards <- genNonNutStraightFlushCards
+    /// TODO not comfortable... lot of trust here lol
+    rank = cards.drop(2) match {
+      case h :: _ if h.rank != Ace => h.rank
+      case _                       => Five
+    }
+  } yield StraightFlush(rank)
+
+  val genTresFullOfDeucesCards: Gen[List[Card]] = for {
+    cards <- genFullHouseCards_(Three, Two)
+  } yield cards
+
+  val genDeucesFullOfTresCards: Gen[List[Card]] = for {
+//    val rank1   = Two
+//    val rank2   = Three
+//    val grouped = Deck.all.groupBy(_.rank)
+//    for {
+//      set  <- pick(3, grouped(rank1))
+//      pair <- pick(2, grouped(rank2))
+//      hand              = (set ++ pair).toList
+//      fullHouseRankTest = Set(1, 2, 3, 4, 5, 6, 8, 9)
+//      deck = Deck.all.filterNot(x =>
+//        hand.contains(x) && x.rank === rank1 && x.rank === rank2
+//      )
+//      (_, cards) = buildHand(deck, hand, fullHouseRankTest)
+    cards <- genFullHouseCards_(Two, Three)
+  } yield cards
 
   val genDeucesFullOfTres: Gen[FullHouse] =
     for {
