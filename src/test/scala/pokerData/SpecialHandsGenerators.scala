@@ -11,57 +11,97 @@ import poker.OrderInstances._
 
 object SpecialHandsGenerators {
 
-  val genNutStraightFlush: Gen[StraightFlush] = {
+  val genNutStraightFlushCards: Gen[List[Card]] = {
     val broadWayRanks = List(Ace, King, Queen, Jack, Ten)
     for {
       suit <- genSuit
       suitList = List.fill(5)(suit)
-      cards = broadWayRanks
+      hand = broadWayRanks
         .zip(suitList)
         .map(x => Card(x._1, x._2))
         .sorted
         .reverse
-
-    } yield StraightFlush(cards.head.rank)
+      straightFlushRankTest = Set(1, 2, 3, 4, 5, 6, 7, 8)
+      deck                  = Deck.all.filterNot(hand.contains(_))
+      (_, cards)            = buildHand(deck, hand, straightFlushRankTest)
+    } yield cards
   }
+
+  val genNutStraightFlush: Gen[StraightFlush] = for {
+    cards <- genNutStraightFlushCards
+  } yield StraightFlush(cards.drop(2).head.rank)
+
+// ToDO - create
+
+  val genNonNutStraightFlushCards: Gen[List[Card]] = for {
+    hand1   <- genWheelStraightCards
+    hand2   <- genStraightCards_(King)
+    strHand <- frequency((1, hand1), (10, hand2))
+    newSuit <- genSuit
+    hand                  = strHand.map(_.copy(suit = newSuit))
+    straightFlushRankTest = Set(1, 2, 3, 4, 5, 6, 7, 8)
+    deck = Deck.all
+      .filterNot(hand.contains(_))
+      .filterNot(_ === Card(Ace, newSuit))
+    (_, cards) = buildHand(deck, hand, straightFlushRankTest)
+  } yield cards
 
   val genNonNutStraightFlush: Gen[StraightFlush] = for {
-    nonNut <- genStraightFlush.retryUntil(x => x.rank != Ace)
-  } yield StraightFlush(nonNut.rank)
+    cards <- genNonNutStraightFlushCards
+    /// TODO not comfortable... lot of trust here lol
+    rank = cards.drop(2) match {
+      case h :: _ if h.rank != Ace => h.rank
+      case _                       => Five
+    }
+  } yield StraightFlush(rank)
 
-  val genDeucesFullOfTres: Gen[FullHouse] = {
-    val rank1   = Two
-    val rank2   = Three
-    val grouped = Deck.all.groupBy(_.rank)
+  val genTresFullOfDeucesCards: Gen[List[Card]] = for {
+    cards <- genFullHouseCards_(Three, Two)
+  } yield cards
 
+  val genDeucesFullOfTresCards: Gen[List[Card]] = for {
+//    val rank1   = Two
+//    val rank2   = Three
+//    val grouped = Deck.all.groupBy(_.rank)
+//    for {
+//      set  <- pick(3, grouped(rank1))
+//      pair <- pick(2, grouped(rank2))
+//      hand              = (set ++ pair).toList
+//      fullHouseRankTest = Set(1, 2, 3, 4, 5, 6, 8, 9)
+//      deck = Deck.all.filterNot(x =>
+//        hand.contains(x) && x.rank === rank1 && x.rank === rank2
+//      )
+//      (_, cards) = buildHand(deck, hand, fullHouseRankTest)
+    cards <- genFullHouseCards_(Two, Three)
+  } yield cards
+
+  val genDeucesFullOfTres: Gen[FullHouse] =
     for {
-      set  <- pick(3, grouped(rank1))
-      pair <- pick(2, grouped(rank2))
-    } yield FullHouse(set.head.rank, pair.head.rank)
-  }
+      cards <- genDeucesFullOfTresCards
+    } yield FullHouse(cards.drop(2).head.rank, cards.drop(2).last.rank)
+
+  val genNutFlushCards: Gen[List[Card]] = for {
+    suit <- genSuit
+    wheelRanks    = List(Ace, Five, Four, Three, Two)
+    broadWayRanks = List(Ace, King, Queen, Jack, Ten)
+    ranks <- pick(5, Rank.all).suchThat { x =>
+      (x.contains(Ace) &&
+      (x.sorted.reverse != wheelRanks) && (x.sorted.reverse != broadWayRanks))
+    }
+    hand          = ranks.map(Card(_, suit)).toList
+    flushRankTest = Set(1, 2, 3, 4, 5, 7, 8, 9)
+    deck          = Deck.all.filterNot(hand.contains(_))
+    (_, cards)    = buildHand(deck, hand, flushRankTest)
+  } yield cards
 
   val genNutFlush: Gen[Flush] = for {
-    suit <- genSuit
-    suited = Deck.all.filter(_.suit == suit)
-    flush <- pick(5, suited).retryUntil(x =>
-      x.contains(Card(Ace, suit)) &&
-        (Hand.rank(x.toList) match {
-          case _: StraightFlush => false
-          case _                => true
-        }) /// ToDo ????
-    )
-    card1 <- genCard.suchThat { c =>
-      !suited.contains(c)
-    }
-    card2 <- genCard.suchThat { c =>
-      !suited.contains(c) &&
-      c != card1
-    }
-    hand = flush.toList.sorted.reverse
-    rest = List(card1, card2)
-  } yield Flush(hand.head.rank, rest) // TODO Flushes don't have kickers
+    cards <- genNutFlushCards
+  } yield Flush(
+    cards.drop(2).head.rank,
+    cards.take(2)
+  ) // TODO Flushes don't have kickers
 
-  val genNonNutFlush: Gen[Flush] = for {
+  val genNonNutFlushCards: Gen[List[Card]] = for {
     suit <- genSuit
     suited = Deck.all.filter(_.suit == suit)
     (ace, nonAces) = (
@@ -78,11 +118,35 @@ object SpecialHandsGenerators {
     hand: List[Card] = nonNutFlush.toList.sorted.reverse
     flushRankTest    = Set(1, 2, 3, 4, 5, 7, 8, 9)
     (_, cards)       = buildHand(deck, hand, flushRankTest)
-    rest             = cards.filterNot(hand.contains(_))
+//    rest             = cards.filterNot(hand.contains(_))
 
-  } yield Flush(hand.head.rank, rest) // TODO Flushes don't have kickers
+  } yield cards // TODO Flushes don't have kickers
 
-  val genNutStraight: Gen[Straight] = {
+  val genNonNutFlush: Gen[Flush] = for {
+//    suit <- genSuit
+//    suited = Deck.all.filter(_.suit == suit)
+//    (ace, nonAces) = (
+//      suited.filter(_.rank === Ace),
+//      suited.filterNot(_.rank === Ace)
+//    )
+//    nonNutFlush <- pick(5, nonAces).retryUntil(x =>
+//      Hand.rank(x.toList) match {
+//        case _: StraightFlush => false
+//        case _                => true
+//      }
+//    )
+//    deck             = Deck.all.filterNot((ace ++ nonNutFlush).contains(_))
+//    hand: List[Card] = nonNutFlush.toList.sorted.reverse
+//    flushRankTest    = Set(1, 2, 3, 4, 5, 7, 8, 9)
+//    (_, cards)       = buildHand(deck, hand, flushRankTest)
+//    rest             = cards.filterNot(hand.contains(_))
+    hand <- genNonNutFlushCards
+  } yield Flush(
+    hand.drop(2).head.rank,
+    hand.drop(5).tail
+  ) // TODO Flushes don't have kickers
+
+  val genNutStraightCards: Gen[List[Card]] = {
     val broadWayRanks = List(Ace, King, Queen, Jack, Ten)
     for {
       suit1 <- genSuit
@@ -101,15 +165,24 @@ object SpecialHandsGenerators {
       straightRankTest = Set(1, 2, 3, 4, 6, 7, 8, 9)
       deck             = Deck.all.filterNot(hand.contains(_))
       (_, cards)       = buildHand(deck, hand, straightRankTest)
-      rest             = cards.filterNot(hand.contains(_))
-    } yield Straight(hand.head.rank)
+    } yield cards
   }
 
-  val genAceHigh: Gen[HighCard] = {
+  val genNutStraight: Gen[Straight] = for {
+    hand <- genNutStraightCards
+  } yield Straight(hand.drop(2).head.rank)
+
+  val genAceHighCards: Gen[List[Card]] = {
     for {
-      hand <- genHighCard
+      hand <- genHighCardCards
       suit <- genSuit
-    } yield HighCard(Ace, Card(Ace, suit) :: hand.kickers.sorted.reverse.tail)
+    } yield Card(Ace, suit) :: hand.sorted.reverse.tail
+  }
+
+  val genAceHigh = {
+    for {
+      hand <- genAceHighCards
+    } yield HighCard(hand.head.rank, hand.tail)
   }
 
 }

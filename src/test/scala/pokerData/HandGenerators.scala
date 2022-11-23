@@ -27,22 +27,32 @@ object HandGenerators {
       cards <- genFourOfAKindCards
     } yield FourOfAKind(cards.drop(3).head.rank, cards.take(3).sorted.reverse)
 
-  val genFullHouseCards: Gen[List[Card]] =
+  // TODO get rid of buildHand; make the code less generic. make each generator specific
+  // to the hand constraints
+
+  def genFullHouseCards_(setRank: Rank, pairRank: Rank): Gen[List[Card]] = {
+    val grouped = Deck.all.groupBy(_.rank)
     for {
-      (rank1, rank2) <- pick(2, Rank.all).map(x => (x.head, x.last))
-      grouped = Deck.all.groupBy(_.rank)
-      set  <- pick(3, grouped(rank1))
-      pair <- pick(2, grouped(rank2))
-      hand: List[Card]  = (set ++ pair).toList
-      fullHouseRankTest = Set(1, 2, 3, 4, 5, 6, 8, 9)
-      deck              = Deck.all.filterNot(hand.contains(_))
-      (_, cards)        = buildHand(deck, hand, fullHouseRankTest)
+      set  <- pick(3, grouped(setRank))
+      pair <- pick(2, grouped(pairRank))
+      deck = Deck.all.filterNot(x => x.rank === setRank || x.rank === pairRank)
+      remaining <- pick(2, deck)
+    } yield (remaining ++ set ++ pair).toList
+  }
+  val genFullHouseCards: Gen[List[Card]] = {
+//    val (setRank, pairRank) =
+//      pick(2, Rank.all).map(x => (x.head, x.last)).sample.get
+    for {
+      (setRank, pairRank) <-
+        pick(2, Rank.all).map(x => (x.head, x.last))
+      cards <- genFullHouseCards_(setRank, pairRank)
     } yield cards
+  }
 
   val genFullHouse: Gen[FullHouse] =
     for {
       cards <- genFullHouseCards
-    } yield FullHouse(cards.drop(2).head.rank, cards.drop(2).last.rank)
+    } yield FullHouse(cards.drop(2).head.rank, cards.last.rank)
 
   val genFlushCards: Gen[List[Card]] = for {
     suit <- genSuit
@@ -102,8 +112,11 @@ object HandGenerators {
     cards <- genWheelStraightCards
   } yield Straight(cards.drop(2)(1).rank)
 
-  def genStraightCards_(high: Int): Gen[List[Card]] = {
-    val idx               = choose(0, high).sample.get
+  def genStraightCards_(highestRank: Rank): Gen[List[Card]] = {
+
+    val newRanks = Rank.all.filter(_ <= highestRank)
+    val idx      = choose(0, newRanks.length - 4).sample.get
+//    val idx               = choose(0, high).sample.get
     val ranks: List[Rank] = Rank.all.slice(idx, idx + 5).sorted.reverse
     for {
       suit1 <- genSuit
@@ -121,16 +134,16 @@ object HandGenerators {
     } yield cards
   }
 
-  def genStraight_(high: Int): Gen[Straight] = for {
+  def genStraight_(highestRank: Rank): Gen[Straight] = for {
 
-    cards <- genStraightCards_(high)
+    cards <- genStraightCards_(highestRank)
   } yield Straight(cards.drop(2).head.rank)
 
   val genNonWheelStraightCards: Gen[List[Card]] =
-    genStraightCards_(8)
+    genStraightCards_(Ace)
 
   val genNonWheelStraight: Gen[Straight] =
-    genStraight_(8)
+    genStraight_(Ace)
 
   val genStraightCards: Gen[List[Card]] = {
     for {
@@ -149,13 +162,13 @@ object HandGenerators {
 
   val genNonNutStraightCards: Gen[List[Card]] = for {
     hand1     <- genWheelStraightCards
-    hand2     <- genStraightCards_(7)
+    hand2     <- genStraightCards_(King)
     finalHand <- frequency((1, hand1), (10, hand2))
   } yield finalHand
 
   val genNonNutStraight: Gen[Straight] = for {
     hand1     <- genWheelStraight
-    hand2     <- genStraight_(7)
+    hand2     <- genStraight_(King)
     finalHand <- frequency((1, hand1), (10, hand2))
   } yield finalHand
 
@@ -245,6 +258,19 @@ object HandGenerators {
         buildHand(newDeck.filterNot(_ === card), card :: cards, rankTest)
     }
 
+  val genHandCards: Gen[List[Card]] =
+    oneOf(
+      genHighCardCards,
+      genPairCards,
+      genTwoPairCards,
+      genThreeOfAKindCards,
+      genStraightCards,
+      genFlushCards,
+      genFullHouseCards,
+      genFourOfAKindCards,
+      genStraightFlushCards
+    )
+
   val genHand: Gen[Hand] =
     oneOf(
       genHighCard,
@@ -257,4 +283,5 @@ object HandGenerators {
       genFourOfAKind,
       genStraightFlush
     )
+
 }
