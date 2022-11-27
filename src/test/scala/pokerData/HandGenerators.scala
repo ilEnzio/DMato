@@ -11,16 +11,14 @@ import poker.OrderInstances._
 import scala.annotation.tailrec
 
 object HandGenerators {
-//So the strange thing here is that it's not generating the cards involved.
 
   val genFourOfAKindCards: Gen[List[Card]] =
     for {
       rank <- genRank
-      hand          = Deck.all.groupBy(_.rank)(rank)
-      quadsRankTest = Set(1, 2, 3, 4, 5, 6, 7, 9)
-      deck          = Deck.all.filterNot(hand.contains(_))
-      (_, cards)    = buildHand(deck, hand, quadsRankTest)
-    } yield cards
+      hand = Deck.all.groupBy(_.rank)(rank)
+      deck = Deck.all.filterNot(hand.contains(_))
+      remaining <- pick(3, deck)
+    } yield remaining.toList ++ hand
 
   val genFourOfAKind: Gen[FourOfAKind] =
     for {
@@ -40,8 +38,6 @@ object HandGenerators {
     } yield (remaining ++ set ++ pair).toList
   }
   val genFullHouseCards: Gen[List[Card]] = {
-//    val (setRank, pairRank) =
-//      pick(2, Rank.all).map(x => (x.head, x.last)).sample.get
     for {
       (setRank, pairRank) <-
         pick(2, Rank.all).map(x => (x.head, x.last))
@@ -56,7 +52,7 @@ object HandGenerators {
 
   val genFlushCards: Gen[List[Card]] = for {
     suit <- genSuit
-    suited = Deck.all.filter(_.suit == suit)
+    suited = Deck.all.filter(x => x.suit == suit)
     flush <- pick(5, suited).suchThat(x =>
       Hand.rank(x.toList) match {
         case _: StraightFlush => false
@@ -65,8 +61,9 @@ object HandGenerators {
     )
     deck             = Deck.all.filterNot(flush.contains(_))
     hand: List[Card] = flush.toList.sorted.reverse
-    flushRankTest    = Set(1, 2, 3, 4, 5, 7, 8, 9)
-    (_, cards)       = buildHand(deck, hand, flushRankTest)
+    // TODO having trouble eliminating this manual "retry until" operation
+    flushRankTest = Set(1, 2, 3, 4, 5, 7, 8, 9)
+    (_, cards)    = buildHand(deck, hand, flushRankTest)
   } yield cards
 
   val genFlush: Gen[Flush] = for {
@@ -76,18 +73,18 @@ object HandGenerators {
     cards.take(2)
   ) // TODO Flushes don't have kickers...
 
-  val genNonFlushCards: Gen[List[Card]] = for {
+  val genFourFlushCards: Gen[List[Card]] = for {
     suit <- genSuit
     suited = Deck.all.filter(_.suit == suit)
     fourFlush <- pick(4, suited)
-    deck             = Deck.all.filterNot(fourFlush.contains(_))
+    deck             = Deck.all.filterNot(_.suit == suit)
     hand: List[Card] = fourFlush.toList.sorted.reverse
-    nonFlushRankTest = Set(6)
+    nonFlushRankTest = Set(6, 9)
     (_, cards)       = buildHand(deck, hand, nonFlushRankTest)
   } yield cards
 
-  val genNonFlush: Gen[Hand] = for {
-    cards <- genNonFlushCards
+  val genFourFlush: Gen[Hand] = for {
+    cards <- genFourFlushCards
   } yield Hand.rank(cards)
 
   val genWheelStraightCards: Gen[List[Card]] = {
@@ -115,10 +112,10 @@ object HandGenerators {
   def genStraightCards_(highestRank: Rank): Gen[List[Card]] = {
 
     val newRanks = Rank.all.filter(_ <= highestRank)
-    val idx      = choose(0, newRanks.length - 4).sample.get
-//    val idx               = choose(0, high).sample.get
-    val ranks: List[Rank] = Rank.all.slice(idx, idx + 5).sorted.reverse
+
     for {
+      idx <- choose(0, newRanks.length - 4)
+      ranks: List[Rank] = Rank.all.slice(idx, idx + 5).sorted.reverse
       suit1 <- genSuit
       suit2 <- genSuit
       suit3 <- genSuit
@@ -175,11 +172,10 @@ object HandGenerators {
   val genStraightFlushCards: Gen[List[Card]] = for {
     newSuit  <- genSuit
     straight <- genStraightCards
-    hand             = straight.map(x => Card(x.rank, newSuit)).distinct
-    straightRankTest = Set(1, 2, 3, 4, 5, 6, 7, 8)
-    deck             = Deck.all.filterNot(hand.contains(_))
-    (_, cards)       = buildHand(deck, hand, straightRankTest)
-  } yield cards
+    cards = straight.map(x => Card(x.rank, newSuit)).distinct
+    deck  = Deck.all.filterNot(cards.contains(_))
+    remaining <- pick(2, deck)
+  } yield remaining.toList ++ cards
 
   val genStraightFlush: Gen[StraightFlush] = for {
     straightFlush <- genStraightFlushCards

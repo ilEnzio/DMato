@@ -1,23 +1,15 @@
 package pokerTest
 
-import org.scalacheck.Prop.{
-  ?=,
-  all,
-  falsified,
-  forAll,
-  propBoolean,
-  AnyOperators
-}
+import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 import org.scalacheck.Properties
 import poker.Hand._
 import pokerData.HandGenerators._
 import pokerData.SpecialHandsGenerators._
 import poker._
-import OrderInstances.{handOrder, rankOrder}
+import OrderInstances._
 import cats.implicits.{catsSyntaxEq, catsSyntaxPartialOrder}
 import cats.kernel.Comparison
-import cats.kernel.Comparison.{GreaterThan, LessThan}
-import org.scalacheck.Gen.pick
+import cats.kernel.Comparison._
 import pokerData.DeckGenerators._
 
 object RankingTest extends Properties("Ranking Tests") {
@@ -89,23 +81,32 @@ object RankingTest extends Properties("Ranking Tests") {
       cards.groupBy(_.rank).size <= 4
   }
 
-  property("FullHouse: The highest set wins between two boats") = forAll {
-    (bigSetRank: Rank, smSetRank: Rank) =>
-      // rather than this use this constraint, just identify the bigger one
-      (bigSetRank > smSetRank) ==> {
-        val bigBoat = genFullHouseCards_(bigSetRank, Two).sample.get
-        val smBoat  = genFullHouseCards_(smSetRank, Two).sample.get
-//        println(s"big: $bigBoat \nsmall: $smBoat")
-//        "BigBoat beats SmallBoat" |:
-        //        rankOrder.compare(
-        //        bigBoat.slice(2, 4).head.rank,
-        //        smBoat.drop(2).head.rank
-        //      ) > 0 ==
-        handOrder.compare(
-          Hand.rank(bigBoat),
-          Hand.rank(smBoat)
-        ) > 0
-      }
+  // TODO these tests are still too complicated... Will elminate them.
+  property(
+    "FullHouse: The winner between FullHouse is determined by the Set ranking first."
+  ) = forAll { (rank1: Rank, rank2: Rank) =>
+    val boat1 = FullHouse(rank1, Two)
+    val boat2 = FullHouse(rank2, Two)
+
+    rankOrder.comparison(rank1, rank2) match {
+      case GreaterThan => handOrder.compare(boat1, boat2) > 0
+      case LessThan    => handOrder.compare(boat1, boat2) < 0
+      case EqualTo     => handOrder.compare(boat1, boat2) == 0
+    }
+  }
+
+  property(
+    "FullHouse: The winner between FullHouses of same Set rank is determined by Pair ranking."
+  ) = forAll { (rank1: Rank, rank2: Rank) =>
+    val boat1 = FullHouse(Ace, rank1)
+    val boat2 = FullHouse(Ace, rank2)
+
+    rankOrder.comparison(rank1, rank2) match {
+      case GreaterThan => handOrder.compare(boat1, boat2) > 0
+      case LessThan    => handOrder.compare(boat1, boat2) < 0
+      case EqualTo     => handOrder.compare(boat1, boat2) == 0
+    }
+
   }
 
   property("FullHouse is properly Ranked") = forAll(genFullHouseCards)(cards =>
@@ -119,20 +120,27 @@ object RankingTest extends Properties("Ranking Tests") {
   )
 
   property("5 or more cards of a suit is a Flush") =
-    forAll(genFlushCards, genNonFlushCards) { (flushHand, nonFlushHand) =>
-      (Hand.rank(flushHand) match {
+    forAll(genFlushCards, genFourFlushCards) { (flushCards, fourFlushCards) =>
+      (flushCards
+        .groupBy(_.suit)
+        .toList
+        .map(_._2.size)
+        .max >= 5) &&
+      (Hand.rank(flushCards) match {
+        case _: Flush => true
+        case _        => false
+      }) &&
+      (fourFlushCards
+        .groupBy(_.suit)
+        .toList
+        .map(_._2.size)
+        .max < 5) &&
+      (Hand.rank(fourFlushCards) match {
         case _: StraightFlush => false
+        case _: Flush         => false
         case _                => true
-      }) :| "Constraint" ==> {
-        (Hand.rank(flushHand) match {
-          case _: Flush => true
-          case _        => false
-        }) :| "Flush" &&
-        (Hand.rank(nonFlushHand) match {
-          case _: Flush => false
-          case _        => true
-        }) :| "Non-Flush"
-      }
+      })
+
     }
 
   property("a Flush hand has 3 or less suits") = forAll(genFlushCards) {
@@ -197,10 +205,15 @@ object RankingTest extends Properties("Ranking Tests") {
 
   property("3 cards of the same rank is ThreeOfAKind") =
     forAll(genThreeOfAKindCards) { cards =>
-      Hand.rank(cards) match {
+      (cards
+        .groupBy(_.rank)
+        .toList
+        .map(_._2.size)
+        .max === 3) &&
+      (Hand.rank(cards) match {
         case _: ThreeOfAKind => true
         case _               => false
-      }
+      })
     }
 
   property("ThreeOfAKind has 5 ranks and is NOT a Straight") =
@@ -217,35 +230,43 @@ object RankingTest extends Properties("Ranking Tests") {
       "Set vs TwoPair" |: handOrder.compare(set, twoPair) > 0
     }
 
-//  property("at least 2 pair of cards in a hand is TwoPair") =
-//    forAll(genTwoPair) { hand =>
-////    (hand match {
-////      case _: StraightFlush | _: Flush | _: Straight => false
-////      case _                                         => true
-////    }) ==> {
-//      hand match {
-//        case _: TwoPair => true
-//        case _          => false
-//      }
-//    }
+  property("at least 2 pair of cards in a hand is TwoPair") =
+    forAll(genTwoPairCards) { cards =>
+      (cards
+        .groupBy(_.rank)
+        .toList
+        .map(_._2)
+        .count(_.length == 2) >= 2) &&
+      (Hand.rank(cards) match {
+        case _: TwoPair => true
+        case _          => false
+      })
+    }
 
-//  property("Highest Ranked Two pair wins ") = forAll(genTwoPair) { hand =>
-//    //    (hand match {
-//    //      case _: StraightFlush | _: Flush | _: Straight => false
-//    //      case _                                         => true
-//    //    }) ==> {
-//    hand match {
-//      case _: TwoPair => true
-//      case _          => false
-//    }
-//  }
+  property("Highest Ranked Two pair wins ") = forAll {
+    (rank1: Rank, rank2: Rank, card1: Card, card2: Card) =>
+      val kickers = List(card1, card2)
+      val twoP1   = TwoPair(rank1, Two, kickers)
+      val twoP2   = TwoPair(rank2, Two, kickers)
+
+      rankOrder.comparison(rank1, rank2) match {
+        case GreaterThan => handOrder.compare(twoP1, twoP2) > 0
+        case EqualTo     => handOrder.compare(twoP1, twoP2) == 0
+        case LessThan    => handOrder.compare(twoP1, twoP2) < 0
+      }
+  }
 
   property("at least two cards of the same rank is a Pair") =
     forAll(genPairCards) { cards =>
-      Hand.rank(cards) match {
+      (cards
+        .groupBy(_.rank)
+        .toList
+        .map(_._2)
+        .count(_.length == 2) == 1) &&
+      (Hand.rank(cards) match {
         case _: Pair => true
         case _       => false
-      }
+      })
     }
 
   property("A HighCard hand has no other rank") = forAll(genHighCardCards) {
