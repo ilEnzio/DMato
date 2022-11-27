@@ -11,7 +11,7 @@ object DeckGenerators {
     rank <- genRank
     suit <- genSuit
   } yield Card(rank, suit)
-
+  implicit val arbCard = Arbitrary(genCard)
 // TODO - Do I even need either of these?
 
 //  val startingDeck: Deck = makeStartingDeck //

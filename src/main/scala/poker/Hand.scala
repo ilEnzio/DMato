@@ -5,7 +5,7 @@ import cats.implicits._
 import OrderInstances._
 
 sealed trait Hand {
-  val score = 0 // do I need this?
+  def score: Int
 }
 
 object Hand {
