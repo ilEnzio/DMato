@@ -13,8 +13,9 @@ import scala.util.Random
 /// I feel like I've just added a bunch of boiler plate
 
 sealed trait Street {
-  val allHands: List[Hand]
   val players: List[Player]
+  val allHoleCardHands: List[Hand]
+  val allHands: List[(Int, Hand)]
 } // Street
 
 object Street {
@@ -22,8 +23,11 @@ object Street {
   final case class Preflop(players: List[Player], deck: PreflopDeck)
       extends Street {
 
-    val allHands: List[Hand] =
+    val allHoleCardHands: List[Hand] =
       players.map { case Player(x, y) => Hand.rank(List(x, y)) }
+    override val allHands: List[(Int, Hand)] =
+      allHoleCardHands.zipWithIndex
+        .map { case (x, y) => (y + 1, x) }
   }
 
 //
@@ -35,10 +39,24 @@ object Street {
     card2: Card,
     card3: Card
   ) extends Street {
-    val allHands: List[Hand] =
+    val allHoleCardHands: List[Hand] =
       players.map { case Player(x, y) =>
         Hand.rank(List(x, y, card1, card2, card3))
       }
+    override val allHands: List[(Int, Hand)] = players
+      .map { case Player(x, y) =>
+        Hand.rank(
+          List(
+            x,
+            y,
+            card1,
+            card2,
+            card3
+          )
+        )
+      }
+      .zipWithIndex
+      .map { case (x, y) => (y + 1, x) }
   }
 
   final case class Turn(
@@ -49,10 +67,25 @@ object Street {
     card3: Card,
     turn: Card
   ) extends Street {
-    val allHands: List[Hand] =
+    val allHoleCardHands: List[Hand] =
       players.map { case Player(x, y) =>
         Hand.rank(List(x, y, card1, card2, card3, turn))
       }
+    override val allHands: List[(Int, Hand)] = players
+      .map { case Player(x, y) =>
+        Hand.rank(
+          List(
+            x,
+            y,
+            card1,
+            card2,
+            card3,
+            turn
+          )
+        )
+      }
+      .zipWithIndex
+      .map { case (x, y) => (y + 1, x) }
   }
 
   final case class River(
@@ -63,10 +96,26 @@ object Street {
     turn: Card,
     river: Card
   ) extends Street {
-    val allHands: List[Hand] =
+    val allHoleCardHands: List[Hand] =
       players.map { case Player(x, y) =>
         Hand.rank(List(x, y, card1, card2, card3, turn, river))
       }
+    override val allHands: List[(Int, Hand)] = players
+      .map { case Player(x, y) =>
+        Hand.rank(
+          List(
+            x,
+            y,
+            card1,
+            card2,
+            card3,
+            turn,
+            river
+          )
+        )
+      }
+      .zipWithIndex
+      .map { case (x, y) => (y + 1, x) }
   }
 
   /// State machine needs to go to the Deck. (FlopCards, FlopDeck)
