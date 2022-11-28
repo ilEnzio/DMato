@@ -46,7 +46,7 @@ object ShowDown {
   def fromRiver(river: River): Option[NonEmptySet[Int]] = {
 // TODO this map to reverse the zip seems goofy
 
-    val hands: Seq[(Int, Hand)] = allHands(river)
+    val hands: Seq[(Int, Hand)] = river.allHands
 
     val handsSet: Set[Int] = hands
       .maximumByList[Hand](x => x._2)
@@ -56,29 +56,12 @@ object ShowDown {
     NonEmptySet.from(handsSet)
   }
 
-  def allHands(board: River): List[(Int, Hand)] =
-    board.players
-      .map { case Player(x, y) =>
-        Hand.rank(
-          List(
-            x,
-            y,
-            board.card1,
-            board.card2,
-            board.card3,
-            board.turn,
-            board.river
-          )
-        )
-      }
-      .zipWithIndex
-      .map { case (x, y) => (y + 1, x) }
 }
 
 object PlayerStanding {
   def apply(board: Street): List[(Int, Player, Hand)] =
     board.players
-      .zip(board.allHands)
+      .zip(board.allHoleCardHands)
       .zipWithIndex
       .map { case ((p, h), i) => (i, p, h) }
 

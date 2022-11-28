@@ -63,7 +63,7 @@ object ShowDownTest extends Properties("ShowDownTest") {
     val flop             = dealFlop(twoPlayerPreFlop)
     val turn             = dealTurn(flop)
     val river            = dealRiver(turn)
-    val winningHands     = ShowDown(river.allHands)
+    val winningHands     = ShowDown(river.allHoleCardHands)
     val winningPlayers   = ShowDown.from(river).get
 
     winningHands.size ?= winningPlayers.size
@@ -85,7 +85,7 @@ object ShowDownTest extends Properties("ShowDownTest") {
     val turn = Street.dealTurn(flop)
     Street.dealRiver(turn) match {
       case r: River =>
-        val (x, y) = (ShowDown.allHands(r)(0)._2, ShowDown.allHands(r)(1)._2)
+        val (x, y) = (r.allHands(0)._2, r.allHands(1)._2)
         handOrder.comparison(x, y) match {
           case GreaterThan => ShowDown.from(r) ?= Some(NonEmptySet(1))
           case LessThan    => ShowDown.from(r) ?= Some(NonEmptySet(2))
