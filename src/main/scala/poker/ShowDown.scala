@@ -46,9 +46,7 @@ object ShowDown {
   def fromRiver(river: River): Option[NonEmptySet[Int]] = {
 // TODO this map to reverse the zip seems goofy
 
-    val hands: Seq[(Int, Hand)] = river.allHands
-
-    val handsSet: Set[Int] = hands
+    val handsSet: Set[Int] = river.allHands
       .maximumByList[Hand](x => x._2)
       .map { case (player, _) => player }
       .toSet
