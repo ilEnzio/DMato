@@ -23,7 +23,7 @@ object Street {
       extends Street {
 
     val allHands: List[Hand] =
-      players.map { case Player(x, y) => Hand.rank(List(x, y)) }
+      players.map { case Player(_, x, y) => Hand.rank(List(x, y)) }
   }
 
 //
@@ -36,7 +36,7 @@ object Street {
     card3: Card
   ) extends Street {
     val allHands: List[Hand] =
-      players.map { case Player(x, y) =>
+      players.map { case Player(_, x, y) =>
         Hand.rank(List(x, y, card1, card2, card3))
       }
   }
@@ -50,7 +50,7 @@ object Street {
     turn: Card
   ) extends Street {
     val allHands: List[Hand] =
-      players.map { case Player(x, y) =>
+      players.map { case Player(_, x, y) =>
         Hand.rank(List(x, y, card1, card2, card3, turn))
       }
   }
@@ -64,7 +64,7 @@ object Street {
     river: Card
   ) extends Street {
     val allHands: List[Hand] =
-      players.map { case Player(x, y) =>
+      players.map { case Player(_, x, y) =>
         Hand.rank(List(x, y, card1, card2, card3, turn, river))
       }
   }
@@ -98,4 +98,31 @@ object Street {
 
 }
 
-case class Player(card1: Card, card2: Card) // position ??
+sealed trait Position {}
+object Position       {
+  // TODO this position is not the best model
+  val positionMap: Map[Int, Position] = Map(
+    1  -> SmallBlind,
+    2  -> BigBlind,
+    3  -> UTG,
+    4  -> UTGP1,
+    5  -> UTGP2,
+    6  -> UTGP3,
+    7  -> LoJack,
+    8  -> HighJack,
+    9  -> CutOff,
+    10 -> Button
+  )
+}
+case object SmallBlind extends Position
+case object BigBlind   extends Position
+case object UTG        extends Position
+case object UTGP1      extends Position
+case object UTGP2      extends Position
+case object UTGP3      extends Position
+case object LoJack     extends Position
+case object HighJack   extends Position
+case object CutOff     extends Position
+case object Button     extends Position
+
+case class Player(position: Position, card1: Card, card2: Card) // position ??
