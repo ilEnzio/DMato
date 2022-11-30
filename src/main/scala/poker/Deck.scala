@@ -31,10 +31,12 @@ object Deck {
       val numHoleCards = numPlayers * 2
       for {
         cards <- shuffledDeck
+        /// TODO refactor this
         players = cards
           .take(numHoleCards)
           .grouped(2)
-          .map { case List(x, y) => Player(x, y) } // TODO unsafe??? old comment
+          .zip(for (x <- 1 to numPlayers) yield x)
+          .map { case (List(y, z), Position.positionMap(x)) => Player(x, y, z) }
           .toList
       } yield Preflop(
         players,
