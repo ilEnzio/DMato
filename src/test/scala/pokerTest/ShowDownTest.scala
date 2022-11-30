@@ -31,9 +31,10 @@ object ShowDownTest extends Properties("ShowDownTest") {
   // TODO This is not a property
   property(
     "A player with a Straight flush beats a player with Four of a Kind of the River"
-  ) = {
-    val pl1 = Player(Card(Ace, Spades), Card(Ace, Clubs))
-    val pl2 = Player(Card(King, Hearts), Card(Queen, Hearts))
+  ) = forAll { (pos1: Position, pos2: Position) =>
+    //
+    val pl1 = Player(pos1, Card(Ace, Spades), Card(Ace, Clubs))
+    val pl2 = Player(pos2, Card(King, Hearts), Card(Queen, Hearts))
     val deck =
       Deck.all.filterNot(
         List(
@@ -52,7 +53,7 @@ object ShowDownTest extends Properties("ShowDownTest") {
       Card(Ten, Hearts),
       Card(Nine, Hearts)
     )
-    ShowDown.fromRiver(river) ?= Some(NonEmptySet(2))
+    ShowDown.fromRiver(river) ?= Some(NonEmptySet(pos2))
   }
 
   property(
@@ -63,7 +64,7 @@ object ShowDownTest extends Properties("ShowDownTest") {
     val flop             = dealFlop(twoPlayerPreFlop)
     val turn             = dealTurn(flop)
     val river            = dealRiver(turn)
-    val winningHands     = ShowDown(river.allHoleCardHands)
+    val winningHands     = ShowDown(river.allHands)
     val winningPlayers   = ShowDown.from(river).get
 
     winningHands.size ?= winningPlayers.size
@@ -85,11 +86,12 @@ object ShowDownTest extends Properties("ShowDownTest") {
     val turn = Street.dealTurn(flop)
     Street.dealRiver(turn) match {
       case r: River =>
-        val (x, y) = (r.allHands(0)._2, r.allHands(1)._2)
+        val (x, y) = (ShowDown.allHands(r)(0)._2, ShowDown.allHands(r)(1)._2)
         handOrder.comparison(x, y) match {
-          case GreaterThan => ShowDown.from(r) ?= Some(NonEmptySet(1))
-          case LessThan    => ShowDown.from(r) ?= Some(NonEmptySet(2))
-          case EqualTo     => ShowDown.from(r) ?= Some(NonEmptySet(1, 2))
+          case GreaterThan => ShowDown.from(r) ?= Some(NonEmptySet(SmallBlind))
+          case LessThan    => ShowDown.from(r) ?= Some(NonEmptySet(BigBlind))
+          case EqualTo =>
+            ShowDown.from(r) ?= Some(NonEmptySet(SmallBlind, BigBlind))
         }
       case _ => falsified
     }

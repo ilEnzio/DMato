@@ -16,7 +16,7 @@ object ShowDown {
   // what I might do is make the show down pass through all states
   // then parameterize fromRiver from[A :< River]
 
-  def from[A >: Street](board: A): Option[NonEmptySet[Int]] =
+  def from[A >: Street](board: A): Option[NonEmptySet[Position]] =
     board match {
       case x: Preflop => fromPreFlop(x)
       case x: Flop    => fromFlop(x)
@@ -24,7 +24,7 @@ object ShowDown {
       case x: River   => fromRiver(x)
     }
 
-  def fromPreFlop(preflop: Preflop): Option[NonEmptySet[Int]] = {
+  def fromPreFlop(preflop: Preflop): Option[NonEmptySet[Position]] = {
 
     val flop  = Street.dealFlop(preflop)
     val turn  = Street.dealTurn(flop)
@@ -32,33 +32,55 @@ object ShowDown {
     from(river)
   }
 
-  def fromFlop(flop: Flop): Option[NonEmptySet[Int]] = {
+  def fromFlop(flop: Flop): Option[NonEmptySet[Position]] = {
     val turn  = Street.dealTurn(flop)
     val river = Street.dealRiver(turn)
     from(river)
   }
 
-  def fromTurn(turn: Turn): Option[NonEmptySet[Int]] = {
+  def fromTurn(turn: Turn): Option[NonEmptySet[Position]] = {
     val river = Street.dealRiver(turn)
     from(river)
   }
 
-  def fromRiver(river: River): Option[NonEmptySet[Int]] = {
+  def fromRiver(river: River): Option[NonEmptySet[Position]] = {
+// TODO this map to reverse the zip seems goofy
 
-    val handsSet: Set[Int] = river.allHands
+    val hands: Seq[(Position, Hand)] = allHands(river)
+
+    val positionSet: Set[Position] = hands
       .maximumByList[Hand](x => x._2)
-      .map { case (player, _) => player }
+      .map { case (playerPosition, _) => playerPosition }
       .toSet
 
-    NonEmptySet.from(handsSet)
+    NonEmptySet.from(positionSet)
   }
+
+  def allHands(board: River): List[(Position, Hand)] =
+    board.players
+      .map { case Player(pos, c1, c2) =>
+        (
+          pos,
+          Hand.rank(
+            List(
+              c1,
+              c2,
+              board.card1,
+              board.card2,
+              board.card3,
+              board.turn,
+              board.river
+            )
+          )
+        )
+      }
 
 }
 
 object PlayerStanding {
   def apply(board: Street): List[(Int, Player, Hand)] =
     board.players
-      .zip(board.allHoleCardHands)
+      .zip(board.allHands)
       .zipWithIndex
       .map { case ((p, h), i) => (i, p, h) }
 
