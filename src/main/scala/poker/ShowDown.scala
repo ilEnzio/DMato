@@ -80,7 +80,7 @@ object ShowDown {
 object PlayerStanding {
   def apply(board: Street): List[(Int, Player, Hand)] =
     board.players
-      .zip(board.allHoleCardHands)
+      .zip(board.allHands)
       .zipWithIndex
       .map { case ((p, h), i) => (i, p, h) }
 

@@ -36,22 +36,7 @@ Some Tasks:
 
 Notes:
 - Some effectful areas
-  - the initial Deck generation
+  - the inital Deck generation
 - Candidates for parallelism:
   - the board runout/simulation
   
-
-Elements:
-Card - value object
-Deck - value object
-Board/game state - value object
-Hand - value object
-Flop, turn, river - value object
-Player - entity
-Pot - ???
-
-"Services":
-Showdown ??
-Equity ??
-HandRanking ??
-Dealing ??

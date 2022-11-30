@@ -13,9 +13,8 @@ import scala.util.Random
 /// I feel like I've just added a bunch of boiler plate
 
 sealed trait Street {
+  val allHands: List[Hand]
   val players: List[Player]
-  val allHoleCardHands: List[Hand]
-  val allHands: List[(Int, Hand)]
 } // Street
 
 object Street {
@@ -40,20 +39,6 @@ object Street {
       players.map { case Player(_, x, y) =>
         Hand.rank(List(x, y, card1, card2, card3))
       }
-    override val allHands: List[(Int, Hand)] = players
-      .map { case Player(x, y) =>
-        Hand.rank(
-          List(
-            x,
-            y,
-            card1,
-            card2,
-            card3
-          )
-        )
-      }
-      .zipWithIndex
-      .map { case (x, y) => (y + 1, x) }
   }
 
   final case class Turn(
@@ -68,21 +53,6 @@ object Street {
       players.map { case Player(_, x, y) =>
         Hand.rank(List(x, y, card1, card2, card3, turn))
       }
-    override val allHands: List[(Int, Hand)] = players
-      .map { case Player(x, y) =>
-        Hand.rank(
-          List(
-            x,
-            y,
-            card1,
-            card2,
-            card3,
-            turn
-          )
-        )
-      }
-      .zipWithIndex
-      .map { case (x, y) => (y + 1, x) }
   }
 
   final case class River(
@@ -97,22 +67,6 @@ object Street {
       players.map { case Player(_, x, y) =>
         Hand.rank(List(x, y, card1, card2, card3, turn, river))
       }
-    override val allHands: List[(Int, Hand)] = players
-      .map { case Player(x, y) =>
-        Hand.rank(
-          List(
-            x,
-            y,
-            card1,
-            card2,
-            card3,
-            turn,
-            river
-          )
-        )
-      }
-      .zipWithIndex
-      .map { case (x, y) => (y + 1, x) }
   }
 
   /// State machine needs to go to the Deck. (FlopCards, FlopDeck)

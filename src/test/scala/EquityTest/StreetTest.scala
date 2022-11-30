@@ -16,41 +16,34 @@ object StreetTest extends Properties("Street Tests") {
   // genFlop, genTurn, genRiver
   // genPlayer,
 
-  property("Preflop hands can never be ranked higher than a Pair") = forAll {
-    (preflop: Street.Preflop) =>
-      preflop.players.exists(p =>
-        Hand.rank(List(p.card1, p.card2)) match {
-          case _: Pair | _: HighCard => true
-          case _                     => false
-        }
-      ) ?= true
+  property("Preflop hands can never be ranked higher than a Pair") = forAll { (preflop: Street.Preflop) =>
+    preflop.players.exists(p =>
+      Hand.rank(List(p.card1, p.card2)) match {
+        case _: Pair | _: HighCard => true
+        case _                     => false
+      }
+    ) ?= true
   }
 
-  property("The winning hand Preflop is a pair or less") = forAll {
-    (preflop: Street.Preflop) =>
-      ShowDown(preflop.allHoleCardHands).exists(handRank =>
-        handRank match {
-          case _: Pair | _: HighCard => true
-          case _                     => false
-        }
-      ) ?= true
+  property("The winning hand Preflop is a pair or less") = forAll { (preflop: Street.Preflop) =>
+    ShowDown(preflop.allHands).exists(handRank =>
+      handRank match {
+        case _: Pair | _: HighCard => true
+        case _                     => false
+      }
+    ) ?= true
   }
 
-  property("No card is ever dealt more than once through to the River") =
-    forAll { (preflop: Street.Preflop) =>
-      val flop = dealFlop(preflop)
-      val turn = dealTurn(flop)
-      val river = dealRiver(
-        turn
-      ) // TODo Does this mean that I need to change the Street trait/contract
-      val riverCards =
-        List(river.card1, river.card2, river.card3, river.turn, river.river)
-      val holeCards =
-        preflop.players.collect(p => List(p.card1, p.card2)).flatten
-      val allDealtCards = holeCards :: riverCards
-      allDealtCards.distinct ?= allDealtCards
+  property("No card is ever dealt more than once through to the River") = forAll { (preflop: Street.Preflop) =>
+    val flop          = dealFlop(preflop)
+    val turn          = dealTurn(flop)
+    val river         = dealRiver(turn) // TODo Does this mean that I need to change the Street trait/contract
+    val riverCards    = List(river.card1, river.card2, river.card3, river.turn, river.river)
+    val holeCards     = preflop.players.collect(p => List(p.card1, p.card2)).flatten
+    val allDealtCards = holeCards :: riverCards
+    allDealtCards.distinct ?= allDealtCards
 
-    }
+  }
 
   //  property("preflop deck size equals 52 minus the players cards and maintains uniqueness") = forAll(genPreflopBoard, genNumberOfPlayers) {
 //    (preFlopBoard, numPlayers) =>
