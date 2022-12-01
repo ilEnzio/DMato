@@ -61,9 +61,7 @@ object ShowDownTest extends Properties("ShowDownTest") {
   ) = {
 
     val twoPlayerPreFlop = startingDeck.dealHoleCards(2).unsafeRunSync()
-    val flop             = dealFlop(twoPlayerPreFlop)
-    val turn             = dealTurn(flop)
-    val river            = dealRiver(turn)
+    val river            = twoPlayerPreFlop.dealTillRiver
     val winningHands     = ShowDown(river.allHands)
     val winningPlayers   = ShowDown.from(river).get
 
@@ -73,9 +71,7 @@ object ShowDownTest extends Properties("ShowDownTest") {
   property("At Showdown there is at least one winner") = forAll {
     (preflopBoard: Preflop) =>
       val numPlayers = preflopBoard.players.size
-      val flop       = dealFlop(preflopBoard)
-      val turn       = dealTurn(flop)
-      val river      = dealRiver(turn)
+      val river      = preflopBoard.dealTillRiver
       val winners    = ShowDown.from(river).get
       winners.size >= 1
   }
@@ -83,8 +79,7 @@ object ShowDownTest extends Properties("ShowDownTest") {
   property(
     "at the Flop: For two players, the Showdown will award all winners"
   ) = forAll(genFlopBoard(2)) { flop =>
-    val turn = Street.dealTurn(flop)
-    Street.dealRiver(turn) match {
+    flop.dealTillRiver match {
       case r: River =>
         val (x, y) = (ShowDown.allHands(r)(0)._2, ShowDown.allHands(r)(1)._2)
         handOrder.comparison(x, y) match {

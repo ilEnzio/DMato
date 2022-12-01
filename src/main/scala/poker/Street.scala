@@ -15,6 +15,7 @@ import scala.util.Random
 sealed trait Street {
   val allHands: List[Hand]
   val players: List[Player]
+  def dealTillRiver: Street.River
 } // Street
 
 object Street {
@@ -24,9 +25,18 @@ object Street {
 
     val allHands: List[Hand] =
       players.map { case Player(_, x, y) => Hand.rank(List(x, y)) }
-  }
 
-//
+    /// State machine needs to go to the Deck. (FlopCards, FlopDeck)
+    // Flop - street
+    // FlopCards - the three cards
+    def dealFlop: Flop = { // (FlopCards, FlopDeck)
+
+      val (flop, flopDeck) = deck.dealFlop
+      Flop(players, flopDeck, flop.card1, flop.card2, flop.card3)
+    }
+
+    override def dealTillRiver = dealFlop.dealTillRiver
+  }
 
   final case class Flop(
     players: List[Player],
@@ -39,6 +49,14 @@ object Street {
       players.map { case Player(_, x, y) =>
         Hand.rank(List(x, y, card1, card2, card3))
       }
+
+    def dealTurn: Turn = {
+      val (turn, turnDeck) = deck.dealTurn
+
+      Turn(players, turnDeck, card1, card2, card3, turn.card)
+    }
+
+    override def dealTillRiver = dealTurn.dealTillRiver
   }
 
   final case class Turn(
@@ -53,6 +71,20 @@ object Street {
       players.map { case Player(_, x, y) =>
         Hand.rank(List(x, y, card1, card2, card3, turn))
       }
+
+    def dealRiver: River = {
+      val river = deck.dealRiver
+      River(
+        players,
+        card1,
+        card2,
+        card3,
+        turn,
+        river.card
+      )
+    }
+
+    override def dealTillRiver = dealRiver
   }
 
   final case class River(
@@ -67,33 +99,8 @@ object Street {
       players.map { case Player(_, x, y) =>
         Hand.rank(List(x, y, card1, card2, card3, turn, river))
       }
-  }
 
-  /// State machine needs to go to the Deck. (FlopCards, FlopDeck)
-  // Flop - street
-  // FlopCards - the three cards
-  def dealFlop(preflop: Preflop): Flop = { // (FlopCards, FlopDeck)
-
-    val (flop, flopDeck) = preflop.deck.dealFlop
-    Flop(preflop.players, flopDeck, flop.card1, flop.card2, flop.card3)
-  }
-
-  def dealTurn(flop: Flop): Turn = {
-    val (turn, turnDeck) = flop.deck.dealTurn
-
-    Turn(flop.players, turnDeck, flop.card1, flop.card2, flop.card3, turn.card)
-  }
-
-  def dealRiver(turn: Turn): River = {
-    val river = turn.deck.dealRiver
-    River(
-      turn.players,
-      turn.card1,
-      turn.card2,
-      turn.card3,
-      turn.turn,
-      river.card
-    )
+    override val dealTillRiver = this
   }
 
 }

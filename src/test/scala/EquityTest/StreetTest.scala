@@ -35,9 +35,7 @@ object StreetTest extends Properties("Street Tests") {
   }
 
   property("No card is ever dealt more than once through to the River") = forAll { (preflop: Street.Preflop) =>
-    val flop          = dealFlop(preflop)
-    val turn          = dealTurn(flop)
-    val river         = dealRiver(turn) // TODo Does this mean that I need to change the Street trait/contract
+    val river         = preflop.dealTillRiver // TODO Does this mean that I need to change the Street trait/contract
     val riverCards    = List(river.card1, river.card2, river.card3, river.turn, river.river)
     val holeCards     = preflop.players.collect(p => List(p.card1, p.card2)).flatten
     val allDealtCards = holeCards :: riverCards
