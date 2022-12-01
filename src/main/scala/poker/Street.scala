@@ -21,7 +21,7 @@ sealed trait Street {
 
 object Street {
 
-  final case class Preflop(players: List[Player], deck: PreflopDeck)
+  final case class Preflop(players: List[Player], deck: Deck)
       extends Street {
 
     val allHands: List[Hand] =
@@ -32,7 +32,7 @@ object Street {
 
   final case class Flop(
     players: List[Player],
-    deck: FlopDeck,
+    deck: Deck,
     card1: Card,
     card2: Card,
     card3: Card
@@ -45,7 +45,7 @@ object Street {
 
   final case class Turn(
     players: List[Player],
-    deck: TurnDeck,
+    deck: Deck,
     card1: Card,
     card2: Card,
     card3: Card,
