@@ -1,6 +1,7 @@
 package poker
 
 import cats._
+import cats.data.State
 import cats.effect.IO
 import cats.effect.std._
 import cats.implicits.toFunctorOps
@@ -29,7 +30,7 @@ object Deck {
 
   trait StartingDeck {
     def shuffle[F[_]: Functor: Random]: F[StartingDeck]
-    def dealHoleCards(numPlayers: Int): IO[Preflop]
+    def dealHoleCards(numPlayers: Int): State[Deck, Preflop]
   }
   final private case class StartingDeckImpl(cards: List[Card])
       extends StartingDeck {
@@ -39,25 +40,23 @@ object Deck {
     // StartingDeck(Shuffle, Dealhole cards) => PreflopDeck => FlopDeck => TurnDeck => [RiverBoard]
 
     def shuffle2 = IO(scala.util.Random.shuffle(all))
-    override def dealHoleCards(numPlayers: Int): IO[Preflop] = {
+
+    override def dealHoleCards(numPlayers: Int): State[Deck, Preflop] = {
       // TODO Erg Can't figure this out yet.
       //        val shuffledDeck =
       //          shuffle[F[StartingDeck]] //IO(Random.shuffle(StartingDeck.all))
-      val shuffledDeck = shuffle2
-      val numHoleCards = numPlayers * 2
       for {
-        cards <- shuffledDeck
+        shuffledDeck <- State.get[Deck]
+        numHoleCards = numPlayers * 2
         /// TODO refactor this
-        players = cards
+        players = shuffledDeck.cards
           .take(numHoleCards)
           .grouped(2)
           .zip(for (x <- 1 to numPlayers) yield x)
           .map { case (List(y, z), Position.positionMap(x)) => Player(x, y, z) }
-          .toList
-      } yield Preflop(
-        players,
-        Deck(cards.drop(numHoleCards))
-      )
+        .toList
+        _ <- State.set(Deck(cards.drop(numHoleCards)))
+      } yield Preflop(players)
     }
   }
 

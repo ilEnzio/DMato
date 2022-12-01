@@ -21,7 +21,7 @@ sealed trait Street {
 
 object Street {
 
-  final case class Preflop(players: List[Player], deck: Deck)
+  final case class Preflop(players: List[Player])
       extends Street {
 
     val allHands: List[Hand] =
@@ -32,7 +32,6 @@ object Street {
 
   final case class Flop(
     players: List[Player],
-    deck: Deck,
     card1: Card,
     card2: Card,
     card3: Card
@@ -45,7 +44,6 @@ object Street {
 
   final case class Turn(
     players: List[Player],
-    deck: Deck,
     card1: Card,
     card2: Card,
     card3: Card,
@@ -74,21 +72,26 @@ object Street {
   /// State machine needs to go to the Deck. (FlopCards, FlopDeck)
   // Flop - street
   // FlopCards - the three cards
-  def dealFlop(preflop: Preflop): Flop = { // (FlopCards, FlopDeck)
-
-    val (flop, flopDeck) = preflop.deck.dealFlop
-    Flop(preflop.players, flopDeck, flop.card1, flop.card2, flop.card3)
+  def dealFlop(preflop: Preflop): State[Deck, Flop] = { // (FlopCards, FlopDeck)
+    for {
+      deck <- State.get[Deck]
+      (flop, flopDeck) = deck.dealFlop
+      _ <- State.set(flopDeck)
+    } yield Flop(preflop.players, flop.card1, flop.card2, flop.card3)
   }
 
-  def dealTurn(flop: Flop): Turn = {
-    val (turn, turnDeck) = flop.deck.dealTurn
+  def dealTurn(flop: Flop): State[Deck, Turn] =
+    for {
+      deck <- State.get[Deck]
+      (turn, turnDeck) = deck.dealTurn
+    } yield Turn(flop.players, flop.card1, flop.card2, flop.card3, turn.card)
 
-    Turn(flop.players, turnDeck, flop.card1, flop.card2, flop.card3, turn.card)
-  }
-
-  def dealRiver(turn: Turn): River = {
-    val river = turn.deck.dealRiver
-    River(
+  def dealRiver(turn: Turn): State[Deck, River] = {
+    for {
+      deck <- State.get[Deck]
+      river = deck.dealRiver
+      // TODO: should set a state, but dealRiver doesn't return it
+    } yield River(
       turn.players,
       turn.card1,
       turn.card2,
@@ -98,6 +101,7 @@ object Street {
     )
   }
 
+  /*
   val next: State[Street, List[Hand]] = State { (s: Street) =>
     s match {
       case x: Preflop =>
@@ -111,24 +115,23 @@ object Street {
         (river, river.allHands)
       case x: River => (x, x.allHands)
     }
-  }
+   }
+   */
 // TODO I really like to generalize this.  Maybe it's the State instance that needs to be created?
   // maybe State Monad is an alternative model for what I'm doing already?
-  def runOutPrepFlopToRiver = for {
-    flop  <- Street.next
-    turn  <- Street.next
-    river <- Street.next
+  def runOutPreFlopToRiver(preflop: Preflop): State[Deck, River] = for {
+    flop <- Street.dealFlop(preflop)
+    river <- runOutFlopToRiver(flop)
     // this seems cool for future.  but now it's more complex to get the value out.
-  } yield (flop, turn, river)
-
-  def runOutFlopToRiver = for {
-    turn  <- Street.next
-    river <- Street.next
-  } yield (turn, river)
-
-  def runOutTurnToRiver = for {
-    river <- Street.next
   } yield river
+
+  def runOutFlopToRiver(flop: Flop): State[Deck, River] = for {
+    turn  <- Street.dealTurn(flop)
+    river <- runOutTurnToRiver(turn)
+  } yield river
+
+  def runOutTurnToRiver(turn: Turn): State[Deck, River] =
+    Street.dealRiver(turn)
 }
 
 sealed trait Position {}

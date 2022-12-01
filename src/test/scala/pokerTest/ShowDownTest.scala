@@ -36,7 +36,7 @@ object ShowDownTest extends Properties("ShowDownTest") {
     val pl1 = Player(pos1, Card(Ace, Spades), Card(Ace, Clubs))
     val pl2 = Player(pos2, Card(King, Hearts), Card(Queen, Hearts))
     val deck =
-      Deck.all.filterNot(
+      Deck(Deck.all.filterNot(
         List(
           Card(Ace, Spades),
           Card(Ace, Clubs),
@@ -44,7 +44,7 @@ object ShowDownTest extends Properties("ShowDownTest") {
           Card(King, Hearts)
         )
           .contains(_)
-      )
+      ))
     val river = River(
       List(pl1, pl2),
       Card(Ace, Hearts),
@@ -53,7 +53,7 @@ object ShowDownTest extends Properties("ShowDownTest") {
       Card(Ten, Hearts),
       Card(Nine, Hearts)
     )
-    ShowDown.fromRiver(river) ?= Some(NonEmptySet(pos2))
+    ShowDown.fromRiver(river).runA(deck).value ?= Some(NonEmptySet(pos2))
   }
 
   property(

@@ -1,5 +1,6 @@
 package poker
 
+import cats.data.State
 import cats.implicits._
 import poker.Street.{Flop, Preflop, River, Turn}
 import poker.OrderInstances._
@@ -16,7 +17,7 @@ object ShowDown {
   // what I might do is make the show down pass through all states
   // then parameterize fromRiver from[A :< River]
 
-  def from[A >: Street](board: A): Option[NonEmptySet[Position]] =
+  def from[A >: Street](board: A): State[Deck, Option[NonEmptySet[Position]]] =
     board match {
       case x: Preflop => fromPreFlop(x)
       case x: Flop    => fromFlop(x)
@@ -24,29 +25,16 @@ object ShowDown {
       case x: River   => fromRiver(x)
     }
 
-  def fromPreFlop(preflop: Preflop): Option[NonEmptySet[Position]] = {
-    val flop  = Street.dealFlop(preflop)
-    fromFlop(flop)
-    // TODO I must be doing something wrong.  What do I gain by this?
-//    val runOut = for {
-//      flop     <- Street.next
-//      turn     <- Street.next
-//      river <- Street.next
-//    } yield (flop, turn, river)
-//    from(runOut.runS(preflop).value)
-  }
+  def fromPreFlop(preflop: Preflop): State[Deck, Option[NonEmptySet[Position]]] =
+    Street.dealFlop(preflop).flatMap(fromFlop)
 
-  def fromFlop(flop: Flop): Option[NonEmptySet[Position]] = {
-    val turn  = Street.dealTurn(flop)
-    fromTurn(turn)
-  }
+  def fromFlop(flop: Flop): State[Deck, Option[NonEmptySet[Position]]] =
+    Street.dealTurn(flop).flatMap(fromTurn)
 
-  def fromTurn(turn: Turn): Option[NonEmptySet[Position]] = {
-    val river = Street.dealRiver(turn)
-    fromRiver(river)
-  }
+  def fromTurn(turn: Turn): State[Deck, Option[NonEmptySet[Position]]] =
+    Street.dealRiver(turn).flatMap(fromRiver)
 
-  def fromRiver(river: River): Option[NonEmptySet[Position]] = {
+  def fromRiver(river: River): State[Deck, Option[NonEmptySet[Position]]] = {
 // TODO this map to reverse the zip seems goofy
 
     val hands: Seq[(Position, Hand)] = allHands(river)
@@ -56,7 +44,7 @@ object ShowDown {
       .map { case (playerPosition, _) => playerPosition }
       .toSet
 
-    NonEmptySet.from(positionSet)
+    State.pure(NonEmptySet.from(positionSet))
   }
 
   def allHands(board: River): List[(Position, Hand)] =
