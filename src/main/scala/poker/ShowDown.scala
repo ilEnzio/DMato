@@ -16,32 +16,8 @@ object ShowDown {
   // what I might do is make the show down pass through all states
   // then parameterize fromRiver from[A :< River]
 
-  def from[A >: Street](board: A): Option[NonEmptySet[Position]] =
-    board match {
-      case x: Preflop => fromPreFlop(x)
-      case x: Flop    => fromFlop(x)
-      case x: Turn    => fromTurn(x)
-      case x: River   => fromRiver(x)
-    }
-
-  def fromPreFlop(preflop: Preflop): Option[NonEmptySet[Position]] = {
-
-    val flop  = Street.dealFlop(preflop)
-    val turn  = Street.dealTurn(flop)
-    val river = Street.dealRiver(turn)
-    from(river)
-  }
-
-  def fromFlop(flop: Flop): Option[NonEmptySet[Position]] = {
-    val turn  = Street.dealTurn(flop)
-    val river = Street.dealRiver(turn)
-    from(river)
-  }
-
-  def fromTurn(turn: Turn): Option[NonEmptySet[Position]] = {
-    val river = Street.dealRiver(turn)
-    from(river)
-  }
+  def from(street: Street): Option[NonEmptySet[Position]] =
+    fromRiver(street.dealTillRiver)
 
   def fromRiver(river: River): Option[NonEmptySet[Position]] = {
 // TODO this map to reverse the zip seems goofy
