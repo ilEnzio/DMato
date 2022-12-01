@@ -26,7 +26,8 @@ Some Tasks:
   - get rid of List of Cards from Hand_2 model (x, f(x))
   - get rid of UnrankedHand
   - 
-
+Make a winner list type
+  - compose Street via State Monad? 
 
 - Calculate the Equity between two players
 - Handle up to 9 players

@@ -25,11 +25,17 @@ object ShowDown {
     }
 
   def fromPreFlop(preflop: Preflop): Option[NonEmptySet[Position]] = {
+//    val flop  = Street.dealFlop(preflop)
+//    val turn  = Street.dealTurn(flop)
+//    val river = Street.dealRiver(turn)
+    // TODO I must be doing something wrong.  What do I gain by this?
+    val state = for {
+      _     <- Street.next
+      _     <- Street.next
+      river <- Street.next
+    } yield river
+    from(state.runS(preflop).value)
 
-    val flop  = Street.dealFlop(preflop)
-    val turn  = Street.dealTurn(flop)
-    val river = Street.dealRiver(turn)
-    from(river)
   }
 
   def fromFlop(flop: Flop): Option[NonEmptySet[Position]] = {

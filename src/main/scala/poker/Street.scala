@@ -1,5 +1,6 @@
 package poker
 
+import cats.data._
 import cats.effect.IO
 import Deck._
 import cats.effect.unsafe.implicits.global
@@ -13,6 +14,7 @@ import scala.util.Random
 /// I feel like I've just added a bunch of boiler plate
 
 sealed trait Street {
+  // TODO should allHands include the position of the hand?
   val allHands: List[Hand]
   val players: List[Player]
 } // Street
@@ -96,6 +98,20 @@ object Street {
     )
   }
 
+  val next: State[Street, List[Hand]] = State { (s: Street) =>
+    s match {
+      case x: Preflop =>
+        val flop = dealFlop(x)
+        (flop, flop.allHands)
+      case x: Flop =>
+        val turn: Turn = dealTurn(x)
+        (turn, turn.allHands)
+      case x: Turn =>
+        val river = dealRiver(x)
+        (river, river.allHands)
+      case x: River => (x, x.allHands)
+    }
+  }
 }
 
 sealed trait Position {}
