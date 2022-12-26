@@ -38,8 +38,8 @@ object BoardGenerators {
   ): Gen[Preflop] =
     startingDeck.dealHoleCards[IO](numPlayers).unsafeRunSync()
 
-  def arbPreflop: Gen[Preflop] =
-    genNumberOfPlayers.flatMap(genPreflopBoard)
+  implicit val arbPreflop: Arbitrary[Preflop] =
+    Arbitrary(genNumberOfPlayers.flatMap(genPreflopBoard))
 
   def genFlopBoard(
     numPlayers: Int
@@ -48,8 +48,8 @@ object BoardGenerators {
       preflop <- genPreflopBoard(numPlayers)
     } yield dealFlop(preflop)
 
-  def arbFlop: Gen[Flop] =
-    genNumberOfPlayers.flatMap(genFlopBoard)
+  implicit val arbFlop: Arbitrary[Flop] =
+    Arbitrary(genNumberOfPlayers.flatMap(genFlopBoard))
 
   def genTurnBoard: Gen[Turn] =
     for {

@@ -74,13 +74,12 @@ object ShowDownTest extends Properties("ShowDownTest") {
     winningHands.size ?= winningPlayers.size
   }
 
-  property("At Showdown there is at least one winner") = forAll(arbPreflop) {
-    preflopBoard =>
-      val numPlayers = preflopBoard.players.size
-      val flop       = dealFlop(preflopBoard)
-      val turn       = dealTurn(flop)
-      val river      = dealRiver(turn)
-      val winners    = ShowDown.from(river).get
+  property("At Showdown there is at least one winner") = forAll {
+    preflop: Preflop =>
+      val flop    = dealFlop(preflop)
+      val turn    = dealTurn(flop)
+      val river   = dealRiver(turn)
+      val winners = ShowDown.from(river).get
       winners.size >= 1
   }
 
