@@ -125,4 +125,4 @@ case object HighJack   extends Position
 case object CutOff     extends Position
 case object Button     extends Position
 
-case class Player(position: Position, card1: Card, card2: Card) // position ??
+case class Player(position: Position, card1: Card, card2: Card)

@@ -1,12 +1,10 @@
 package poker
 
 import cats._
-import cats.effect.IO
 import cats.effect.kernel.Sync
 import cats.effect.std.Random
 import cats.syntax.all._
 import poker.Street.Preflop
-import cats.effect.unsafe.implicits.global
 
 case class Deck(cards: List[Card]) {}
 
@@ -25,18 +23,13 @@ object Deck {
         x             <- Random.scalaUtilRandom[F]
         shuffledCards <- x.shuffleList(cards)
       } yield shuffledCards
-//      Random[F].shuffleList(cards).map(StartingDeckImpl.apply)
 
-    // StartingDeck(Shuffle, Dealhole cards) => PreflopDeck => FlopDeck => TurnDeck => [RiverBoard]
-
-//    def shuffle2 = IO(scala.util.Random.shuffle(all))
     override def dealHoleCards[F[_]: Functor: Random: Sync](
       numPlayers: Int
     ): F[Preflop] = {
       // TODO Erg Can't figure this out yet.
       //        val shuffledDeck =
       //          shuffle[F[StartingDeck]] //IO(Random.shuffle(StartingDeck.all))
-//      val shuffledDeck = shuffle2
       val numHoleCards = numPlayers * 2
       for {
         shuffledCards <- shuffle[F]
@@ -98,7 +91,7 @@ trait TurnDeck {
 final private case class TurnImpl(cards: List[Card]) extends TurnDeck {
   override def dealRiver: RiverCard =
     cards match {
-      case h :: _ => (RiverCard(h))
+      case h :: _ => RiverCard(h)
     }
 }
 
