@@ -1,13 +1,14 @@
 package pokerData
 
+import EquityTest.StreetTest.test
 import cats._
 import cats.effect.IO
+import cats.effect.kernel.Sync
 import cats.effect.std.Random
-import cats.implicits._
 import cats.effect.unsafe.implicits.global
 import org.scalacheck.Gen.{choose, oneOf}
 import org.scalacheck._
-import poker.Deck.{startingDeck, StartingDeck, StartingDeckImpl}
+import poker.Deck.startingDeck
 import poker.Street._
 import poker._
 
@@ -32,29 +33,33 @@ object BoardGenerators {
   val genNumberOfPlayers: Gen[Int] =
     choose(2, 10)
 
-  def genPreflopBoard[F[_]: Functor: Random](numPlayers: Int): Gen[Preflop] =
-    startingDeck.dealHoleCards[F](numPlayers).unsafeRunSync()
+  def genPreflopBoard(
+    numPlayers: Int
+  ): Gen[Preflop] =
+    startingDeck.dealHoleCards[IO](numPlayers).unsafeRunSync()
 
-  def arbPreflop[F[_]: Functor: Random]: Gen[Preflop] =
-    genNumberOfPlayers.flatMap(genPreflopBoard[F])
+  def arbPreflop: Gen[Preflop] =
+    genNumberOfPlayers.flatMap(genPreflopBoard)
 
-  def genFlopBoard[F[_]: Functor: Random](numPlayers: Int): Gen[Flop] =
+  def genFlopBoard(
+    numPlayers: Int
+  ): Gen[Flop] =
     for {
-      preflop <- genPreflopBoard[F](numPlayers)
+      preflop <- genPreflopBoard(numPlayers)
     } yield dealFlop(preflop)
 
-  def arbFlop[F[_]: Functor: Random]: Gen[Flop] =
-    genNumberOfPlayers.flatMap(genFlopBoard[F])
+  def arbFlop: Gen[Flop] =
+    genNumberOfPlayers.flatMap(genFlopBoard)
 
-  def genTurnBoard[F[_]: Functor: Random]: Gen[Turn] =
+  def genTurnBoard: Gen[Turn] =
     for {
       numPlayers <- genNumberOfPlayers
-      flop       <- genFlopBoard[F](numPlayers)
+      flop       <- genFlopBoard(numPlayers)
     } yield dealTurn(flop)
 
-  def genRiverBoard[F[_]: Functor: Random]: Gen[River] =
+  def genRiverBoard: Gen[River] =
     for {
-      turn <- genTurnBoard[F]
+      turn <- genTurnBoard
     } yield dealRiver(turn)
 
 }

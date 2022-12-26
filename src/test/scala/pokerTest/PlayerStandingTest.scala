@@ -19,7 +19,7 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
 
   property(
     "Preflop: If the winner is a pair, no more than two players can be winning "
-  ) = forAll(arbPreflop[IO]) { preflop =>
+  ) = forAll(arbPreflop) { preflop =>
     val winnerList = PlayerStanding.winnerList(preflop)
 
     val winningRank =
@@ -34,7 +34,7 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
 
   property(
     "Preflop: If the winner is a HighCard, no more than 4 players can be winning "
-  ) = forAll(arbPreflop[IO]) { preflop =>
+  ) = forAll(arbPreflop) { preflop =>
     val winnerList = PlayerStanding.winnerList(preflop)
 
     val winningRank =
@@ -48,7 +48,7 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
   }
 
   property("No more than one player can have quads on the Flop") =
-    forAll(arbFlop[IO]) { flop =>
+    forAll(arbFlop) { flop =>
       PlayerStanding(flop).count { case (_, _, hand) =>
         hand match {
           case _: FourOfAKind => true
@@ -58,7 +58,7 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
     }
 
   property("No more than two players can have a StraightFlush on the Flop") =
-    forAll(arbFlop[IO]) { flop =>
+    forAll(arbFlop) { flop =>
       PlayerStanding(flop).count { case (_, _, hand) =>
         hand match {
           case _: StraightFlush => true
@@ -69,7 +69,7 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
 
   property(
     "No more than two players can have a winning FullHouse on the Flop"
-  ) = forAll(arbFlop[IO]) { flop =>
+  ) = forAll(arbFlop) { flop =>
     val strFLWinners = for {
       winners <- PlayerStanding.winnerList(flop)
     } yield winners.count { case (_, _, hand) =>
@@ -82,7 +82,7 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
   }
 
   property("No more than one player can have a winning Flush on the Flop") =
-    forAll(arbFlop[IO]) { flop =>
+    forAll(arbFlop) { flop =>
       val flushWinners = for {
         winners <- PlayerStanding.winnerList(flop)
       } yield winners.count { case (_, _, hand) =>
@@ -95,7 +95,7 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
     }
 
   property("No more than 5 players can have a Flush on the Flop") =
-    forAll(arbFlop[IO]) { flop =>
+    forAll(arbFlop) { flop =>
       PlayerStanding(flop).count { case (_, _, hand) =>
         hand match {
           case _: Flush => true
@@ -105,7 +105,7 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
     }
 
   property("No more than 4 players can have a winning Straight on the Flop") =
-    forAll(arbFlop[IO]) { flop =>
+    forAll(arbFlop) { flop =>
       val straightWinners = for {
         winners <- PlayerStanding.winnerList(flop)
       } yield winners.count { case (_, _, hand) =>
@@ -119,7 +119,7 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
 
   property(
     "No more than 4 players can have a winning ThreeOfAKind on the Flop"
-  ) = forAll(arbFlop[IO]) { flop =>
+  ) = forAll(arbFlop) { flop =>
     val setWinners = for {
       winners <- PlayerStanding.winnerList(flop)
     } yield winners.count { case (_, _, hand) =>
@@ -132,7 +132,7 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
   }
 
   property("No more than 3 players can have a winning TwoPair on the Flop") =
-    forAll(arbFlop[IO]) { flop =>
+    forAll(arbFlop) { flop =>
       val twoPairWinners =
         PlayerStanding.winnerList(flop).get.count { case (_, _, hand) =>
           hand match {

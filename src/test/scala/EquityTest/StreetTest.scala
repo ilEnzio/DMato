@@ -19,7 +19,7 @@ object StreetTest extends Properties("Street Tests") {
   // genPlayer,
   implicit val test: Random[IO] = Random.scalaUtilRandom[IO].unsafeRunSync()
 
-  forAll(arbPreflop[IO]) { preflop =>
+  forAll(arbPreflop) { preflop =>
     preflop.players.exists(p =>
       Hand.rank(List(p.card1, p.card2)) match {
         case _: Pair | _: HighCard => true
@@ -28,18 +28,18 @@ object StreetTest extends Properties("Street Tests") {
     ) ?= true
   }
 
-  property("The winning hand Preflop is a pair or less") =
-    forAll(arbPreflop[IO]) { preflop =>
+  property("The winning hand Preflop is a pair or less") = forAll(arbPreflop) {
+    preflop =>
       ShowDown(preflop.allHands).exists(handRank =>
         handRank match {
           case _: Pair | _: HighCard => true
           case _                     => false
         }
       ) ?= true
-    }
+  }
 
   property("No card is ever dealt more than once through to the River") =
-    forAll(arbPreflop[IO]) { preflop =>
+    forAll(arbPreflop) { preflop =>
       val flop = dealFlop(preflop)
       val turn = dealTurn(flop)
       val river = dealRiver(
