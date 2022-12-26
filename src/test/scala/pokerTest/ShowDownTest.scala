@@ -5,12 +5,13 @@ import cats.effect._
 import cats.effect.std._
 import cats.effect.unsafe.implicits.global
 import cats.syntax.all._
+
 import org.scalacheck.Prop._
 import org.scalacheck.Properties
+import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 import org.scalactic.anyvals.NonEmptySet
-import poker.Deck.{startingDeck, StartingDeck}
+import poker.Deck.{startingDeck}
 import poker.OrderInstances._
-import poker.Rank.rankMap
 import poker.Street._
 import poker._
 import pokerData.BoardGenerators._
@@ -20,6 +21,8 @@ import pokerData.SpecialHandsGenerators._
 import scala.util.Random.shuffle
 
 object ShowDownTest extends Properties("ShowDownTest") {
+
+  implicit val test: Random[IO] = Random.scalaUtilRandom[IO].unsafeRunSync()
 
   property("StraightFlush beats FourOfKind, FullHouse") =
     forAll(genStraightFlush, genFourOfAKind, genFullHouse) {
@@ -59,8 +62,9 @@ object ShowDownTest extends Properties("ShowDownTest") {
   property(
     "at the River: For Two players the Showdown will award all winners"
   ) = {
+    implicit val test: Random[IO] = Random.scalaUtilRandom[IO].unsafeRunSync()
 
-    val twoPlayerPreFlop = startingDeck.dealHoleCards(2).unsafeRunSync()
+    val twoPlayerPreFlop = startingDeck.dealHoleCards[IO](2).unsafeRunSync()
     val flop             = dealFlop(twoPlayerPreFlop)
     val turn             = dealTurn(flop)
     val river            = dealRiver(turn)
@@ -70,19 +74,19 @@ object ShowDownTest extends Properties("ShowDownTest") {
     winningHands.size ?= winningPlayers.size
   }
 
-  property("At Showdown there is at least one winner") = forAll {
-    (preflopBoard: Preflop) =>
+  property("At Showdown there is at least one winner") =
+    forAll(arbPreflop[IO]) { preflopBoard =>
       val numPlayers = preflopBoard.players.size
       val flop       = dealFlop(preflopBoard)
       val turn       = dealTurn(flop)
       val river      = dealRiver(turn)
       val winners    = ShowDown.from(river).get
       winners.size >= 1
-  }
+    }
 
   property(
     "at the Flop: For two players, the Showdown will award all winners"
-  ) = forAll(genFlopBoard(2)) { flop =>
+  ) = forAll(genFlopBoard[IO](2)) { flop =>
     val turn = Street.dealTurn(flop)
     Street.dealRiver(turn) match {
       case r: River =>
@@ -175,7 +179,7 @@ object ShowDownTest extends Properties("ShowDownTest") {
       val testList = shuffle(List(highCard, twoPair, pair))
       all(
         "TwoPair, Pair, HighCard" |: (ShowDown(testList) ?= List(twoPair)),
-        "Not Equal" |: (ShowDown(testList) != List(highCard))
+        (ShowDown(testList) != List(highCard))
       )
     }
 

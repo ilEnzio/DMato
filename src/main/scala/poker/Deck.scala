@@ -1,38 +1,47 @@
 package poker
 
 import cats._
-import cats.effect.IO
+import cats.effect.{IO, Sync}
 import cats.effect.std._
+import cats.effect.std.Random
 import cats.implicits.toFunctorOps
 import cats.syntax.all._
 import poker.Street.Preflop
+import cats.effect.unsafe.implicits.global
 
 case class Deck(cards: List[Card]) {}
 
 object Deck {
 
   trait StartingDeck {
-    def shuffle[F[_]: Functor: Random]: F[StartingDeck]
-    def dealHoleCards(numPlayers: Int): IO[Preflop]
+    def shuffle[F[_]: Functor: Random]: IO[(List[Card], StartingDeck)]
+    def dealHoleCards[F[_]: Functor: Random](numPlayers: Int): IO[Preflop]
   }
   final private case class StartingDeckImpl(cards: List[Card])
       extends StartingDeck {
-    override def shuffle[F[_]: Functor: Random]: F[StartingDeck] =
-      Random[F].shuffleList(cards).map(StartingDeckImpl.apply)
+    override def shuffle[F[_]: Functor: Random]
+      : IO[(List[Card], StartingDeck)] =
+      for {
+        x <- Random.scalaUtilRandom[IO]
+        y <- x.shuffleList(cards)
+      } yield (y, StartingDeckImpl(y))
+//      Random[F].shuffleList(cards).map(StartingDeckImpl.apply)
 
     // StartingDeck(Shuffle, Dealhole cards) => PreflopDeck => FlopDeck => TurnDeck => [RiverBoard]
 
     def shuffle2 = IO(scala.util.Random.shuffle(all))
-    override def dealHoleCards(numPlayers: Int): IO[Preflop] = {
+    override def dealHoleCards[F[_]: Functor: Random](
+      numPlayers: Int
+    ): IO[Preflop] = {
       // TODO Erg Can't figure this out yet.
       //        val shuffledDeck =
       //          shuffle[F[StartingDeck]] //IO(Random.shuffle(StartingDeck.all))
-      val shuffledDeck = shuffle2
+//      val shuffledDeck = shuffle2
       val numHoleCards = numPlayers * 2
       for {
-        cards <- shuffledDeck
+        deck <- shuffle[F]
         /// TODO refactor this
-        players = cards
+        players = deck._1
           .take(numHoleCards)
           .grouped(2)
           .zip(for (x <- 1 to numPlayers) yield x)
