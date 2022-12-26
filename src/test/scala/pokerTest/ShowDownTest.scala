@@ -22,8 +22,6 @@ import scala.util.Random.shuffle
 
 object ShowDownTest extends Properties("ShowDownTest") {
 
-  implicit val test: Random[IO] = Random.scalaUtilRandom[IO].unsafeRunSync()
-
   property("StraightFlush beats FourOfKind, FullHouse") =
     forAll(genStraightFlush, genFourOfAKind, genFullHouse) {
       (strFlush, quads, boat) =>

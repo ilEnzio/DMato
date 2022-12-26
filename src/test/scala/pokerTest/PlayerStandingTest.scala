@@ -15,8 +15,6 @@ import poker.Street.{Flop, Preflop}
 
 object PlayerStandingTest extends Properties("Player Standing Tests") {
 
-  implicit val test: Random[IO] = Random.scalaUtilRandom[IO].unsafeRunSync()
-
   property(
     "Preflop: If the winner is a pair, no more than two players can be winning "
   ) = forAll { preflop: Preflop =>
