@@ -29,7 +29,7 @@ object Deck {
 
     // StartingDeck(Shuffle, Dealhole cards) => PreflopDeck => FlopDeck => TurnDeck => [RiverBoard]
 
-    def shuffle2 = IO(scala.util.Random.shuffle(all))
+//    def shuffle2 = IO(scala.util.Random.shuffle(all))
     override def dealHoleCards[F[_]: Functor: Random](
       numPlayers: Int
     ): IO[Preflop] = {
@@ -41,7 +41,8 @@ object Deck {
       for {
         deck <- shuffle[F]
         /// TODO refactor this
-        players = deck._1
+        (cards, _) = deck
+        players = cards
           .take(numHoleCards)
           .grouped(2)
           .zip(for (x <- 1 to numPlayers) yield x)
