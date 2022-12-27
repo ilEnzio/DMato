@@ -3,7 +3,7 @@ package pokerData
 import cats.effect.unsafe.implicits.global
 import org.scalacheck.Gen.{choose, oneOf}
 import org.scalacheck._
-import poker.Deck.{startingDeck, StartingDeck, StartingDeckImpl}
+import poker.Deck.startingDeck
 import poker.Street._
 import poker._
 
