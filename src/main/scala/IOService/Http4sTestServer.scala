@@ -40,9 +40,10 @@ object Http4sTestServer extends IOApp {
   def genPreFlopBoard(numPlayers: Int): Gen[Preflop] =
     startingDeck.dealHoleCards(numPlayers).unsafeRunSync()
 
-  def boardState: Flop = dealFlop(genPreFlopBoard(2).sample.get)
+  def boardState: Flop       = dealFlop(genPreFlopBoard(2).sample.get)
+  def boardStateErr: Preflop = genPreFlopBoard(2).sample.get
 
-  def currBoard: mutable.Map[Int, Street] = mutable.Map(1 -> boardState)
+  def currBoard: mutable.Map[Int, Street] = mutable.Map(1 -> boardStateErr)
 
   final case class FlopCards(cards: List[Card])
 
@@ -52,18 +53,18 @@ object Http4sTestServer extends IOApp {
     import dsl._
 
     HttpRoutes.of[F] { case GET -> Root / "flop" =>
-      Ok(
-        FlopCards(
-          List(boardState.card1, boardState.card2, boardState.card3)
-        ).asJson
-      )
+      currBoard.get(1) match {
+        case Some(street) =>
+          street match {
+            case Preflop(_, _) =>
+              BadRequest("There is no flop on a Preflop Board")
+            case Flop(_, _, x, y, z)     => Ok(FlopCards(List(x, y, z)).asJson)
+            case Turn(_, _, x, y, z, _)  => Ok(FlopCards(List(x, y, z)).asJson)
+            case River(_, x, y, z, _, _) => Ok(FlopCards(List(x, y, z)).asJson)
+          }
+        case None => NotFound("No cards have been dealt??")
+      }
 
-    //      case GET -> Root / "turn" =>
-    //        ???
-    //
-    //      case GET -> Root / "river" =>
-    //        ???
-    //    }
     }
   }
 
