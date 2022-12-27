@@ -37,10 +37,10 @@ object Http4sTestServer extends IOApp {
 
   // ??? Need a DB/state
 
-  def genPreflopBoard(numPlayers: Int): Gen[Preflop] =
+  def genPreFlopBoard(numPlayers: Int): Gen[Preflop] =
     startingDeck.dealHoleCards(numPlayers).unsafeRunSync()
 
-  def boardState: Flop = dealFlop(genPreflopBoard(2).sample.get)
+  def boardState: Flop = dealFlop(genPreFlopBoard(2).sample.get)
 
   def currBoard: mutable.Map[Int, Street] = mutable.Map(1 -> boardState)
 
