@@ -37,56 +37,47 @@ object Http4sTestServer extends IOApp {
 
   // ??? Need a DB/state
 
-  def genPreFlopBoard(numPlayers: Int): Gen[Preflop] =
-    startingDeck.dealHoleCards(numPlayers).unsafeRunSync()
+  def genPreFlopBoard(numPlayers: Int): IO[Preflop] =
+    startingDeck.dealHoleCards(numPlayers)
 
-  def boardState: Flop       = dealFlop(genPreFlopBoard(2).sample.get)
-  def boardStateErr: Preflop = genPreFlopBoard(2).sample.get
+  def boardState: IO[Flop] = genPreFlopBoard(2).map(dealFlop)
 
-  def currBoard: mutable.Map[Int, Street] = mutable.Map(1 -> boardStateErr)
+  def boardStateErr: IO[Preflop] = genPreFlopBoard(2)
+
+//  def currBoard: mutable.Map[Int, IO[Street]] =
+//    mutable.Map(1 -> boardStateErr)
 
   final case class FlopCards(cards: List[Card])
 
-  def boardRoutes[F[_]: Monad]: HttpRoutes[F] = {
+  def boardRoutes[F[_]: Monad: LiftIO]: HttpRoutes[F] = {
 
     val dsl = Http4sDsl[F]
     import dsl._
 
     HttpRoutes.of[F] { case GET -> Root / "flop" =>
-      currBoard.get(1) match {
-        case Some(street) =>
-          street match {
-            case Preflop(_, _) =>
-              BadRequest("There is no flop on a Preflop Board")
-            case Flop(_, _, x, y, z)     => Ok(FlopCards(List(x, y, z)).asJson)
-            case Turn(_, _, x, y, z, _)  => Ok(FlopCards(List(x, y, z)).asJson)
-            case River(_, x, y, z, _, _) => Ok(FlopCards(List(x, y, z)).asJson)
-          }
-        case None => NotFound("No cards have been dealt??")
+      LiftIO[F].liftIO(boardState).flatMap { street =>
+        Ok(FlopCards(List(street.card1, street.card2, street.card3)).asJson)
       }
-
     }
   }
 
-  def playersRoutes[F[_]: Monad]: HttpRoutes[F] = {
+  def playersRoutes[F[_]: Monad: LiftIO]: HttpRoutes[F] = {
     val dsl = Http4sDsl[F]
     import dsl._
 
     HttpRoutes.of[F] { case GET -> Root / "players" =>
-      currBoard.get(1) match {
-        case Some(street) =>
-          street match {
-            case _: Street => Ok(street.players.asJson)
-          }
-        case None => NotFound("No cards have been dealt??")
+      LiftIO[F].liftIO(boardState).flatMap { street =>
+        Ok(street.players.asJson)
       }
     }
   }
 
-  def allRoutes[F[_]: Concurrent]: HttpRoutes[F] =
+  def allRoutes[F[_]: Concurrent: LiftIO]: HttpRoutes[F] =
     boardRoutes[F] <+> playersRoutes[F]
 
-  def allRoutesComplete[F[_]: Concurrent]: HttpApp[F] = allRoutes.orNotFound
+  // not sure how to use this
+  def allRoutesComplete[F[_]: Concurrent: LiftIO]: HttpApp[F] =
+    allRoutes.orNotFound
 
   import scala.concurrent.ExecutionContext.global
 
