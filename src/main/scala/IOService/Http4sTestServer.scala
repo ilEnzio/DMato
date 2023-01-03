@@ -1,24 +1,20 @@
 package IOService
-import cats._
+
 import cats.effect._
-import cats.implicits._
-import org.http4s.circe._
-import org.http4s._
+import cats.syntax.all._
 import io.circe.generic.auto._
 import io.circe.syntax._
-import org.http4s.dsl._
+import org.http4s._
 import org.http4s.implicits._
+import org.http4s.dsl._
 import org.http4s.server.blaze.BlazeServerBuilder
 import cats.Monad
-import cats.effect.unsafe.implicits.global
 import cats.effect.{Concurrent, ExitCode, IO, IOApp}
+import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
 import org.http4s.server.Router
-import org.scalacheck.Gen
 import poker.Deck.startingDeck
-import poker.{Card, Street}
+import poker.{Card, Rank, Street, Suit}
 import poker.Street._
-
-import scala.collection.mutable
 
 object Http4sTestServer extends IOApp {
 
@@ -27,7 +23,7 @@ object Http4sTestServer extends IOApp {
   - Post - deal the hole cards -  preflop state
    */
 
-  // Request -> F[Option[Response]]
+  // Request => F[Option[Response]]
   // HttpRoutes[F] ^^^
 
   // Get /flop
@@ -40,24 +36,54 @@ object Http4sTestServer extends IOApp {
   def genPreFlopBoard(numPlayers: Int): IO[Preflop] =
     startingDeck.dealHoleCards(numPlayers)
 
-  def boardState: IO[Flop] = genPreFlopBoard(2).map(dealFlop)
+  def boardState: IO[Flop] = genPreFlopBoard(5).map(dealFlop)
 
   def boardStateErr: IO[Preflop] = genPreFlopBoard(2)
 
-//  def currBoard: mutable.Map[Int, IO[Street]] =
-//    mutable.Map(1 -> boardStateErr)
+  case class FlopCards(value1: Int, value2: Int, value3: Int)
+//
+//  implicit val FlopEncoder: Encoder[FlopCards] =
+//    Encoder.instance {flop: FlopCards => json"""{"card1": ${flop.card1} }"""
 
-  final case class FlopCards(cards: List[Card])
+  final case class FlopCardsFlat(
+    c1Rank: Rank,
+    c1Suit: Suit,
+    c2Rank: Rank,
+    c2Suit: Suit,
+    c3Rank: Rank,
+    c3Suit: Suit
+  )
 
   def boardRoutes[F[_]: Monad: LiftIO]: HttpRoutes[F] = {
 
     val dsl = Http4sDsl[F]
     import dsl._
-
-    HttpRoutes.of[F] { case GET -> Root / "flop" =>
-      LiftIO[F].liftIO(boardState).flatMap { street =>
-        Ok(FlopCards(List(street.card1, street.card2, street.card3)).asJson)
-      }
+// TODO somehow I can't deliver a proper/ non-nested json
+    HttpRoutes.of[F] {
+      case GET -> Root / "flop" =>
+        LiftIO[F].liftIO(boardState).flatMap { street =>
+          println(street.card1.rank.value.asJson.noSpaces)
+          Ok(
+            FlopCards(
+              street.card1.rank.value,
+              street.card2.rank.value,
+              street.card3.rank.value
+            ).asJson
+          )
+        }
+      case GET -> Root / "flop2" =>
+        LiftIO[F].liftIO(boardState).flatMap { s =>
+          Ok(
+            FlopCardsFlat(
+              s.card1.rank,
+              s.card1.suit,
+              s.card2.rank,
+              s.card2.suit,
+              s.card3.rank,
+              s.card3.suit
+            ).asJson
+          )
+        }
     }
   }
 
