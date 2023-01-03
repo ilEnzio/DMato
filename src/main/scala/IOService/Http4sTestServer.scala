@@ -1,16 +1,21 @@
 package IOService
 
 import cats.effect._
+import cats.effect.{Concurrent, ExitCode, IO, IOApp}
+
 import cats.syntax.all._
+import cats.Monad
+
 import io.circe.generic.auto._
 import io.circe.syntax._
+import _root_.io.circe.Encoder
+
 import org.http4s._
 import org.http4s.implicits._
 import org.http4s.dsl._
+
 import org.http4s.server.blaze.BlazeServerBuilder
-import cats.Monad
-import cats.effect.{Concurrent, ExitCode, IO, IOApp}
-import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
+import org.http4s.circe._
 import org.http4s.server.Router
 import poker.Deck.startingDeck
 import poker.{Card, Rank, Street, Suit}
@@ -40,50 +45,29 @@ object Http4sTestServer extends IOApp {
 
   def boardStateErr: IO[Preflop] = genPreFlopBoard(2)
 
-  case class FlopCards(value1: Int, value2: Int, value3: Int)
-//
-//  implicit val FlopEncoder: Encoder[FlopCards] =
-//    Encoder.instance {flop: FlopCards => json"""{"card1": ${flop.card1} }"""
+  case class FlopCards(card1: Card, card2: Card, card3: Card)
 
-  final case class FlopCardsFlat(
-    c1Rank: Rank,
-    c1Suit: Suit,
-    c2Rank: Rank,
-    c2Suit: Suit,
-    c3Rank: Rank,
-    c3Suit: Suit
-  )
+  implicit val rankEncoder: Encoder[Rank] =
+    Encoder[String].contramap((rank: Rank) => rank.toString)
+
+  implicit val suitEncoder: Encoder[Suit] =
+    Encoder[String].contramap((suit: Suit) => suit.toString)
 
   def boardRoutes[F[_]: Monad: LiftIO]: HttpRoutes[F] = {
 
     val dsl = Http4sDsl[F]
     import dsl._
-// TODO somehow I can't deliver a proper/ non-nested json
-    HttpRoutes.of[F] {
-      case GET -> Root / "flop" =>
-        LiftIO[F].liftIO(boardState).flatMap { street =>
-          println(street.card1.rank.value.asJson.noSpaces)
-          Ok(
-            FlopCards(
-              street.card1.rank.value,
-              street.card2.rank.value,
-              street.card3.rank.value
-            ).asJson
-          )
-        }
-      case GET -> Root / "flop2" =>
-        LiftIO[F].liftIO(boardState).flatMap { s =>
-          Ok(
-            FlopCardsFlat(
-              s.card1.rank,
-              s.card1.suit,
-              s.card2.rank,
-              s.card2.suit,
-              s.card3.rank,
-              s.card3.suit
-            ).asJson
-          )
-        }
+    HttpRoutes.of[F] { case GET -> Root / "flop" =>
+      LiftIO[F].liftIO(boardState).flatMap { street =>
+        println(street.card1.rank.value.asJson.noSpaces)
+        Ok(
+          FlopCards(
+            street.card1,
+            street.card2,
+            street.card3
+          ).asJson
+        )
+      }
     }
   }
 
