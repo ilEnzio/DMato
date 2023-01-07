@@ -65,7 +65,7 @@ object Http4sTestServer extends IOApp {
             street.card1,
             street.card2,
             street.card3
-          ).asJson
+          ).asJson.noSpaces
         )
       }
     }
