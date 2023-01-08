@@ -6,20 +6,10 @@ import cats.effect.unsafe.implicits.global
 import cats.syntax.all._
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalacheck.Gen.{choose, oneOf}
+import org.scalacheck._
 import poker.Deck.startingDeck
-import poker.Street.{dealFlop, dealRiver, dealTurn, Flop, Preflop, River, Turn}
-import poker.{
-  BigBlind,
-  Button,
-  CutOff,
-  HighJack,
-  Position,
-  SmallBlind,
-  UTG,
-  UTGP1,
-  UTGP2,
-  UTGP3
-}
+import poker.Street._
+import poker._
 
 object BoardGenerators {
 
