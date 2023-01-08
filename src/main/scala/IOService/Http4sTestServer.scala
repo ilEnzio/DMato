@@ -2,21 +2,20 @@ package IOService
 
 import cats.effect._
 import cats.effect.{Concurrent, ExitCode, IO, IOApp}
-
 import cats.syntax.all._
 import cats.Monad
-
 import io.circe.generic.auto._
 import io.circe.syntax._
 import _root_.io.circe.Encoder
-
+import cats.effect.std.Random
+import cats.effect.unsafe.implicits.global
 import org.http4s._
 import org.http4s.implicits._
 import org.http4s.dsl._
-
 import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.circe._
 import org.http4s.server.Router
+import org.scalacheck.Gen
 import poker.Deck.startingDeck
 import poker.{Card, Rank, Street, Suit}
 import poker.Street._
@@ -38,12 +37,14 @@ object Http4sTestServer extends IOApp {
 
   // ??? Need a DB/state
 
-  def genPreFlopBoard(numPlayers: Int): IO[Preflop] =
-    startingDeck.dealHoleCards(numPlayers)
+  implicit val ioRandom: Random[IO] =
+    Random.scalaUtilRandom[IO].unsafeRunSync()
 
-  def boardState: IO[Flop] = genPreFlopBoard(5).map(dealFlop)
+  def boardState: IO[Preflop] = startingDeck.dealHoleCards[IO](5)
 
-  def boardStateErr: IO[Preflop] = genPreFlopBoard(2)
+  val ioFlop: IO[Flop] = for {
+    x <- boardState
+  } yield dealFlop(x)
 
   case class FlopCards(card1: Card, card2: Card, card3: Card)
 
@@ -58,13 +59,12 @@ object Http4sTestServer extends IOApp {
     val dsl = Http4sDsl[F]
     import dsl._
     HttpRoutes.of[F] { case GET -> Root / "flop" =>
-      LiftIO[F].liftIO(boardState).flatMap { street =>
-        println(street.card1.rank.value.asJson.noSpaces)
+      LiftIO[F].liftIO(ioFlop).flatMap { flop =>
         Ok(
           FlopCards(
-            street.card1,
-            street.card2,
-            street.card3
+            flop.card1,
+            flop.card2,
+            flop.card3
           ).asJson.noSpaces
         )
       }

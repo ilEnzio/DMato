@@ -8,7 +8,6 @@ import pokerData.SpecialHandsGenerators._
 import poker._
 import OrderInstances._
 import cats.implicits.{catsSyntaxEq, catsSyntaxPartialOrder}
-import cats.kernel.Comparison
 import cats.kernel.Comparison._
 import pokerData.DeckGenerators._
 

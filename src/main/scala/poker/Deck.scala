@@ -1,9 +1,7 @@
 package poker
 
 import cats._
-import cats.effect.IO
-import cats.effect.std._
-import cats.implicits.toFunctorOps
+import cats.effect.std.Random
 import cats.syntax.all._
 import poker.Street.Preflop
 
@@ -12,35 +10,33 @@ case class Deck(cards: List[Card]) {}
 object Deck {
 
   trait StartingDeck {
-    def shuffle[F[_]: Functor: Random]: F[StartingDeck]
-    def dealHoleCards(numPlayers: Int): IO[Preflop]
+    def dealHoleCards[F[_]: Functor: Random](
+      numPlayers: Int
+    ): F[Preflop]
   }
   final private case class StartingDeckImpl(cards: List[Card])
       extends StartingDeck {
-    override def shuffle[F[_]: Functor: Random]: F[StartingDeck] =
-      Random[F].shuffleList(cards).map(StartingDeckImpl.apply)
+    def shuffle[F[_]: Functor: Random]: F[List[Card]] =
+      for {
+        shuffledCards <- Random[F].shuffleList(cards)
+      } yield shuffledCards
 
-    // StartingDeck(Shuffle, Dealhole cards) => PreflopDeck => FlopDeck => TurnDeck => [RiverBoard]
-
-    def shuffle2 = IO(scala.util.Random.shuffle(all))
-    override def dealHoleCards(numPlayers: Int): IO[Preflop] = {
-      // TODO Erg Can't figure this out yet.
-      //        val shuffledDeck =
-      //          shuffle[F[StartingDeck]] //IO(Random.shuffle(StartingDeck.all))
-      val shuffledDeck = shuffle2
+    override def dealHoleCards[F[_]: Functor: Random](
+      numPlayers: Int
+    ): F[Preflop] = {
       val numHoleCards = numPlayers * 2
       for {
-        cards <- shuffledDeck
+        shuffledCards <- shuffle[F]
         /// TODO refactor this
-        players = cards
+        players = shuffledCards
           .take(numHoleCards)
           .grouped(2)
-          .zip(for (x <- 1 to numPlayers) yield x)
+          .zip(1 to numPlayers)
           .map { case (List(y, z), Position.positionMap(x)) => Player(x, y, z) }
           .toList
       } yield Preflop(
         players,
-        PreFlopDeckImpl(cards.drop(numHoleCards))
+        PreFlopDeckImpl(shuffledCards.drop(numHoleCards))
       )
     }
   }
@@ -89,7 +85,7 @@ trait TurnDeck {
 final private case class TurnImpl(cards: List[Card]) extends TurnDeck {
   override def dealRiver: RiverCard =
     cards match {
-      case h :: _ => (RiverCard(h))
+      case h :: _ => RiverCard(h)
     }
 }
 

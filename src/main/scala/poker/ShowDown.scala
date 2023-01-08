@@ -44,7 +44,6 @@ object ShowDown {
   }
 
   def fromRiver(river: River): Option[NonEmptySet[Position]] = {
-// TODO this map to reverse the zip seems goofy
 
     val hands: Seq[(Position, Hand)] = allHands(river)
 
