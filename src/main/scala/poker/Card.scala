@@ -2,13 +2,6 @@ package poker
 
 final case class Card(rank: Rank, suit: Suit) {}
 
-object Card {
-  //TODO
-  def name: String =
-    // Deck.Ace Spaces = As
-    ???
-
-}
 // ADT - Algebraic Data Type
 // Sum vs Product type
 

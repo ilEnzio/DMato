@@ -1,7 +1,6 @@
 package poker
 
 import cats._
-import cats.effect.kernel.Sync
 import cats.effect.std.Random
 import cats.syntax.all._
 import poker.Street.Preflop
@@ -11,25 +10,20 @@ case class Deck(cards: List[Card]) {}
 object Deck {
 
   trait StartingDeck {
-    def shuffle[F[_]: Functor: Random: Sync]: F[List[Card]]
-    def dealHoleCards[F[_]: Functor: Random: Sync](
+    def dealHoleCards[F[_]: Functor: Random](
       numPlayers: Int
     ): F[Preflop]
   }
   final private case class StartingDeckImpl(cards: List[Card])
       extends StartingDeck {
-    override def shuffle[F[_]: Functor: Random: Sync]: F[List[Card]] =
+    def shuffle[F[_]: Functor: Random]: F[List[Card]] =
       for {
-        x             <- Random.scalaUtilRandom[F]
-        shuffledCards <- x.shuffleList(cards)
+        shuffledCards <- Random[F].shuffleList(cards)
       } yield shuffledCards
 
-    override def dealHoleCards[F[_]: Functor: Random: Sync](
+    override def dealHoleCards[F[_]: Functor: Random](
       numPlayers: Int
     ): F[Preflop] = {
-      // TODO Erg Can't figure this out yet.
-      //        val shuffledDeck =
-      //          shuffle[F[StartingDeck]] //IO(Random.shuffle(StartingDeck.all))
       val numHoleCards = numPlayers * 2
       for {
         shuffledCards <- shuffle[F]
@@ -37,7 +31,7 @@ object Deck {
         players = shuffledCards
           .take(numHoleCards)
           .grouped(2)
-          .zip(for (x <- 1 to numPlayers) yield x)
+          .zip(1 to numPlayers)
           .map { case (List(y, z), Position.positionMap(x)) => Player(x, y, z) }
           .toList
       } yield Preflop(

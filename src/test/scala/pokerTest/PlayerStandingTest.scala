@@ -76,7 +76,8 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
         case _            => false
       }
     } <= 2
-    strFLWinners.get // TODO why do I always end up with something unsafe??
+    strFLWinners.fold(false)(identity)
+
   }
 
   property("No more than one player can have a winning Flush on the Flop") =
@@ -89,7 +90,8 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
           case _        => false
         }
       } <= 1
-      flushWinners.get ?= true // TODO why do I always end up with something unsafe??
+
+      flushWinners.fold(false)(identity)
     }
 
   property("No more than 5 players can have a Flush on the Flop") = forAll {
@@ -112,7 +114,7 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
           case _           => false
         }
       } <= 4
-      straightWinners.get ?= true // TODO why do I always end up with something unsafe??
+      straightWinners.fold(false)(identity)
     }
 
   property(
@@ -126,7 +128,7 @@ object PlayerStandingTest extends Properties("Player Standing Tests") {
         case _               => false
       }
     } <= 4
-    setWinners.get ?= true
+    setWinners.fold(false)(identity)
   }
 
   property("No more than 3 players can have a winning TwoPair on the Flop") =

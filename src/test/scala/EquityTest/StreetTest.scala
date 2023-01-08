@@ -17,7 +17,6 @@ object StreetTest extends Properties("Street Tests") {
 
   // genFlop, genTurn, genRiver
   // genPlayer,
-  implicit val test: Random[IO] = Random.scalaUtilRandom[IO].unsafeRunSync()
 
   forAll { preflop: Preflop =>
     preflop.players.exists(p =>

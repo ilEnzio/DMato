@@ -5,12 +5,11 @@ import cats.effect._
 import cats.effect.std._
 import cats.effect.unsafe.implicits.global
 import cats.syntax.all._
-
 import org.scalacheck.Prop._
-import org.scalacheck.Properties
+import org.scalacheck.{Gen, Properties}
 import org.scalacheck.Prop.{all, forAll, propBoolean, AnyOperators}
 import org.scalactic.anyvals.NonEmptySet
-import poker.Deck.{startingDeck}
+import poker.Deck.startingDeck
 import poker.OrderInstances._
 import poker.Street._
 import poker._
@@ -59,26 +58,25 @@ object ShowDownTest extends Properties("ShowDownTest") {
 
   property(
     "at the River: For Two players the Showdown will award all winners"
-  ) = {
-    implicit val test: Random[IO] = Random.scalaUtilRandom[IO].unsafeRunSync()
-
-    val twoPlayerPreFlop = startingDeck.dealHoleCards[IO](2).unsafeRunSync()
-    val flop             = dealFlop(twoPlayerPreFlop)
-    val turn             = dealTurn(flop)
-    val river            = dealRiver(turn)
-    val winningHands     = ShowDown(river.allHands)
-    val winningPlayers   = ShowDown.from(river).get
-
-    winningHands.size ?= winningPlayers.size
-  }
+  ) = (for {
+    preflop        <- genPreFlopBoard(2).sample
+    flop           <- dealFlop(preflop).some
+    turn           <- dealTurn(flop).some
+    river          <- dealRiver(turn).some
+    winningPlayers <- ShowDown.from(river)
+  } yield ShowDown(river.allHands).size ?= winningPlayers.size)
+    .getOrElse(falsified)
 
   property("At Showdown there is at least one winner") = forAll {
-    preflop: Preflop =>
-      val flop    = dealFlop(preflop)
-      val turn    = dealTurn(flop)
-      val river   = dealRiver(turn)
-      val winners = ShowDown.from(river).get
-      winners.size >= 1
+    preFlop: Preflop =>
+      val flop  = dealFlop(preFlop)
+      val turn  = dealTurn(flop)
+      val river = dealRiver(turn)
+
+      (for {
+        winners <- ShowDown.from(river)
+      } yield winners.size >= 1)
+        .getOrElse(false)
   }
 
   property(
