@@ -8,6 +8,7 @@ import cats.kernel.Monoid
 
 import java.time.LocalDateTime
 
+// TODO This is not Referentially Transparent
 sealed trait Event[A] {
   def timeStamp: LocalDateTime
 }
