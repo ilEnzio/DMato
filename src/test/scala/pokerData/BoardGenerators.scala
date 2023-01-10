@@ -10,6 +10,7 @@ import org.scalacheck._
 import poker.Deck.startingDeck
 import poker.Street._
 import poker._
+import pokerData.RandomGen._
 
 object BoardGenerators {
 
@@ -35,14 +36,7 @@ object BoardGenerators {
   def genPreFlopBoard(
     numPlayers: Int
   ): Gen[Preflop] =
-//    implicit val ioRandom: Random[IO] =
-//      Random.scalaUtilRandom[IO].unsafeRunSync()
-//    Gen.const(startingDeck.dealHoleCards[IO](numPlayers).unsafeRunSync())
-    Gen.delay {
-      implicit val ioRandom: Random[IO] =
-        Random.scalaUtilRandom[IO].unsafeRunSync()
-      startingDeck.dealHoleCards[IO](numPlayers).unsafeRunSync()
-    }
+    startingDeck.dealHoleCards[Gen](numPlayers)
 
   implicit val arbPreflop: Arbitrary[Preflop] =
     Arbitrary(genNumberOfPlayers.flatMap(genPreFlopBoard))
