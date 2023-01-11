@@ -10,7 +10,7 @@ import org.scalacheck._
 import poker.Deck.startingDeck
 import poker.Street._
 import poker._
-import pokerData.RandomGen._
+import RandomGen._
 
 object BoardGenerators {
 
@@ -38,7 +38,7 @@ object BoardGenerators {
   ): Gen[Preflop] =
     startingDeck.dealHoleCards[Gen](numPlayers)
 
-  implicit val arbPreflop: Arbitrary[Preflop] =
+  implicit val arbPreFlop: Arbitrary[Preflop] =
     Arbitrary(genNumberOfPlayers.flatMap(genPreFlopBoard))
 
   def genFlopBoard(

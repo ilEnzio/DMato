@@ -1,4 +1,4 @@
-package pokerData
+package poker
 
 import cats.Functor
 import cats.effect.std.Random
