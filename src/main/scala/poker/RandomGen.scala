@@ -4,8 +4,6 @@ import cats.Functor
 import cats.effect.std.Random
 import org.scalacheck.{Arbitrary, Gen}
 
-import java.util
-
 object RandomGen {
 
   implicit val funcGen: Functor[Gen] = new Functor[Gen] {
