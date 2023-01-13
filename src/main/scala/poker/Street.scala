@@ -1,17 +1,5 @@
 package poker
 
-import cats.effect.IO
-import Deck._
-import cats.effect.unsafe.implicits.global
-
-import scala.util.Random
-
-// the idea here this that each "state" is a final case class
-// so the state is going through pipeline
-// then I can somehow use unapply methods
-/// TODO: I don't understand the proper use of unapply.
-/// I feel like I've just added a bunch of boiler plate
-
 sealed trait Street {
   val allHands: List[Hand]
   val players: List[Player]

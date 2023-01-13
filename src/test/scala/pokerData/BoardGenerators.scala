@@ -44,9 +44,7 @@ object BoardGenerators {
   def genFlopBoard(
     numPlayers: Int
   ): Gen[Flop] =
-    for {
-      preflop <- genPreFlopBoard(numPlayers)
-    } yield dealFlop(preflop)
+    genPreFlopBoard(numPlayers).map(dealFlop)
 
   implicit val arbFlop: Arbitrary[Flop] =
     Arbitrary(genNumberOfPlayers.flatMap(genFlopBoard))
@@ -58,8 +56,6 @@ object BoardGenerators {
     } yield dealTurn(flop)
 
   def genRiverBoard: Gen[River] =
-    for {
-      turn <- genTurnBoard
-    } yield dealRiver(turn)
+    genTurnBoard.map(dealRiver)
 
 }

@@ -83,9 +83,7 @@ object HandGenerators {
     (_, cards)       = buildHand(deck, hand, nonFlushRankTest)
   } yield cards
 
-  val genFourFlush: Gen[Hand] = for {
-    cards <- genFourFlushCards
-  } yield Hand.rank(cards)
+  val genFourFlush: Gen[Hand] = genFourFlushCards.map(Hand.rank)
 
   val genWheelStraightCards: Gen[List[Card]] = {
     val wheelRanks = List(Ace, Five, Four, Three, Two)

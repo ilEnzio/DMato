@@ -17,9 +17,7 @@ object Deck {
   final private case class StartingDeckImpl(cards: List[Card])
       extends StartingDeck {
     def shuffle[F[_]: Functor: Random]: F[List[Card]] =
-      for {
-        shuffledCards <- Random[F].shuffleList(cards)
-      } yield shuffledCards
+      Random[F].shuffleList(cards)
 
     override def dealHoleCards[F[_]: Functor: Random](
       numPlayers: Int
