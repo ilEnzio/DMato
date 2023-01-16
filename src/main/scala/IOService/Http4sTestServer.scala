@@ -61,11 +61,7 @@ object Http4sTestServer extends IOApp {
     HttpRoutes.of[F] { case GET -> Root / "flop" =>
       LiftIO[F].liftIO(ioFlop).flatMap { flop =>
         Ok(
-          FlopCards(
-            flop.card1,
-            flop.card2,
-            flop.card3
-          ).asJson.noSpaces
+          FlopCards(flop.card1, flop.card2, flop.card3).asJson.noSpaces
         )
       }
     }

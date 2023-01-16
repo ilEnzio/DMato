@@ -53,13 +53,11 @@ object SpecialHandsGenerators {
     }
   } yield StraightFlush(rank)
 
-  val genTresFullOfDeucesCards: Gen[List[Card]] = for {
-    cards <- genFullHouseCards_(Three, Two)
-  } yield cards
+  val genTresFullOfDeucesCards: Gen[List[Card]] =
+    genFullHouseCards_(Three, Two)
 
-  val genDeucesFullOfTresCards: Gen[List[Card]] = for {
-    cards <- genFullHouseCards_(Two, Three)
-  } yield cards
+  val genDeucesFullOfTresCards: Gen[List[Card]] =
+    genFullHouseCards_(Two, Three)
 
   val genDeucesFullOfTres: Gen[FullHouse] =
     for {
