@@ -54,13 +54,12 @@ object RandomGen {
 
     override def nextString(length: Int): Gen[String] = ???
 
-    override def shuffleList[A](l: List[A]): Gen[List[A]] = {
-      val genList: Gen[List[(Int, A)]] =
-        Gen.sequence[List[(Int, A)], (Int, A)](
-          l.map(x => Arbitrary.arbitrary[Int].map(num => (num, x)))
+    override def shuffleList[A](l: List[A]): Gen[List[A]] =
+      Gen
+        .sequence[List[(Int, A)], (Int, A)](
+          l.map(x => Arbitrary.arbitrary[Int].map(_ -> x))
         )
-      genList.map(_.sortBy(_._1).map(_._2))
-    }
+        .map(_.sortBy(_._1).map(_._2))
 
     override def shuffleVector[A](v: Vector[A]): Gen[Vector[A]] = ???
   }
