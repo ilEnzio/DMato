@@ -76,37 +76,37 @@ object ShowDown {
 
 }
 
-object PlayerStanding {
-  def apply(board: Street): List[(Int, Player, Hand)] =
-    board.players
-      .zip(board.allHands)
-      .zipWithIndex
-      .map { case ((p, h), i) => (i, p, h) }
+//object PlayerStanding {
+//  def apply(board: Street): List[(Int, Player, Hand)] =
+//    board.players
+//      .zip(board.allHands)
+//      .zipWithIndex
+//      .map { case ((p, h), i) => (i, p, h) }
+//
+////TODO this must be wrong??
+//  def winnerList(board: Street): Option[NonEmptySet[(Int, Player, Hand)]] = {
+//    val winners: Set[(Int, Player, Hand)] = PlayerStanding(board)
+//      .maximumByList[Hand](x => x._3)
+//      .toSet
+//
+//    NonEmptySet.from(winners)
+//  }
+//}
 
-//TODO this must be wrong??
-  def winnerList(board: Street): Option[NonEmptySet[(Int, Player, Hand)]] = {
-    val winners: Set[(Int, Player, Hand)] = PlayerStanding(board)
-      .maximumByList[Hand](x => x._3)
-      .toSet
-
-    NonEmptySet.from(winners)
-  }
-}
-
-case class WinnerList(map: Map[Int, Int])
-object WinnerList {
-  def initial(n: Int)(implicit m: Monoid[WinnerList]): WinnerList =
-    (1 to n)
-      .map(x => WinnerList(Map(x -> 0)))
-      .foldLeft(m.empty)(m.combine)
-
-  implicit val winnerListMonoid: Monoid[WinnerList] = new Monoid[WinnerList] {
-    override def empty: WinnerList = WinnerList(Map.empty)
-
-    override def combine(x: WinnerList, y: WinnerList): WinnerList =
-      WinnerList(y.map.foldLeft(x.map) { (s, v) =>
-        if (!s.contains(v._1)) s + v
-        else s + (v._1 -> (v._2 + s(v._1)))
-      })
-  }
-}
+//case class WinnerList(map: Map[Int, Int])
+//object WinnerList {
+//  def initial(n: Int)(implicit m: Monoid[WinnerList]): WinnerList =
+//    (1 to n)
+//      .map(x => WinnerList(Map(x -> 0)))
+//      .foldLeft(m.empty)(m.combine)
+//
+//  implicit val winnerListMonoid: Monoid[WinnerList] = new Monoid[WinnerList] {
+//    override def empty: WinnerList = WinnerList(Map.empty)
+//
+//    override def combine(x: WinnerList, y: WinnerList): WinnerList =
+//      WinnerList(y.map.foldLeft(x.map) { (s, v) =>
+//        if (!s.contains(v._1)) s + v
+//        else s + (v._1 -> (v._2 + s(v._1)))
+//      })
+//  }
+//}
