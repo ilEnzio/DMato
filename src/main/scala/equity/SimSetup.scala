@@ -3,7 +3,7 @@ package equity
 import cats._
 import cats.syntax.all._
 import cats.data.State
-import cats.effect.IO
+import cats.effect.{Async, IO}
 import cats.effect.std.Random
 import cats.implicits.catsSyntaxApplicativeId
 import org.scalactic.anyvals.NonEmptySet
@@ -64,7 +64,7 @@ sealed trait EquityService[F[_], G[_]] {
   // into a River board state.
 
   // Refactor out IO and Option
-  def deckFrom: SimSetup[Option] => F[SimDeck]
+  def deckFrom: SimSetup[Option] => Id[SimDeck]
   def hydratedSim(sim: SimSetup[Option]): SimSetup[Option]
 
   def riverFrom: SimSetup[Option] => River
@@ -84,7 +84,7 @@ sealed trait EquityService[F[_], G[_]] {
     (1 to n).toList.map(_ => runSim(sim))
 }
 
-object EquityService extends EquityService[Option, IO] {
+object EquityService extends EquityService[Option, Id] {
 
   def getOrDeal(maybe: Option[Card], deck: SimDeck): (Card, SimDeck) =
     maybe.fold {
@@ -105,8 +105,7 @@ object EquityService extends EquityService[Option, IO] {
     StartingDeckImpl(cardList)
   }
 
-  override def deckFrom[F[_]: Functor: Random]
-    : SimSetup[Option] => F[SimDeck] = {
+  override def deckFrom: SimSetup[Option] => Id[SimDeck] = {
 
     // I need to generated a shuffled deck
     // Then I need to remove all cards given in the apply
@@ -137,11 +136,11 @@ object EquityService extends EquityService[Option, IO] {
     }
 
     sim: SimSetup[Option] =>
-      for {
-        shuffledDeck <- startingDeck.shuffle[F]
-        finalDeck = shuffledDeck.filterNot(collectAllFrom(sim).contains(_))
-      } yield SimDeck(finalDeck)
-
+      val tempDeck = startingDeckImpl.cards
+      val finalDeck = tempDeck
+        .filterNot(collectAllFrom(sim).contains(_))
+        .pure[Id]
+      SimDeck(finalDeck)
   }
 
   override def hydratedSim(
