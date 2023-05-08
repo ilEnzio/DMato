@@ -8,7 +8,7 @@ import cats.effect.std.Random
 import cats.implicits.catsSyntaxApplicativeId
 import org.scalactic.anyvals.NonEmptySet
 import poker.Street.River
-import poker.{Card, Position, Rank, ShowDown, Suit}
+import poker.{Card, Player, Position, Rank, ShowDown, Suit}
 
 final case class SimSetup[F[_]] private (
   // Do I even need a deck? The deck basically get derived
@@ -229,7 +229,20 @@ object EquityService extends EquityService[Option, Id] {
 
   }
 
-  override def riverFrom: SimSetup[Option] => River = ???
+  override def riverFrom: SimSetup[Option] => River = {
+    def playerFrom(simPlayer: SimPlayer[Option]): Player =
+      // TODO: Not safe
+      Player(simPlayer.position, simPlayer.card1.get, simPlayer.card2.get)
+    sim: SimSetup[Option] =>
+      River(
+        sim.players.map(playerFrom(_)),
+        sim.card1.get,
+        sim.card2.get,
+        sim.card3.get,
+        sim.turn.get,
+        sim.river.get
+      )
+  }
 
   override def equity: List[River] => SimResult = ???
 
