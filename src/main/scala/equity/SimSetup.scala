@@ -55,13 +55,15 @@ final case class SimPlayer[F[_]] private ( // TODO I think this is ??Option??
   card2: F[Card]
 ) {
 
-  def mapK[G[_]](f: F[Card] => G[Card]): SimPlayer[G] =
-    copy(card1 = f(card1), card2 = f(card2))
+  // TODO not sure how to use this yet.
+//  def mapK[G[_]](f: F[Card] => G[Card]): SimPlayer[G] =
+//    copy(card1 = f(card1), card2 = f(card2))  ???
 
 }
 object SimPlayer {
   // TODO refactor??  this seems to be the same as
   // what's happening in hydrateSim/hydratePlayer
+  // I think if I use State Monad it will be less error prone.
   def applyK(
     position: Position,
     card1: Option[Card],
@@ -85,9 +87,6 @@ final case class SimResult(winnersList: List[Position]) {}
 final case class EquityCalculation(equities: Map[Position, List[Double]])
 
 sealed trait EquityService[F[_], G[_]] {
-
-  // TODO These are the two things you need to turn a set up
-  // into a River board state.
 
   // Refactor out Id and Option??
   def deckFrom: SimSetup[Option] => Id[SimDeck]
@@ -198,19 +197,45 @@ object EquityService extends EquityService[Option, Id] {
     // val simFlop: State[SimSetup[Option], SimDeck] ??? I don't understand what the
     // "result" is here....
     // I need to refactor this I think.  I think this part of the work of state monad....
-    val simBoard =
-      State[SimSetup[Option], SimDeck] { sim =>
-        val (newCard1, deck)  = getOrDeal(sim.card1, simDeck)
-        val sim1              = sim.copy(card1 = newCard1.pure[Option])
-        val (newCard2, deck2) = getOrDeal(sim1.card2, deck)
-        val sim2              = sim1.copy(card2 = newCard2.pure[Option])
-        val (newCard3, deck3) = getOrDeal(sim2.card3, deck2)
-        val sim3              = sim2.copy(card3 = newCard3.pure[Option])
-        val (newTurn, deck4)  = getOrDeal(sim3.turn, deck3)
-        val sim4              = sim3.copy(turn = newTurn.pure[Option])
-        val (newRiver, deck5) = getOrDeal(sim4.card3, deck4)
-        val sim5              = sim2.copy(river = newRiver.pure[Option])
-        (sim5, deck5)
+    type SimState[A] = State[(SimSetup[Option], SimDeck), A]
+
+    val flopCard1: SimState[List[Card]] =
+      State[(SimSetup[Option], SimDeck), List[Card]] { sim =>
+        val (newCard, newDeck): (Card, SimDeck) =
+          getOrDeal(sim._1.card1, sim._2)
+        val newSim = sim._1.copy(card1 = newCard.pure[Option])
+        ((newSim, newDeck), newDeck.cards)
+      }
+
+    val flopCard2: SimState[List[Card]] =
+      State[(SimSetup[Option], SimDeck), List[Card]] { sim =>
+        val (newCard, newDeck): (Card, SimDeck) =
+          getOrDeal(sim._1.card2, sim._2)
+        val newSim = sim._1.copy(card2 = newCard.pure[Option])
+        ((newSim, newDeck), newDeck.cards)
+      }
+
+    val flopCard3: SimState[List[Card]] =
+      State[(SimSetup[Option], SimDeck), List[Card]] { sim =>
+        val (newCard, newDeck): (Card, SimDeck) =
+          getOrDeal(sim._1.card3, sim._2)
+        val newSim = sim._1.copy(card3 = newCard.pure[Option])
+        ((newSim, newDeck), newDeck.cards)
+      }
+
+    val turnCard: SimState[List[Card]] =
+      State[(SimSetup[Option], SimDeck), List[Card]] { sim =>
+        val (newCard, newDeck): (Card, SimDeck) = getOrDeal(sim._1.turn, sim._2)
+        val sim1                                = sim._1.copy(turn = newCard.pure[Option])
+        ((sim1, newDeck), newDeck.cards)
+      }
+
+    val riverCard: SimState[List[Card]] =
+      State[(SimSetup[Option], SimDeck), List[Card]] { sim =>
+        val (newCard, newDeck): (Card, SimDeck) =
+          getOrDeal(sim._1.river, sim._2)
+        val sim1 = sim._1.copy(river = newCard.pure[Option])
+        ((sim1, newDeck), newDeck.cards)
       }
 
     def hydratePlayer(player: SimPlayer[Option])(
@@ -219,24 +244,71 @@ object EquityService extends EquityService[Option, Id] {
       SimPlayer.applyK(player.position, player.card1, player.card2)(deck)
 
     //  TODO something is wrong here... The signature doesn't quite help understand what's going on.
-    val simPlayers: State[SimSetup[Option], SimDeck] =
-      State[SimSetup[Option], SimDeck] { simSetup =>
-        val (allNewPlayers, finalDeck) = simSetup.players.foldLeft(
-          (List.empty[SimPlayer[Option]], simDeck)
+    val simPlayers: SimState[List[Card]] =
+      State[(SimSetup[Option], SimDeck), List[Card]] { simSetup =>
+        val (allNewPlayers, finalDeck) = simSetup._1.players.foldLeft(
+          (List.empty[SimPlayer[Option]], simSetup._2)
         ) { case ((allPlayers, deck), player) =>
           val (newPlayer, newDeck) = hydratePlayer(player)(deck)
           (allPlayers :+ newPlayer, newDeck)
         }
-        (simSetup.copy(players = allNewPlayers), finalDeck)
+        (
+          (simSetup._1.copy(players = allNewPlayers), finalDeck),
+          finalDeck.cards
+        )
       }
 
-    // TODO That is this???
-    val test = for {
-      _ <- simBoard
+    val simBoard2 = for {
+      _ <- flopCard1
+      _ <- flopCard2
+      _ <- flopCard3
+      _ <- turnCard
+      _ <- riverCard
       _ <- simPlayers
     } yield ()
-    val test2 = test.run(targetSim).value._1
-    test2
+
+    simBoard2.runS(targetSim, simDeck).value._1
+
+//    val simBoard =
+//      State[SimSetup[Option], SimDeck] { sim =>
+//        val (newCard1, deck)  = getOrDeal(sim.card1, simDeck)
+//        val sim1              = sim.copy(card1 = newCard1.pure[Option])
+//        val (newCard2, deck2) = getOrDeal(sim1.card2, deck)
+//        val sim2              = sim1.copy(card2 = newCard2.pure[Option])
+//        val (newCard3, deck3) = getOrDeal(sim2.card3, deck2)
+//        val sim3              = sim2.copy(card3 = newCard3.pure[Option])
+//        val (newTurn, deck4)  = getOrDeal(sim3.turn, deck3)
+//        val sim4              = sim3.copy(turn = newTurn.pure[Option])
+//        val (newRiver, deck5) = getOrDeal(sim4.card3, deck4)
+//        val sim5              = sim2.copy(river = newRiver.pure[Option])
+//        (sim5, deck5)
+//      }
+
+//    def hydratePlayer(player: SimPlayer[Option])(
+//      deck: SimDeck
+//    ): (SimPlayer[Option], SimDeck) =
+//      SimPlayer.applyK(player.position, player.card1, player.card2)(deck)
+//
+//    //  TODO something is wrong here... The signature doesn't quite help understand what's going on.
+//    val simPlayers: State[SimSetup[Option], SimDeck] =
+//      State[SimSetup[Option], SimDeck] { simSetup =>
+//        val (allNewPlayers, finalDeck) = simSetup.players.foldLeft(
+//          (List.empty[SimPlayer[Option]], simDeck)
+//        ) { case ((allPlayers, deck), player) =>
+//          val (newPlayer, newDeck) = hydratePlayer(player)(deck)
+//          (allPlayers :+ newPlayer, newDeck)
+//        }
+//        (simSetup.copy(players = allNewPlayers), finalDeck)
+//      }
+
+//    // TODO What is this???
+//    val test = for {
+//      _ <- simBoard
+//      _ <- simPlayers
+//    } yield ()
+//    val test2 = test.run(targetSim).value._1
+//    test2
+
 //    val test3 = test2.copy(
 //      card1 = test2.card1.pure[Id],
 //      card2 = test2.card2.pure[Id],
