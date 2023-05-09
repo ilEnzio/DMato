@@ -11,12 +11,13 @@ import poker.Street.River
 import poker.{Card, Player, Position, Rank, ShowDown, Suit}
 
 final case class SimSetup[F[_]] private (
-  // Do I even need a deck? The deck basically get derived
-  // from the the cards that are prepopulated by the sim
+  // Do I even need a deck? The deck basically gets derived
+  // from the cards that are prepopulated by the sim
 //  deck: F[SimDeck],
   players: List[
     SimPlayer[F]
-  ], // TODO Should I type this to make subsequent code more expressive?
+  ],
+  // TODO Should I type these to make subsequent code more expressive?
   card1: F[Card],
   card2: F[Card],
   card3: F[Card],
@@ -183,44 +184,33 @@ object EquityService extends EquityService[Option, Id] {
     // "result" is here....
     type SimState[A] = State[(SimSetup[Option], SimDeck), A]
 
-    val flopCard1: SimState[List[Card]] =
-      State[(SimSetup[Option], SimDeck), List[Card]] { case (sim, deck) =>
-        val (newCard, newDeck): (Card, SimDeck) =
-          getOrDeal(sim.card1, deck)
-        val newSim = sim.copy(card1 = newCard.pure[Option])
-        ((newSim, newDeck), newDeck.cards)
-      }
+    sealed trait BoardState {}
+    object BoardState {
+      def after(state: BoardState): SimState[List[Card]] =
+        State[(SimSetup[Option], SimDeck), List[Card]] { case (sim, deck) =>
+          val (newCard, newDeck): (Card, SimDeck) = state match {
+            case FlopCard1 => getOrDeal(sim.card1, deck)
+            case FlopCard2 => getOrDeal(sim.card2, deck)
+            case FlopCard3 => getOrDeal(sim.card3, deck)
+            case Turn      => getOrDeal(sim.turn, deck)
+            case River     => getOrDeal(sim.river, deck)
+          }
 
-    val flopCard2: SimState[List[Card]] =
-      State[(SimSetup[Option], SimDeck), List[Card]] { case (sim, deck) =>
-        val (newCard, newDeck): (Card, SimDeck) =
-          getOrDeal(sim.card2, deck)
-        val newSim = sim.copy(card2 = newCard.pure[Option])
-        ((newSim, newDeck), newDeck.cards)
-      }
-
-    val flopCard3: SimState[List[Card]] =
-      State[(SimSetup[Option], SimDeck), List[Card]] { case (sim, deck) =>
-        val (newCard, newDeck): (Card, SimDeck) =
-          getOrDeal(sim.card3, deck)
-        val newSim = sim.copy(card3 = newCard.pure[Option])
-        ((newSim, newDeck), newDeck.cards)
-      }
-
-    val turnCard: SimState[List[Card]] =
-      State[(SimSetup[Option], SimDeck), List[Card]] { case (sim, deck) =>
-        val (newCard, newDeck): (Card, SimDeck) = getOrDeal(sim.turn, deck)
-        val sim1                                = sim.copy(turn = newCard.pure[Option])
-        ((sim1, newDeck), newDeck.cards)
-      }
-
-    val riverCard: SimState[List[Card]] =
-      State[(SimSetup[Option], SimDeck), List[Card]] { case (sim, deck) =>
-        val (newCard, newDeck): (Card, SimDeck) =
-          getOrDeal(sim.river, deck)
-        val sim1 = sim.copy(river = newCard.pure[Option])
-        ((sim1, newDeck), newDeck.cards)
-      }
+          val newSim = state match {
+            case FlopCard1 => sim.copy(card1 = newCard.pure[Option])
+            case FlopCard2 => sim.copy(card2 = newCard.pure[Option])
+            case FlopCard3 => sim.copy(card3 = newCard.pure[Option])
+            case Turn      => sim.copy(turn = newCard.pure[Option])
+            case River     => sim.copy(river = newCard.pure[Option])
+          }
+          ((newSim, newDeck), newDeck.cards)
+        }
+    }
+    final case object FlopCard1 extends BoardState
+    final case object FlopCard2 extends BoardState
+    final case object FlopCard3 extends BoardState
+    final case object Turn      extends BoardState
+    final case object River     extends BoardState
 
     def hydratePlayer(player: SimPlayer[Option])(
       deck: SimDeck
@@ -228,7 +218,7 @@ object EquityService extends EquityService[Option, Id] {
       SimPlayer.applyK(player.position, player.card1, player.card2)(deck)
 
     //  TODO something is wrong here... The signature doesn't quite help understand what's going on.
-    val simPlayers: SimState[List[Card]] =
+    val stateAfterPlayers: SimState[List[Card]] =
       State[(SimSetup[Option], SimDeck), List[Card]] { case (sim, deck) =>
         val (allNewPlayers, finalDeck) = sim.players.foldLeft(
           (List.empty[SimPlayer[Option]], deck)
@@ -243,12 +233,12 @@ object EquityService extends EquityService[Option, Id] {
       }
 
     val simulation = for {
-      _ <- flopCard1
-      _ <- flopCard2
-      _ <- flopCard3
-      _ <- turnCard
-      _ <- riverCard
-      _ <- simPlayers
+      _ <- BoardState.after(FlopCard1)
+      _ <- BoardState.after(FlopCard2)
+      _ <- BoardState.after(FlopCard3)
+      _ <- BoardState.after(Turn)
+      _ <- BoardState.after(River)
+      _ <- stateAfterPlayers
     } yield ()
 
     simulation.runS(targetSim, simDeck).value._1
