@@ -80,7 +80,9 @@ object SimPlayer {
 
 final case class SimDeck(cards: List[Card])
 
-final case class SimResult()
+final case class SimResult(winnersList: List[Position]) {}
+
+final case class EquityCalculation(equities: Map[Position, List[Double]])
 
 sealed trait EquityService[F[_], G[_]] {
 
@@ -89,23 +91,43 @@ sealed trait EquityService[F[_], G[_]] {
 
   // Refactor out Id and Option??
   def deckFrom: SimSetup[Option] => Id[SimDeck]
+
   def hydratedSim(sim: SimSetup[Option])(simDeck: SimDeck): SimSetup[Option]
 
   def riverFrom: SimSetup[Option] => River
-  def equity: List[River] => SimResult
 
-  def runSim(simSetupOp: SimSetup[Option]): Option[NonEmptySet[Position]] = {
-    val deck     = deckFrom(simSetupOp)
-    val setUpOpt = hydratedSim(simSetupOp)(deck)
-    val river    = riverFrom(setUpOpt)
-    ShowDown.fromRiver(river)
+  def runSim(simSetupOp: SimSetup[Option]): Option[List[Position]] = {
+    val deck   = deckFrom(simSetupOp)
+    val optSim = hydratedSim(simSetupOp)(deck)
+    val river  = riverFrom(optSim)
+    ShowDown.fromRiver(river).map(_.toList)
   }
+
+  def equityFromSimResult(result: SimResult): EquityCalculation
+
+  def finalEquityFromMany(results: List[SimResult]): EquityCalculation =
+    results
+      .map(equityFromSimResult)
+      .foldLeft(
+        EquityCalculation(Map.empty[Position, List[Double]])
+      ) { (s, v) =>
+        totalEquity(s, v)
+      }
+
+  def totalEquity(
+    eq1: EquityCalculation,
+    eq2: EquityCalculation
+  ): EquityCalculation
 
   def allSimResults(
     sim: SimSetup[Option],
     n: Int
-  ): List[Option[NonEmptySet[Position]]] =
-    (1 to n).toList.map(_ => runSim(sim))
+  ): Option[EquityCalculation] =
+    for {
+      simResults <- (1 to n).toList
+        .traverse(_ => runSim(sim).map(SimResult))
+      equityOfHands = finalEquityFromMany(simResults)
+    } yield equityOfHands
 }
 
 object EquityService extends EquityService[Option, Id] {
@@ -235,7 +257,7 @@ object EquityService extends EquityService[Option, Id] {
       Player(simPlayer.position, simPlayer.card1.get, simPlayer.card2.get)
     sim: SimSetup[Option] =>
       River(
-        sim.players.map(playerFrom(_)),
+        sim.players.map(playerFrom),
         sim.card1.get,
         sim.card2.get,
         sim.card3.get,
@@ -244,6 +266,19 @@ object EquityService extends EquityService[Option, Id] {
       )
   }
 
-  override def equity: List[River] => SimResult = ???
+  override def equityFromSimResult(result: SimResult): EquityCalculation = {
+    val divisor = result.winnersList.size
+    EquityCalculation(result.winnersList.map(_ -> List(100.0 / divisor)).toMap)
+  }
 
+  override def totalEquity(
+    eq1: EquityCalculation,
+    eq2: EquityCalculation
+  ): EquityCalculation =
+    EquityCalculation(
+      eq1.equities ++ eq2.equities
+        .map { case (k, v) =>
+          k -> (v ++ eq1.equities.getOrElse(k, List.empty))
+        }
+    )
 }
