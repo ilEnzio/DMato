@@ -2,9 +2,6 @@ package poker
 
 final case class Card(rank: Rank, suit: Suit) {}
 
-// ADT - Algebraic Data Type
-// Sum vs Product type
-
 sealed trait Suit
 object Suit {
   val all: List[Suit] = List(Spades, Clubs, Diamonds, Hearts)
