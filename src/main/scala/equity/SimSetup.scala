@@ -97,28 +97,30 @@ sealed trait EquityService[F[_], G[_]] {
 
   def equityFromSimResult(result: SimResult): EquityCalculation
 
-  def finalEquityFromMany(results: List[SimResult]): EquityCalculation =
+  private def finalEquityFromManySims(
+    results: List[SimResult]
+  ): EquityCalculation =
     results
       .map(equityFromSimResult)
       .foldLeft(
         EquityCalculation(Map.empty[Position, List[Double]])
       ) { (s, v) =>
-        totalEquity(s, v)
+        combinedEquity(s, v)
       }
 
-  def totalEquity(
+  def combinedEquity(
     eq1: EquityCalculation,
     eq2: EquityCalculation
   ): EquityCalculation
 
-  def allSimResults(
+  def equity(
     sim: SimSetup[Option],
     n: Int
   ): Option[EquityCalculation] =
     for {
       simResults <- (1 to n).toList
         .traverse(_ => runThis(sim).map(SimResult))
-      equityOfHands = finalEquityFromMany(simResults)
+      equityOfHands = finalEquityFromManySims(simResults)
     } yield equityOfHands
 }
 
@@ -266,7 +268,7 @@ object EquityService extends EquityService[Option, Id] {
     EquityCalculation(result.winnersList.map(_ -> List(100.0 / divisor)).toMap)
   }
 
-  override def totalEquity(
+  override def combinedEquity(
     eq1: EquityCalculation,
     eq2: EquityCalculation
   ): EquityCalculation =
