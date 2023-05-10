@@ -130,6 +130,7 @@ object EquityService extends EquityService[Option, Id] {
       (deck.cards.head, SimDeck(deck.cards.tail))
     }(x => (x, deck))
 
+  // TODO this isnt being used.
   final private case class StartingDeckImpl(cards: List[Card]) {
     def shuffle[F[_]: Functor: Random]: F[List[Card]] =
       Random[F].shuffleList(cards)
