@@ -16,20 +16,6 @@ object BoardGenerators {
 
   //TODO create Ordering for Position
 
-  val genPosition: Gen[Position] = oneOf(
-    SmallBlind,
-    BigBlind,
-    UTG,
-    UTGP1,
-    UTGP2,
-    UTGP3,
-    HighJack,
-    CutOff,
-    Button
-  )
-
-  implicit val arbPosition: Arbitrary[Position] = Arbitrary(genPosition)
-
   val genNumberOfPlayers: Gen[Int] =
     choose(2, 10)
 
