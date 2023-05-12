@@ -7,6 +7,7 @@ import cats.effect.{Async, IO}
 import cats.effect.std.Random
 import cats.effect.unsafe.implicits.global
 import cats.implicits.catsSyntaxApplicativeId
+import equity.EquityService.{equityFrom, getOrDeal, SimState}
 import org.scalactic.anyvals.NonEmptySet
 import poker.OrderInstances.handOrder
 import poker.Street.River
@@ -176,173 +177,6 @@ object EquityService extends EquityService[Option, Id] {
 
   override def hydratedSim: SimState[EquityCalculation] = {
 
-    sealed trait BoardState {
-      def allHands(sim: SimSetup[Option]): List[(Position, Hand)]
-    }
-    object BoardState {
-
-      def preFlopEquity(sim: SimSetup[Option]): EquityCalculation = {
-        val results: SimResult = winners(
-          PreFlop
-            .allHands(sim)
-        )
-
-        equityFrom(results)
-      }
-
-      def winners(l: List[(Position, Hand)]): SimResult =
-        SimResult(
-          l.maximumByList[Hand](x => x._2)
-            .map { case (playerPosition, _) => playerPosition }
-        )
-
-      def after(state: BoardState): SimState[EquityCalculation] =
-        State[(SimSetup[Option], SimDeck), EquityCalculation] {
-          case (sim, deck) =>
-            val (newCard, newDeck) = state match {
-              // TODO this is wonky but kinda acts as a "burn" card...
-              // Must change this.
-              case PreFlop   => getOrDeal(Option.empty[Card], deck)
-              case FlopCard1 => getOrDeal(sim.card1, deck)
-              case FlopCard2 => getOrDeal(sim.card2, deck)
-              case FlopCard3 => getOrDeal(sim.card3, deck)
-              case Turn      => getOrDeal(sim.turn, deck)
-              case River     => getOrDeal(sim.river, deck)
-            }
-
-            val newSim = state match {
-              case PreFlop   => sim
-              case FlopCard1 => sim.copy(card1 = newCard.pure[Option])
-              case FlopCard2 => sim.copy(card2 = newCard.pure[Option])
-              case FlopCard3 => sim.copy(card3 = newCard.pure[Option])
-              case Turn      => sim.copy(turn = newCard.pure[Option])
-              case River     => sim.copy(river = newCard.pure[Option])
-            }
-
-            // This is for equity calculation
-            val eqCal = state match {
-              case PreFlop =>
-                equityFrom(BoardState.winners(PreFlop.allHands(newSim)))
-              case FlopCard1 =>
-                equityFrom(BoardState.winners(FlopCard1.allHands(newSim)))
-              case FlopCard2 =>
-                equityFrom(BoardState.winners(FlopCard2.allHands(newSim)))
-              case FlopCard3 =>
-                equityFrom(BoardState.winners(FlopCard3.allHands(newSim)))
-              case Turn => equityFrom(BoardState.winners(Turn.allHands(newSim)))
-              case River =>
-                equityFrom(BoardState.winners(River.allHands(newSim)))
-            }
-
-            ((newSim, newDeck), eqCal)
-        }
-    }
-    final case object PreFlop extends BoardState {
-      override def allHands(sim: SimSetup[Option]): List[(Position, Hand)] =
-        sim.players
-          .map { case SimPlayer(pos, Some(c1), Some(c2)) =>
-            (
-              pos,
-              Hand.rank(
-                List(
-                  c1,
-                  c2
-                )
-              )
-            )
-          }
-    }
-    final case object FlopCard1 extends BoardState {
-      override def allHands(sim: SimSetup[Option]): List[(Position, Hand)] =
-        sim.players
-          .map { case SimPlayer(pos, Some(c1), Some(c2)) =>
-            (
-              pos,
-              Hand.rank(
-                List(
-                  c1,
-                  c2,
-                  sim.card1.get
-                )
-              )
-            )
-          }
-    }
-    final case object FlopCard2 extends BoardState {
-      override def allHands(sim: SimSetup[Option]): List[(Position, Hand)] =
-        sim.players
-          .map { case SimPlayer(pos, Some(c1), Some(c2)) =>
-            (
-              pos,
-              Hand.rank(
-                List(
-                  c1,
-                  c2,
-                  sim.card1.get,
-                  sim.card2.get
-                )
-              )
-            )
-          }
-    }
-    final case object FlopCard3 extends BoardState {
-      override def allHands(sim: SimSetup[Option]): List[(Position, Hand)] =
-        sim.players
-          .map { case SimPlayer(pos, Some(c1), Some(c2)) =>
-            (
-              pos,
-              Hand.rank(
-                List(
-                  c1,
-                  c2,
-                  sim.card1.get,
-                  sim.card2.get,
-                  sim.card3.get
-                )
-              )
-            )
-          }
-    }
-    final case object Turn extends BoardState {
-      override def allHands(sim: SimSetup[Option]): List[(Position, Hand)] =
-        sim.players
-          .map { case SimPlayer(pos, Some(c1), Some(c2)) =>
-            (
-              pos,
-              Hand.rank(
-                List(
-                  c1,
-                  c2,
-                  sim.card1.get,
-                  sim.card2.get,
-                  sim.card3.get,
-                  sim.turn.get
-                )
-              )
-            )
-          }
-    }
-    final case object River extends BoardState {
-      override def allHands(sim: SimSetup[Option]): List[(Position, Hand)] =
-        sim.players
-          .map { case SimPlayer(pos, Some(c1), Some(c2)) =>
-            (
-              pos,
-              Hand.rank(
-                List(
-                  c1,
-                  c2,
-                  sim.card1.get,
-                  sim.card2.get,
-                  sim.card3.get,
-                  sim.turn.get,
-                  sim.river.get
-                )
-              )
-            )
-          }
-    }
-
     def hydratePlayer(player: SimPlayer[Option])(
       deck: SimDeck
     ): (SimPlayer[Option], SimDeck) =
@@ -362,18 +196,18 @@ object EquityService extends EquityService[Option, Id] {
 
           (
             (newSim, finalDeck),
-            BoardState.preFlopEquity(newSim)
+            SimBoardState.preFlopEquity(newSim)
           )
       }
 
     val simulationResult = for {
-      _     <- stateAfterPlayers
-      _     <- BoardState.after(FlopCard1)
-      _     <- BoardState.after(FlopCard2)
-      _     <- BoardState.after(FlopCard3)
-      _     <- BoardState.after(Turn)
-      river <- BoardState.after(River)
-    } yield river
+      _           <- stateAfterPlayers
+      _           <- SimBoardState.after(FlopCard1)
+      _           <- SimBoardState.after(FlopCard2)
+      _           <- SimBoardState.after(FlopCard3)
+      _           <- SimBoardState.after(Turn)
+      finalEquity <- SimBoardState.after(River)
+    } yield finalEquity
 
     simulationResult
 
@@ -410,4 +244,168 @@ object EquityService extends EquityService[Option, Id] {
     finalEquityFromManySims(simResults)
   }
 
+}
+sealed trait SimBoardState {
+  def allHands(sim: SimSetup[Option]): List[(Position, Hand)]
+}
+object SimBoardState {
+
+  def preFlopEquity(sim: SimSetup[Option]): EquityCalculation = {
+    val results: SimResult = winners(
+      PreFlop
+        .allHands(sim)
+    )
+
+    EquityService.equityFrom(results)
+  }
+
+  def winners(l: List[(Position, Hand)]): SimResult =
+    SimResult(
+      l.maximumByList[Hand](x => x._2)
+        .map { case (playerPosition, _) => playerPosition }
+    )
+
+  def after(state: SimBoardState): SimState[EquityCalculation] =
+    State[(SimSetup[Option], SimDeck), EquityCalculation] { case (sim, deck) =>
+      val (newCard, newDeck) = state match {
+        // TODO this is wonky but kinda acts as a "burn" card...
+        // Must change this.
+        case PreFlop   => getOrDeal(Option.empty[Card], deck)
+        case FlopCard1 => getOrDeal(sim.card1, deck)
+        case FlopCard2 => getOrDeal(sim.card2, deck)
+        case FlopCard3 => getOrDeal(sim.card3, deck)
+        case Turn      => getOrDeal(sim.turn, deck)
+        case River     => getOrDeal(sim.river, deck)
+      }
+
+      val newSim = state match {
+        case PreFlop   => sim
+        case FlopCard1 => sim.copy(card1 = newCard.pure[Option])
+        case FlopCard2 => sim.copy(card2 = newCard.pure[Option])
+        case FlopCard3 => sim.copy(card3 = newCard.pure[Option])
+        case Turn      => sim.copy(turn = newCard.pure[Option])
+        case River     => sim.copy(river = newCard.pure[Option])
+      }
+
+      val equityCalculation = state match {
+        case PreFlop =>
+          equityFrom(SimBoardState.winners(PreFlop.allHands(newSim)))
+        case FlopCard1 =>
+          equityFrom(SimBoardState.winners(FlopCard1.allHands(newSim)))
+        case FlopCard2 =>
+          equityFrom(SimBoardState.winners(FlopCard2.allHands(newSim)))
+        case FlopCard3 =>
+          equityFrom(SimBoardState.winners(FlopCard3.allHands(newSim)))
+        case Turn => equityFrom(SimBoardState.winners(Turn.allHands(newSim)))
+        case River =>
+          equityFrom(SimBoardState.winners(River.allHands(newSim)))
+      }
+
+      ((newSim, newDeck), equityCalculation)
+    }
+}
+final case object PreFlop extends SimBoardState {
+  override def allHands(sim: SimSetup[Option]): List[(Position, Hand)] =
+    sim.players
+      .map { case SimPlayer(pos, Some(c1), Some(c2)) =>
+        (
+          pos,
+          Hand.rank(
+            List(
+              c1,
+              c2
+            )
+          )
+        )
+      }
+}
+final case object FlopCard1 extends SimBoardState {
+  override def allHands(sim: SimSetup[Option]): List[(Position, Hand)] =
+    sim.players
+      .map { case SimPlayer(pos, Some(c1), Some(c2)) =>
+        (
+          pos,
+          Hand.rank(
+            List(
+              c1,
+              c2,
+              sim.card1.get
+            )
+          )
+        )
+      }
+}
+final case object FlopCard2 extends SimBoardState {
+  override def allHands(sim: SimSetup[Option]): List[(Position, Hand)] =
+    sim.players
+      .map { case SimPlayer(pos, Some(c1), Some(c2)) =>
+        (
+          pos,
+          Hand.rank(
+            List(
+              c1,
+              c2,
+              sim.card1.get,
+              sim.card2.get
+            )
+          )
+        )
+      }
+}
+final case object FlopCard3 extends SimBoardState {
+  override def allHands(sim: SimSetup[Option]): List[(Position, Hand)] =
+    sim.players
+      .map { case SimPlayer(pos, Some(c1), Some(c2)) =>
+        (
+          pos,
+          Hand.rank(
+            List(
+              c1,
+              c2,
+              sim.card1.get,
+              sim.card2.get,
+              sim.card3.get
+            )
+          )
+        )
+      }
+}
+final case object Turn extends SimBoardState {
+  override def allHands(sim: SimSetup[Option]): List[(Position, Hand)] =
+    sim.players
+      .map { case SimPlayer(pos, Some(c1), Some(c2)) =>
+        (
+          pos,
+          Hand.rank(
+            List(
+              c1,
+              c2,
+              sim.card1.get,
+              sim.card2.get,
+              sim.card3.get,
+              sim.turn.get
+            )
+          )
+        )
+      }
+}
+final case object River extends SimBoardState {
+  override def allHands(sim: SimSetup[Option]): List[(Position, Hand)] =
+    sim.players
+      .map { case SimPlayer(pos, Some(c1), Some(c2)) =>
+        (
+          pos,
+          Hand.rank(
+            List(
+              c1,
+              c2,
+              sim.card1.get,
+              sim.card2.get,
+              sim.card3.get,
+              sim.turn.get,
+              sim.river.get
+            )
+          )
+        )
+      }
 }
