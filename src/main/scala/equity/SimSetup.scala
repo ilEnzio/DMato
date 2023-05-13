@@ -10,7 +10,6 @@ import cats.implicits.catsSyntaxApplicativeId
 import equity.EquityService.{equityFrom, getOrDeal, SimState}
 import org.scalactic.anyvals.NonEmptySet
 import poker.OrderInstances.handOrder
-import poker.Street.River
 import poker.{Card, Hand, Player, Position, Rank, ShowDown, Suit}
 
 final case class SimSetup[F[_]] private (
@@ -87,23 +86,13 @@ sealed trait EquityService[F[_], G[_]] {
   type SimState[A] = State[(SimSetup[Option], SimDeck), A]
 
   // Refactor out Id and Option??
-  def deckFrom: SimSetup[F] => SimDeck
+  def deckFrom: SimSetup[F] => SimDeck => SimDeck
 
   def hydratedSim: SimState[EquityCalculation]
 
-  def runThis(simSetupOp: SimSetup[F]): EquityCalculation
+  def runThis(simSetupOp: SimSetup[F])(simDeck: SimDeck): EquityCalculation
 
   def equityFrom(result: SimResult): EquityCalculation
-
-  def finalEquityFromManySims(
-    results: List[EquityCalculation]
-  ): EquityCalculation =
-    results
-      .foldLeft(
-        EquityCalculation(Map.empty[Position, List[Double]])
-      ) { (s, v) =>
-        combinedEquity(s, v)
-      }
 
   def combinedEquity(
     eq1: EquityCalculation,
@@ -113,7 +102,17 @@ sealed trait EquityService[F[_], G[_]] {
   def equity(
     sim: SimSetup[F],
     n: Int
-  ): EquityCalculation
+  )(simDeck: SimDeck): EquityCalculation
+
+  def finalEquityFromManyEquities(
+    results: List[EquityCalculation]
+  ): EquityCalculation =
+    results
+      .foldLeft(
+        EquityCalculation(Map.empty[Position, List[Double]])
+      ) { (s, v) =>
+        combinedEquity(s, v)
+      }
 }
 
 object EquityService extends EquityService[Option, Id] {
@@ -139,9 +138,7 @@ object EquityService extends EquityService[Option, Id] {
     StartingDeckImpl(cardList)
   }
 
-  override def deckFrom: SimSetup[Option] => SimDeck = {
-
-    def startingDeck: StartingDeckImpl = startingDeckImpl
+  override def deckFrom: SimSetup[Option] => SimDeck => SimDeck = {
 
     def allCardsFrom(simSetup: SimSetup[Option]): List[Card] = {
       val boardList1 = simSetup.card1.fold(List.empty[Card])(List(_))
@@ -168,39 +165,37 @@ object EquityService extends EquityService[Option, Id] {
     }
 
     sim: SimSetup[Option] =>
-      val finalDeck = startingDeck.cards
-        .filterNot(allCardsFrom(sim).contains(_))
-        .pure[Id]
-      SimDeck(finalDeck)
-
+      simDeck: SimDeck =>
+        val finalDeck = simDeck.cards
+          .filterNot(allCardsFrom(sim).contains(_))
+          .pure[Id]
+        SimDeck(finalDeck)
   }
 
-  override def hydratedSim: SimState[EquityCalculation] = {
+  private def hydratePlayer(player: SimPlayer[Option])(
+    deck: SimDeck
+  ): (SimPlayer[Option], SimDeck) =
+    SimPlayer.applyK(player.position, player.card1, player.card2)(deck)
 
-    def hydratePlayer(player: SimPlayer[Option])(
-      deck: SimDeck
-    ): (SimPlayer[Option], SimDeck) =
-      SimPlayer.applyK(player.position, player.card1, player.card2)(deck)
-
-    val stateAfterPlayers: SimState[EquityCalculation] =
-      State[(SimSetup[Option], SimDeck), EquityCalculation] {
-        case (sim, deck) =>
-          val (allNewPlayers, finalDeck) = sim.players.foldLeft(
-            (List.empty[SimPlayer[Option]], deck)
-          ) { case ((allPlayers, deck), player) =>
-            val (newPlayer, newDeck) = hydratePlayer(player)(deck)
-            (allPlayers :+ newPlayer, newDeck)
-          }
-
-          val newSim = sim.copy(players = allNewPlayers)
-
-          (
-            (newSim, finalDeck),
-            SimBoardState.preFlopEquity(newSim)
-          )
+  private val stateAfterPlayers: SimState[EquityCalculation] =
+    State[(SimSetup[Option], SimDeck), EquityCalculation] { case (sim, deck) =>
+      val (allNewPlayers, finalDeck) = sim.players.foldLeft(
+        (List.empty[SimPlayer[Option]], deck)
+      ) { case ((allPlayers, deck), player) =>
+        val (newPlayer, newDeck) = hydratePlayer(player)(deck)
+        (allPlayers :+ newPlayer, newDeck)
       }
 
-    val simulationResult = for {
+      val newSim = sim.copy(players = allNewPlayers)
+
+      (
+        (newSim, finalDeck),
+        SimBoardState.preFlopEquity(newSim)
+      )
+    }
+
+  override def hydratedSim: SimState[EquityCalculation] =
+    for {
       _           <- stateAfterPlayers
       _           <- SimBoardState.after(FlopCard1)
       _           <- SimBoardState.after(FlopCard2)
@@ -209,12 +204,10 @@ object EquityService extends EquityService[Option, Id] {
       finalEquity <- SimBoardState.after(River)
     } yield finalEquity
 
-    simulationResult
-
-  }
-
-  override def runThis(simSetupOp: SimSetup[Option]): EquityCalculation = {
-    val deck = deckFrom(simSetupOp)
+  override def runThis(
+    simSetupOp: SimSetup[Option]
+  )(simDeck: SimDeck): EquityCalculation = {
+    val deck = deckFrom(simSetupOp)(simDeck)
     hydratedSim.runA(simSetupOp, deck).value
   }
 
@@ -234,14 +227,14 @@ object EquityService extends EquityService[Option, Id] {
         }
     )
 
-  // TODO Rename this for heavens sake!!  This is the actually business
+  // TODO Rename this for heavens sake!!  This is the actual business
   override def equity(
     sim: SimSetup[Option],
     n: Int
-  ): EquityCalculation = {
+  )(deck: SimDeck): EquityCalculation = {
 
-    val simResults = (1 to n).toList.map(_ => runThis(sim))
-    finalEquityFromManySims(simResults)
+    val simResults = (1 to n).toList.map(_ => runThis(sim)(deck))
+    finalEquityFromManyEquities(simResults)
   }
 
 }
