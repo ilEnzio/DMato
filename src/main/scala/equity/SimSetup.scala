@@ -7,7 +7,7 @@ import cats.effect.{Async, IO}
 import cats.effect.std.Random
 import cats.effect.unsafe.implicits.global
 import cats.implicits.catsSyntaxApplicativeId
-import equity.EquityService.{equityFrom, getOrDeal, SimState}
+import equity.EquityService.{equityFrom, getOrDeal, SimDeckState, SimState}
 import org.scalactic.anyvals.NonEmptySet
 import poker.OrderInstances.handOrder
 import poker.{Card, Hand, Player, Position, Rank, ShowDown, Suit}
@@ -64,14 +64,12 @@ object SimPlayer {
     card1: Option[Card],
     card2: Option[Card]
   )(deck: SimDeck): (SimPlayer[Option], SimDeck) = {
-    val (newPlCard1, newDeck6) = EquityService.getOrDeal(card1, deck)
-    val (newPlCard2, newDeck7) = EquityService.getOrDeal(card2, newDeck6)
-    val newPlayer = SimPlayer(
-      position,
-      card1 = newPlCard1.some,
-      card2 = newPlCard2.some
-    )
-    (newPlayer, newDeck7)
+
+    val getOrDealPlayerCards = for {
+      cardA <- getOrDeal(card1)
+      cardB <- getOrDeal(card2)
+    } yield SimPlayer(position, cardA.some, cardB.some)
+    getOrDealPlayerCards.run(deck).value.swap
   }
 }
 
@@ -84,6 +82,8 @@ final case class EquityCalculation(equities: Map[Position, List[Double]])
 sealed trait EquityService[F[_], G[_]] {
 
   type SimState[A] = State[(SimSetup[Option], SimDeck), A]
+
+  type SimDeckState[A] = State[SimDeck, A]
 
   // Refactor out Id and Option??
   def deckFrom: SimSetup[F] => SimDeck => SimDeck
@@ -117,11 +117,20 @@ sealed trait EquityService[F[_], G[_]] {
 
 object EquityService extends EquityService[Option, Id] {
 
-  def getOrDeal(maybe: Option[Card], deck: SimDeck): (Card, SimDeck) =
-    maybe.fold {
-      // TODO not safe
-      (deck.cards.head, SimDeck(deck.cards.tail))
-    }(x => (x, deck))
+  val dealOneCard: SimDeckState[Card] = State[SimDeck, Card] { case deck =>
+    deck.cards match {
+      case card :: remaining => (SimDeck(remaining), card)
+      //      case Nil => ???
+    }
+  }
+
+  val getOrDeal: Option[Card] => SimDeckState[Card] = optCard =>
+    for {
+      newCard <- optCard match {
+        case Some(card) => State.pure[SimDeck, Card](card)
+        case None       => EquityService.dealOneCard
+      }
+    } yield newCard
 
   // TODO this isnt being used.
   final private case class StartingDeckImpl(cards: List[Card]) {
@@ -260,15 +269,15 @@ object SimBoardState {
 
   def after(state: SimBoardState): SimState[EquityCalculation] =
     State[(SimSetup[Option], SimDeck), EquityCalculation] { case (sim, deck) =>
-      val (newCard, newDeck) = state match {
+      val (newDeck, newCard) = state match {
         // TODO this is wonky but kinda acts as a "burn" card...
         // Must change this.
-        case PreFlop   => getOrDeal(Option.empty[Card], deck)
-        case FlopCard1 => getOrDeal(sim.card1, deck)
-        case FlopCard2 => getOrDeal(sim.card2, deck)
-        case FlopCard3 => getOrDeal(sim.card3, deck)
-        case Turn      => getOrDeal(sim.turn, deck)
-        case River     => getOrDeal(sim.river, deck)
+        case PreFlop   => getOrDeal(Option.empty[Card]).run(deck).value
+        case FlopCard1 => getOrDeal(sim.card1).run(deck).value
+        case FlopCard2 => getOrDeal(sim.card2).run(deck).value
+        case FlopCard3 => getOrDeal(sim.card3).run(deck).value
+        case Turn      => getOrDeal(sim.turn).run(deck).value
+        case River     => getOrDeal(sim.river).run(deck).value
       }
 
       val newSim = state match {
