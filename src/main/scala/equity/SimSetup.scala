@@ -79,13 +79,12 @@ final case class SimResult(winnersList: List[Position]) {}
 
 final case class EquityCalculation(equities: Map[Position, List[Double]])
 
-sealed trait EquityService[F[_], G[_]] {
+sealed trait EquityService[F[_]] {
 
   type SimState[A] = State[(SimSetup[Option], SimDeck), A]
 
   type SimDeckState[A] = State[SimDeck, A]
 
-  // Refactor out Id and Option??
   def deckFrom: SimSetup[F] => SimDeck => SimDeck
 
   def hydratedSim: SimState[EquityCalculation]
@@ -99,7 +98,7 @@ sealed trait EquityService[F[_], G[_]] {
     eq2: EquityCalculation
   ): EquityCalculation
 
-  def equity(
+  def theFinalEquityOf(
     sim: SimSetup[F],
     n: Int
   )(simDeck: SimDeck): EquityCalculation
@@ -115,7 +114,7 @@ sealed trait EquityService[F[_], G[_]] {
       }
 }
 
-object EquityService extends EquityService[Option, Id] {
+object EquityService extends EquityService[Option] {
 
   val dealOneCard: SimDeckState[Card] = State[SimDeck, Card] { case deck =>
     deck.cards match {
@@ -237,28 +236,26 @@ object EquityService extends EquityService[Option, Id] {
     )
 
   // TODO Rename this for heavens sake!!  This is the actual business
-  override def equity(
+  override def theFinalEquityOf(
     sim: SimSetup[Option],
     n: Int
   )(deck: SimDeck): EquityCalculation = {
-
     val simResults = (1 to n).toList.map(_ => runThis(sim)(deck))
     finalEquityFromManyEquities(simResults)
   }
-
 }
+
 sealed trait SimBoardState {
   def allHands(sim: SimSetup[Option]): List[(Position, Hand)]
 }
-object SimBoardState {
 
+object SimBoardState {
   def preFlopEquity(sim: SimSetup[Option]): EquityCalculation = {
-    val results: SimResult = winners(
+    val simResult: SimResult = winners(
       PreFlop
         .allHands(sim)
     )
-
-    EquityService.equityFrom(results)
+    EquityService.equityFrom(simResult)
   }
 
   def winners(l: List[(Position, Hand)]): SimResult =
@@ -302,10 +299,10 @@ object SimBoardState {
         case River =>
           equityFrom(SimBoardState.winners(River.allHands(newSim)))
       }
-
       ((newSim, newDeck), equityCalculation)
     }
 }
+
 final case object PreFlop extends SimBoardState {
   override def allHands(sim: SimSetup[Option]): List[(Position, Hand)] =
     sim.players
