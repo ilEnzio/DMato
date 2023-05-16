@@ -156,10 +156,8 @@ object EquityService extends EquityService[IO, Option] {
 
       // Player cards
       val cardsFrom: SimPlayer[Option] => List[Card] = {
-        _ match {
-          case SimPlayer(_, c1, c2) =>
-            List(c1, c2).flatMap(_.fold(List.empty[Card])(List(_)))
-        }
+        case SimPlayer(_, c1, c2) =>
+          List(c1, c2).flatMap(_.fold(List.empty[Card])(List(_)))
       }
 
       def allPlayerCards = simSetup.players.foldLeft(List.empty[Card]) {
@@ -262,7 +260,20 @@ object EquityService extends EquityService[IO, Option] {
 
 // TODO Organization - what should be in Equity Service vs SimBoardState
 sealed trait SimBoardState {
-  def allHands(sim: SimSetup[Option]): List[(Position, Hand)]
+  def allHands(sim: SimSetup[Option]): List[(Position, Hand)] = {
+    val boardCards: List[Card] = sim match {
+      case SimSetup(_, card1, card2, card3, turn, river) =>
+        List(card1, card2, card3, turn, river).flatMap(
+          _.fold(List.empty[Card])(List(_))
+        )
+    }
+    for {
+      player <- sim.players
+    } yield (
+      player.position,
+      Hand.rank(player.card1.get :: player.card2.get :: boardCards)
+    )
+  }
 }
 
 object SimBoardState {
@@ -305,108 +316,9 @@ object SimBoardState {
     }
 }
 
-final case object PreFlop extends SimBoardState {
-  override def allHands(sim: SimSetup[Option]): List[(Position, Hand)] =
-    sim.players
-      .map { case SimPlayer(pos, Some(c1), Some(c2)) =>
-        (
-          pos,
-          Hand.rank(
-            List(
-              c1,
-              c2
-            )
-          )
-        )
-      }
-}
-final case object FlopCard1 extends SimBoardState {
-  override def allHands(sim: SimSetup[Option]): List[(Position, Hand)] =
-    sim.players
-      .map { case SimPlayer(pos, Some(c1), Some(c2)) =>
-        (
-          pos,
-          Hand.rank(
-            List(
-              c1,
-              c2,
-              sim.card1.get
-            )
-          )
-        )
-      }
-}
-final case object FlopCard2 extends SimBoardState {
-  override def allHands(sim: SimSetup[Option]): List[(Position, Hand)] =
-    sim.players
-      .map { case SimPlayer(pos, Some(c1), Some(c2)) =>
-        (
-          pos,
-          Hand.rank(
-            List(
-              c1,
-              c2,
-              sim.card1.get,
-              sim.card2.get
-            )
-          )
-        )
-      }
-}
-final case object FlopCard3 extends SimBoardState {
-  override def allHands(sim: SimSetup[Option]): List[(Position, Hand)] =
-    sim.players
-      .map { case SimPlayer(pos, Some(c1), Some(c2)) =>
-        (
-          pos,
-          Hand.rank(
-            List(
-              c1,
-              c2,
-              sim.card1.get,
-              sim.card2.get,
-              sim.card3.get
-            )
-          )
-        )
-      }
-}
-final case object Turn extends SimBoardState {
-  override def allHands(sim: SimSetup[Option]): List[(Position, Hand)] =
-    sim.players
-      .map { case SimPlayer(pos, Some(c1), Some(c2)) =>
-        (
-          pos,
-          Hand.rank(
-            List(
-              c1,
-              c2,
-              sim.card1.get,
-              sim.card2.get,
-              sim.card3.get,
-              sim.turn.get
-            )
-          )
-        )
-      }
-}
-final case object River extends SimBoardState {
-  override def allHands(sim: SimSetup[Option]): List[(Position, Hand)] =
-    sim.players
-      .map { case SimPlayer(pos, Some(c1), Some(c2)) =>
-        (
-          pos,
-          Hand.rank(
-            List(
-              c1,
-              c2,
-              sim.card1.get,
-              sim.card2.get,
-              sim.card3.get,
-              sim.turn.get,
-              sim.river.get
-            )
-          )
-        )
-      }
-}
+final case object PreFlop   extends SimBoardState
+final case object FlopCard1 extends SimBoardState
+final case object FlopCard2 extends SimBoardState
+final case object FlopCard3 extends SimBoardState
+final case object Turn      extends SimBoardState
+final case object River     extends SimBoardState
