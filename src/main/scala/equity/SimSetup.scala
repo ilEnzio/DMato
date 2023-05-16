@@ -195,7 +195,7 @@ object EquityService extends EquityService[IO, Option] {
   ): (SimPlayer[Option], SimDeck) =
     SimPlayer.applyK(player.position, player.card1, player.card2)(deck)
 
-  private val stateAfterPlayers: SimState[EquityCalculation] =
+  private val stateAfterPreFlopCards: SimState[EquityCalculation] =
     State[(SimSetup[Option], SimDeck), EquityCalculation] { case (sim, deck) =>
       val (allNewPlayers, finalDeck) = sim.players.foldLeft(
         (List.empty[SimPlayer[Option]], deck)
@@ -212,14 +212,41 @@ object EquityService extends EquityService[IO, Option] {
       )
     }
 
+  def after(state: SimBoardState): SimState[EquityCalculation] =
+    State[(SimSetup[Option], SimDeck), EquityCalculation] { case (sim, deck) =>
+      val (newDeck, newCard) = state match {
+        // TODO this is wonky but kinda acts as a "burn" card...
+        // Must change this.
+        case PreFlop   => getOrDeal(Option.empty[Card]).run(deck).value
+        case FlopCard1 => getOrDeal(sim.card1).run(deck).value
+        case FlopCard2 => getOrDeal(sim.card2).run(deck).value
+        case FlopCard3 => getOrDeal(sim.card3).run(deck).value
+        case Turn      => getOrDeal(sim.turn).run(deck).value
+        case River     => getOrDeal(sim.river).run(deck).value
+      }
+
+      val newSim = state match {
+        case PreFlop   => sim
+        case FlopCard1 => sim.copy(card1 = newCard.pure[Option])
+        case FlopCard2 => sim.copy(card2 = newCard.pure[Option])
+        case FlopCard3 => sim.copy(card3 = newCard.pure[Option])
+        case Turn      => sim.copy(turn = newCard.pure[Option])
+        case River     => sim.copy(river = newCard.pure[Option])
+      }
+
+      val equityCalculation = equityFrom(winners(state.allHands(newSim)))
+
+      ((newSim, newDeck), equityCalculation)
+    }
+
   override def hydratedSim: SimState[EquityCalculation] =
     for {
-      _           <- stateAfterPlayers
-      _           <- SimBoardState.after(FlopCard1)
-      _           <- SimBoardState.after(FlopCard2)
-      _           <- SimBoardState.after(FlopCard3)
-      _           <- SimBoardState.after(Turn)
-      finalEquity <- SimBoardState.after(River)
+      _           <- stateAfterPreFlopCards
+      _           <- after(FlopCard1)
+      _           <- after(FlopCard2)
+      _           <- after(FlopCard3)
+      _           <- after(Turn)
+      finalEquity <- after(River)
     } yield finalEquity
 
   override def runThis(
@@ -268,7 +295,7 @@ sealed trait SimBoardState {
         )
     }
 
-    // TODO This is this safe!!!
+    // TODO Is this safe!!!
     // If this is safe I must fix the Hand Ranking function .
     sim.players.map { case SimPlayer(position, card1, card2) =>
       (
@@ -281,36 +308,7 @@ sealed trait SimBoardState {
   }
 }
 
-object SimBoardState {
-
-  def after(state: SimBoardState): SimState[EquityCalculation] =
-    State[(SimSetup[Option], SimDeck), EquityCalculation] { case (sim, deck) =>
-      val (newDeck, newCard) = state match {
-        // TODO this is wonky but kinda acts as a "burn" card...
-        // Must change this.
-        case PreFlop   => getOrDeal(Option.empty[Card]).run(deck).value
-        case FlopCard1 => getOrDeal(sim.card1).run(deck).value
-        case FlopCard2 => getOrDeal(sim.card2).run(deck).value
-        case FlopCard3 => getOrDeal(sim.card3).run(deck).value
-        case Turn      => getOrDeal(sim.turn).run(deck).value
-        case River     => getOrDeal(sim.river).run(deck).value
-      }
-
-      val newSim = state match {
-        case PreFlop   => sim
-        case FlopCard1 => sim.copy(card1 = newCard.pure[Option])
-        case FlopCard2 => sim.copy(card2 = newCard.pure[Option])
-        case FlopCard3 => sim.copy(card3 = newCard.pure[Option])
-        case Turn      => sim.copy(turn = newCard.pure[Option])
-        case River     => sim.copy(river = newCard.pure[Option])
-      }
-
-      val equityCalculation = equityFrom(winners(state.allHands(newSim)))
-
-      ((newSim, newDeck), equityCalculation)
-    }
-}
-
+object SimBoardState
 case object PreFlop   extends SimBoardState
 case object FlopCard1 extends SimBoardState
 case object FlopCard2 extends SimBoardState
