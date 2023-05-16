@@ -267,12 +267,17 @@ sealed trait SimBoardState {
           _.fold(List.empty[Card])(List(_))
         )
     }
-    for {
-      player <- sim.players
-    } yield (
-      player.position,
-      Hand.rank(player.card1.get :: player.card2.get :: boardCards)
-    )
+
+    // TODO This is this safe!!!
+    // If this is safe I must fix the Hand Ranking function .
+    sim.players.map { case SimPlayer(position, card1, card2) =>
+      (
+        position,
+        Hand.rank(List(card1, card2).collect { case Some(x) =>
+          x
+        } ++ boardCards)
+      )
+    }
   }
 }
 
@@ -306,9 +311,9 @@ object SimBoardState {
     }
 }
 
-final case object PreFlop   extends SimBoardState
-final case object FlopCard1 extends SimBoardState
-final case object FlopCard2 extends SimBoardState
-final case object FlopCard3 extends SimBoardState
-final case object Turn      extends SimBoardState
-final case object River     extends SimBoardState
+case object PreFlop   extends SimBoardState
+case object FlopCard1 extends SimBoardState
+case object FlopCard2 extends SimBoardState
+case object FlopCard3 extends SimBoardState
+case object Turn      extends SimBoardState
+case object River     extends SimBoardState
