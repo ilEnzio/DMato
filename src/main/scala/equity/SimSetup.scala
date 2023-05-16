@@ -300,18 +300,8 @@ object SimBoardState {
         case River     => sim.copy(river = newCard.pure[Option])
       }
 
-      val equityCalculation = state match {
-        case PreFlop =>
-          equityFrom(winners(PreFlop.allHands(newSim)))
-        case FlopCard1 =>
-          equityFrom(winners(FlopCard1.allHands(newSim)))
-        case FlopCard2 =>
-          equityFrom(winners(FlopCard2.allHands(newSim)))
-        case FlopCard3 =>
-          equityFrom(winners(FlopCard3.allHands(newSim)))
-        case Turn  => equityFrom(winners(Turn.allHands(newSim)))
-        case River => equityFrom(winners(River.allHands(newSim)))
-      }
+      val equityCalculation = equityFrom(winners(state.allHands(newSim)))
+
       ((newSim, newDeck), equityCalculation)
     }
 }
