@@ -7,7 +7,7 @@ import cats.effect.{Async, IO}
 import cats.effect.std.Random
 import cats.effect.unsafe.implicits.global
 import cats.implicits.catsSyntaxApplicativeId
-import equity.EquityService.{equityFrom, getOrDeal, SimDeckState, SimState}
+import equity.EquityService.{equityFrom, getOrDeal, winners, SimState}
 import org.scalactic.anyvals.NonEmptySet
 import poker.OrderInstances.handOrder
 import poker.{Card, Hand, Player, Position, Rank, ShowDown, Suit}
@@ -73,7 +73,24 @@ object SimPlayer {
   }
 }
 
-final case class SimDeck(cards: List[Card])
+final case class SimDeck(cards: List[Card]) {
+
+  // TODO this isnt being used.
+
+  def shuffle[F[_]: Functor: Random]: F[List[Card]] =
+    for {
+      cards <- Random[F].shuffleList(cards)
+    } yield cards
+
+  private def startingDeckImpl: SimDeck = {
+    val cardList = for {
+      rank <- Rank.all
+      suit <- Suit.all
+    } yield Card(rank, suit)
+    SimDeck(cardList)
+  }
+
+}
 
 final case class SimResult(winnersList: List[Position]) {}
 
@@ -98,12 +115,12 @@ sealed trait EquityService[F[_]] {
     eq2: EquityCalculation
   ): EquityCalculation
 
-  def theFinalEquityOf(
+  def theFinalEquityOf[G[_]: Functor: Random](
     sim: SimSetup[F],
     n: Int
-  )(simDeck: SimDeck): EquityCalculation
+  )(simDeck: G[SimDeck]): G[EquityCalculation]
 
-  def finalEquityFromManyEquities(
+  def aggregateEquityFromMany(
     results: List[EquityCalculation]
   ): EquityCalculation =
     results
@@ -127,24 +144,9 @@ object EquityService extends EquityService[Option] {
     for {
       newCard <- optCard match {
         case Some(card) => State.pure[SimDeck, Card](card)
-        case None       => EquityService.dealOneCard
+        case None       => dealOneCard
       }
     } yield newCard
-
-  // TODO this isnt being used.
-  final private case class StartingDeckImpl(cards: List[Card]) {
-    def shuffle[F[_]: Functor: Random]: F[List[Card]] =
-      Random[F].shuffleList(cards)
-
-  }
-
-  private def startingDeckImpl: StartingDeckImpl = {
-    val cardList = for {
-      rank <- Rank.all
-      suit <- Suit.all
-    } yield Card(rank, suit)
-    StartingDeckImpl(cardList)
-  }
 
   override def deckFrom: SimSetup[Option] => SimDeck => SimDeck = {
 
@@ -180,6 +182,20 @@ object EquityService extends EquityService[Option] {
         SimDeck(finalDeck)
   }
 
+  def winners(l: List[(Position, Hand)]): SimResult =
+    SimResult(
+      l.maximumByList[Hand](x => x._2)
+        .map { case (playerPosition, _) => playerPosition }
+    )
+
+  def preFlopEquity(sim: SimSetup[Option]): EquityCalculation = {
+    val simResult: SimResult = winners(
+      PreFlop
+        .allHands(sim)
+    )
+    equityFrom(simResult)
+  }
+
   private def hydratePlayer(player: SimPlayer[Option])(
     deck: SimDeck
   ): (SimPlayer[Option], SimDeck) =
@@ -198,7 +214,7 @@ object EquityService extends EquityService[Option] {
 
       (
         (newSim, finalDeck),
-        SimBoardState.preFlopEquity(newSim)
+        preFlopEquity(newSim)
       )
     }
 
@@ -235,34 +251,25 @@ object EquityService extends EquityService[Option] {
         }
     )
 
-  // TODO Rename this for heavens sake!!  This is the actual business
-  override def theFinalEquityOf(
+  // TODO This is where we return an IO right?
+  // the deck injected should be pre shuffled, I think.
+
+  override def theFinalEquityOf[F[_]: Functor: Random](
     sim: SimSetup[Option],
     n: Int
-  )(deck: SimDeck): EquityCalculation = {
-    val simResults = (1 to n).toList.map(_ => runThis(sim)(deck))
-    finalEquityFromManyEquities(simResults)
-  }
+  )(deck: F[SimDeck]): F[EquityCalculation] =
+    for {
+      shuffled <- deck
+      simResults = (1 to n).toList.map(_ => runThis(sim)(shuffled))
+    } yield aggregateEquityFromMany(simResults)
 }
 
+// TODO Organization - what should be in Equity Service vs SimBoardState
 sealed trait SimBoardState {
   def allHands(sim: SimSetup[Option]): List[(Position, Hand)]
 }
 
 object SimBoardState {
-  def preFlopEquity(sim: SimSetup[Option]): EquityCalculation = {
-    val simResult: SimResult = winners(
-      PreFlop
-        .allHands(sim)
-    )
-    EquityService.equityFrom(simResult)
-  }
-
-  def winners(l: List[(Position, Hand)]): SimResult =
-    SimResult(
-      l.maximumByList[Hand](x => x._2)
-        .map { case (playerPosition, _) => playerPosition }
-    )
 
   def after(state: SimBoardState): SimState[EquityCalculation] =
     State[(SimSetup[Option], SimDeck), EquityCalculation] { case (sim, deck) =>
@@ -288,16 +295,15 @@ object SimBoardState {
 
       val equityCalculation = state match {
         case PreFlop =>
-          equityFrom(SimBoardState.winners(PreFlop.allHands(newSim)))
+          equityFrom(winners(PreFlop.allHands(newSim)))
         case FlopCard1 =>
-          equityFrom(SimBoardState.winners(FlopCard1.allHands(newSim)))
+          equityFrom(winners(FlopCard1.allHands(newSim)))
         case FlopCard2 =>
-          equityFrom(SimBoardState.winners(FlopCard2.allHands(newSim)))
+          equityFrom(winners(FlopCard2.allHands(newSim)))
         case FlopCard3 =>
-          equityFrom(SimBoardState.winners(FlopCard3.allHands(newSim)))
-        case Turn => equityFrom(SimBoardState.winners(Turn.allHands(newSim)))
-        case River =>
-          equityFrom(SimBoardState.winners(River.allHands(newSim)))
+          equityFrom(winners(FlopCard3.allHands(newSim)))
+        case Turn  => equityFrom(winners(Turn.allHands(newSim)))
+        case River => equityFrom(winners(River.allHands(newSim)))
       }
       ((newSim, newDeck), equityCalculation)
     }
