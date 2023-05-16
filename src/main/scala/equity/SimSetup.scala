@@ -71,18 +71,18 @@ object SimPlayer {
   }
 }
 
-final case class SimDeck(cards: NonEmptyList[Card]) {
+final case class SimDeck(cards: List[Card]) {
 
   // TODO this isnt being used yet.
-  def shuffle[F[_]: Functor: Random]: F[List[Card]] =
-    Random[F].shuffleList(cards.toList)
+  def shuffle[F[_]: Functor: Random]: F[SimDeck] =
+    Random[F].shuffleList(cards).map(SimDeck)
 
   private def startingDeckImpl: SimDeck = {
     val cards = for {
       rank <- Rank.all
       suit <- Suit.all
     } yield Card(rank, suit)
-    SimDeck(NonEmptyList.fromList(cards).get)
+    SimDeck(cards)
   }
 
 }
@@ -110,10 +110,10 @@ sealed trait EquityService[F[_], G[_]] {
     eq2: EquityCalculation
   ): EquityCalculation
 
-  def theFinalEquityOf[F[_]: Functor: Random](
+  def theFinalEquityOf[F[_]: Functor: Random: Applicative](
     sim: SimSetup[G],
     n: Int
-  )(simDeck: F[SimDeck]): F[EquityCalculation]
+  )(simDeck: SimDeck): F[EquityCalculation]
 
   def aggregateEquityFromMany(
     results: List[EquityCalculation]
@@ -131,8 +131,8 @@ object EquityService extends EquityService[IO, Option] {
   // TODO Another unsafe spot I don't know how to deal with.
   val dealOneCard: SimDeckState[Card] = State[SimDeck, Card] {
     _.cards match {
-      case NonEmptyList(card, remaining) =>
-        (SimDeck(NonEmptyList.fromList(remaining).get), card)
+      case card :: remaining => (SimDeck(remaining), card)
+      case _                 => throw new Exception("No Cards in Deck!!!")
     }
 
   }
@@ -173,7 +173,7 @@ object EquityService extends EquityService[IO, Option] {
         val finalDeck = simDeck.cards
           .filterNot(allCardsFrom(sim).contains(_))
           .pure[Id]
-        SimDeck(NonEmptyList.fromList(finalDeck).get)
+        SimDeck(finalDeck)
   }
 
   def winners(l: List[(Position, Hand)]): SimResult =
@@ -275,14 +275,15 @@ object EquityService extends EquityService[IO, Option] {
   // TODO This is where we return an IO right?
   // the deck injected should be pre shuffled, I think.
 
-  override def theFinalEquityOf[F[_]: Functor: Random](
+  override def theFinalEquityOf[F[_]: Functor: Random: Applicative](
     sim: SimSetup[Option],
     n: Int
-  )(deck: F[SimDeck]): F[EquityCalculation] =
+  )(deck: SimDeck): F[EquityCalculation] =
     for {
-      shuffled <- deck
-      simResults = (1 to n).toList.map(_ => runThis(sim)(shuffled))
+      shuffledDecks <- (1 to n).toList.traverse(_ => deck.shuffle[F])
+      simResults = shuffledDecks.map(runThis(sim)(_))
     } yield aggregateEquityFromMany(simResults)
+
 }
 
 // TODO Organization - what should be in Equity Service vs SimBoardState
