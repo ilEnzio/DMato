@@ -2,15 +2,13 @@ package equity
 
 import cats._
 import cats.syntax.all._
-import cats.data.State
-import cats.effect.{Async, IO}
+import cats.data.{NonEmptyList, State}
+import cats.effect.IO
 import cats.effect.std.Random
-import cats.effect.unsafe.implicits.global
 import cats.implicits.catsSyntaxApplicativeId
 import equity.EquityService.{equityFrom, getOrDeal, winners, SimState}
-import org.scalactic.anyvals.NonEmptySet
 import poker.OrderInstances.handOrder
-import poker.{Card, Hand, Player, Position, Rank, ShowDown, Suit}
+import poker.{Card, Hand, Position, Rank, Suit}
 
 final case class SimSetup[F[_]] private (
   // Do I even need a deck? The deck basically gets derived
@@ -45,7 +43,7 @@ object SimSetup {
 //  }
 }
 
-final case class SimPlayer[F[_]] private ( // TODO I think this is ??Option??
+final case class SimPlayer[F[_]] private (
   position: Position,
   card1: F[Card],
   card2: F[Card]
@@ -73,21 +71,18 @@ object SimPlayer {
   }
 }
 
-final case class SimDeck(cards: List[Card]) {
+final case class SimDeck(cards: NonEmptyList[Card]) {
 
-  // TODO this isnt being used.
-
+  // TODO this isnt being used yet.
   def shuffle[F[_]: Functor: Random]: F[List[Card]] =
-    for {
-      cards <- Random[F].shuffleList(cards)
-    } yield cards
+    Random[F].shuffleList(cards.toList)
 
   private def startingDeckImpl: SimDeck = {
-    val cardList = for {
+    val cards = for {
       rank <- Rank.all
       suit <- Suit.all
     } yield Card(rank, suit)
-    SimDeck(cardList)
+    SimDeck(NonEmptyList.fromList(cards).get)
   }
 
 }
@@ -96,17 +91,17 @@ final case class SimResult(winnersList: List[Position]) {}
 
 final case class EquityCalculation(equities: Map[Position, List[Double]])
 
-sealed trait EquityService[F[_]] {
+sealed trait EquityService[F[_], G[_]] {
 
-  type SimState[A] = State[(SimSetup[Option], SimDeck), A]
+  type SimState[A] = State[(SimSetup[G], SimDeck), A]
 
   type SimDeckState[A] = State[SimDeck, A]
 
-  def deckFrom: SimSetup[F] => SimDeck => SimDeck
+  def deckFrom: SimSetup[G] => SimDeck => SimDeck
 
   def hydratedSim: SimState[EquityCalculation]
 
-  def runThis(simSetupOp: SimSetup[F])(simDeck: SimDeck): EquityCalculation
+  def runThis(simSetupOp: SimSetup[G])(simDeck: SimDeck): EquityCalculation
 
   def equityFrom(result: SimResult): EquityCalculation
 
@@ -115,10 +110,10 @@ sealed trait EquityService[F[_]] {
     eq2: EquityCalculation
   ): EquityCalculation
 
-  def theFinalEquityOf[G[_]: Functor: Random](
-    sim: SimSetup[F],
+  def theFinalEquityOf[F[_]: Functor: Random](
+    sim: SimSetup[G],
     n: Int
-  )(simDeck: G[SimDeck]): G[EquityCalculation]
+  )(simDeck: F[SimDeck]): F[EquityCalculation]
 
   def aggregateEquityFromMany(
     results: List[EquityCalculation]
@@ -131,13 +126,15 @@ sealed trait EquityService[F[_]] {
       }
 }
 
-object EquityService extends EquityService[Option] {
+object EquityService extends EquityService[IO, Option] {
 
-  val dealOneCard: SimDeckState[Card] = State[SimDeck, Card] { case deck =>
-    deck.cards match {
-      case card :: remaining => (SimDeck(remaining), card)
-      //      case Nil => ???
+  // TODO Another unsafe spot I don't know how to deal with.
+  val dealOneCard: SimDeckState[Card] = State[SimDeck, Card] {
+    _.cards match {
+      case NonEmptyList(card, remaining) =>
+        (SimDeck(NonEmptyList.fromList(remaining).get), card)
     }
+
   }
 
   val getOrDeal: Option[Card] => SimDeckState[Card] = optCard =>
@@ -150,20 +147,19 @@ object EquityService extends EquityService[Option] {
 
   override def deckFrom: SimSetup[Option] => SimDeck => SimDeck = {
 
+    // TODO What is a better way to do this?
     def allCardsFrom(simSetup: SimSetup[Option]): List[Card] = {
-      val boardList1 = simSetup.card1.fold(List.empty[Card])(List(_))
-      val boardList2 = simSetup.card2.fold(List.empty[Card])(List(_))
-      val boardList3 = simSetup.card3.fold(List.empty[Card])(List(_))
-      val boardList4 = simSetup.turn.fold(List.empty[Card])(List(_))
-      val boardList5 = simSetup.river.fold(List.empty[Card])(List(_))
-      val boardCards =
-        boardList1 ++ boardList2 ++ boardList3 ++ boardList4 ++ boardList5
+      val boardCards = simSetup match {
+        case SimSetup(_, c1, c2, c3, t, r) =>
+          List(c1, c2, c3, t, r).flatMap(_.fold(List.empty[Card])(List(_)))
+      }
 
       // Player cards
-      def cardsFrom = { player: SimPlayer[Option] =>
-        val card1 = player.card1.fold(List.empty[Card])(List(_))
-        val card2 = player.card2.fold(List.empty[Card])(List(_))
-        card1 ++ card2
+      val cardsFrom: SimPlayer[Option] => List[Card] = {
+        _ match {
+          case SimPlayer(_, c1, c2) =>
+            List(c1, c2).flatMap(_.fold(List.empty[Card])(List(_)))
+        }
       }
 
       def allPlayerCards = simSetup.players.foldLeft(List.empty[Card]) {
@@ -179,7 +175,7 @@ object EquityService extends EquityService[Option] {
         val finalDeck = simDeck.cards
           .filterNot(allCardsFrom(sim).contains(_))
           .pure[Id]
-        SimDeck(finalDeck)
+        SimDeck(NonEmptyList.fromList(finalDeck).get)
   }
 
   def winners(l: List[(Position, Hand)]): SimResult =
