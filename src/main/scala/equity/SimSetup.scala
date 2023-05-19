@@ -147,17 +147,16 @@ object EquityService extends EquityService[IO, Option] {
 
   override def deckFrom: SimSetup[Option] => SimDeck => SimDeck = {
 
-    // TODO What is a better way to do this?
     def allCardsFrom(simSetup: SimSetup[Option]): List[Card] = {
       val boardCards = simSetup match {
         case SimSetup(_, c1, c2, c3, t, r) =>
-          List(c1, c2, c3, t, r).flatMap(_.fold(List.empty[Card])(List(_)))
+          List(c1, c2, c3, t, r).collect { case Some(x) => x }
       }
 
       // Player cards
       val cardsFrom: SimPlayer[Option] => List[Card] = {
         case SimPlayer(_, c1, c2) =>
-          List(c1, c2).flatMap(_.fold(List.empty[Card])(List(_)))
+          List(c1, c2).collect { case Some(x) => x }
       }
 
       def allPlayerCards = simSetup.players.foldLeft(List.empty[Card]) {
@@ -291,13 +290,10 @@ sealed trait SimBoardState {
   def allHands(sim: SimSetup[Option]): List[(Position, Hand)] = {
     val boardCards: List[Card] = sim match {
       case SimSetup(_, card1, card2, card3, turn, river) =>
-        List(card1, card2, card3, turn, river).flatMap(
-          _.fold(List.empty[Card])(List(_))
-        )
+        List(card1, card2, card3, turn, river).collect { case Some(x) => x }
     }
 
-    // TODO Is this safe!!!
-    // If this is safe I must fix the Hand Ranking function .
+    // TODO If this is safe I must fix the Hand Ranking function .
     sim.players.map { case SimPlayer(position, card1, card2) =>
       (
         position,
