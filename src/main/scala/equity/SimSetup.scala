@@ -10,19 +10,21 @@ import equity.EquityService.{equityFrom, getOrDeal, winners, SimState}
 import poker.OrderInstances.handOrder
 import poker.{Card, Hand, Position, Rank, Suit}
 
-final case class SimSetup[F[_]] private (
+// TODO Get rid of the Sim prefix, put this in a sim package!
+
+final case class SimSetup private (
   // Do I even need a deck? The deck basically gets derived
   // from the cards that are prepopulated by the sim
 //  deck: F[SimDeck],
   players: List[
-    SimPlayer[F]
+    SimPlayer[Option]
   ],
   // TODO Should I type these to make subsequent code more expressive?
-  card1: F[Card],
-  card2: F[Card],
-  card3: F[Card],
-  turn: F[Card],
-  river: F[Card]
+  card1: Option[Card],
+  card2: Option[Card],
+  card3: Option[Card],
+  turn: Option[Card],
+  river: Option[Card]
 ) {
 
 //  def mapK[G[_]](f: F[Card] => G[Card]): SimSetup[G] = ???
@@ -30,6 +32,12 @@ final case class SimSetup[F[_]] private (
 }
 
 object SimSetup {
+
+  // TODO There needs to be validation on the the SimSetup - in other words
+  // you shouldn't be able to have an illegal SimSetup
+  // Every card should be distinct and there should be at least 2 players.
+
+  def validate[F[_]](simDeck: SimSetup): F[Unit] = ???
 //
 //  def applyK(
 //    players: List[SimPlayer[Option]],
@@ -89,19 +97,21 @@ final case class SimDeck(cards: List[Card]) {
 
 final case class SimResult(winnersList: List[Position]) {}
 
+// TODO Name: Positional Equities?
 final case class EquityCalculation(equities: Map[Position, List[Double]])
 
-sealed trait EquityService[F[_], G[_]] {
+sealed trait EquityService[F[_]] {
 
-  type SimState[A] = State[(SimSetup[G], SimDeck), A]
+  type SimState[A] = State[(SimSetup, SimDeck), A]
 
   type SimDeckState[A] = State[SimDeck, A]
 
-  def deckFrom: SimSetup[G] => SimDeck => SimDeck
-
+//  def deckFrom: SimSetup[G] => SimDeck => SimDeck
+// TODO This other functions are really implementation, they
+  // don't belong in the algebra
   def hydratedSim: SimState[EquityCalculation]
 
-  def runThis(simSetupOp: SimSetup[G])(simDeck: SimDeck): EquityCalculation
+  def runThis(simSetupOp: SimSetup)(simDeck: SimDeck): EquityCalculation
 
   def equityFrom(result: SimResult): EquityCalculation
 
@@ -111,7 +121,7 @@ sealed trait EquityService[F[_], G[_]] {
   ): EquityCalculation
 
   def theFinalEquityOf[F[_]: Functor: Random: Applicative](
-    sim: SimSetup[G],
+    sim: SimSetup,
     n: Int
   )(simDeck: SimDeck): F[EquityCalculation]
 
@@ -126,15 +136,13 @@ sealed trait EquityService[F[_], G[_]] {
       }
 }
 
-object EquityService extends EquityService[IO, Option] {
+object EquityService extends EquityService[IO] {
 
-  // TODO Another unsafe spot I don't know how to deal with.
   val dealOneCard: SimDeckState[Card] = State[SimDeck, Card] {
     _.cards match {
       case card :: remaining => (SimDeck(remaining), card)
-      case _                 => throw new Exception("No Cards in Deck!!!")
+      case _                 => throw new Exception("BUG: No Cards in Deck!!!")
     }
-
   }
 
   val getOrDeal: Option[Card] => SimDeckState[Card] = optCard =>
@@ -145,9 +153,9 @@ object EquityService extends EquityService[IO, Option] {
       }
     } yield newCard
 
-  override def deckFrom: SimSetup[Option] => SimDeck => SimDeck = {
+  def deckFrom: SimSetup => SimDeck => SimDeck = {
 
-    def allCardsFrom(simSetup: SimSetup[Option]): List[Card] = {
+    def allCardsFrom(simSetup: SimSetup): List[Card] = {
       val boardCards = simSetup match {
         case SimSetup(_, c1, c2, c3, t, r) =>
           List(c1, c2, c3, t, r).collect { case Some(x) => x }
@@ -167,7 +175,7 @@ object EquityService extends EquityService[IO, Option] {
       boardCards ++ allPlayerCards
     }
 
-    sim: SimSetup[Option] =>
+    sim: SimSetup =>
       simDeck: SimDeck =>
         val finalDeck = simDeck.cards
           .filterNot(allCardsFrom(sim).contains(_))
@@ -181,7 +189,7 @@ object EquityService extends EquityService[IO, Option] {
         .map { case (playerPosition, _) => playerPosition }
     )
 
-  def preFlopEquity(sim: SimSetup[Option]): EquityCalculation = {
+  def preFlopEquity(sim: SimSetup): EquityCalculation = {
     val simResult: SimResult = winners(
       PreFlop
         .allHands(sim)
@@ -195,7 +203,7 @@ object EquityService extends EquityService[IO, Option] {
     SimPlayer.applyK(player.position, player.card1, player.card2)(deck)
 
   private val stateAfterPreFlopCards: SimState[EquityCalculation] =
-    State[(SimSetup[Option], SimDeck), EquityCalculation] { case (sim, deck) =>
+    State[(SimSetup, SimDeck), EquityCalculation] { case (sim, deck) =>
       val (allNewPlayers, finalDeck) = sim.players.foldLeft(
         (List.empty[SimPlayer[Option]], deck)
       ) { case ((allPlayers, deck), player) =>
@@ -212,7 +220,7 @@ object EquityService extends EquityService[IO, Option] {
     }
 
   def after(state: SimBoardState): SimState[EquityCalculation] =
-    State[(SimSetup[Option], SimDeck), EquityCalculation] { case (sim, deck) =>
+    State[(SimSetup, SimDeck), EquityCalculation] { case (sim, deck) =>
       val (newDeck, newCard) = state match {
         // TODO this is wonky but kinda acts as a "burn" card...
         // Must change this.
@@ -238,6 +246,8 @@ object EquityService extends EquityService[IO, Option] {
       ((newSim, newDeck), equityCalculation)
     }
 
+  // TODO These after calls can actually be distinct functions.
+  // TODO I don't really need my state's result to be EquityCalculation.  It can be Unit.
   override def hydratedSim: SimState[EquityCalculation] =
     for {
       _           <- stateAfterPreFlopCards
@@ -249,7 +259,7 @@ object EquityService extends EquityService[IO, Option] {
     } yield finalEquity
 
   override def runThis(
-    simSetupOp: SimSetup[Option]
+    simSetupOp: SimSetup
   )(simDeck: SimDeck): EquityCalculation = {
     val deck = deckFrom(simSetupOp)(simDeck)
     hydratedSim.runA(simSetupOp, deck).value
@@ -271,23 +281,21 @@ object EquityService extends EquityService[IO, Option] {
         }
     )
 
-  // TODO This is where we return an IO right?
-  // the deck injected should be pre shuffled, I think.
-
   override def theFinalEquityOf[F[_]: Functor: Random: Applicative](
-    sim: SimSetup[Option],
+    sim: SimSetup,
     n: Int
   )(deck: SimDeck): F[EquityCalculation] =
+    // TODO The Unit result means I did NOT short circuit
     for {
+//      _             <- SimSetup.validate(sim)
       shuffledDecks <- (1 to n).toList.traverse(_ => deck.shuffle[F])
-      simResults = shuffledDecks.map(runThis(sim)(_))
+      simResults = shuffledDecks.map(runThis(sim))
     } yield aggregateEquityFromMany(simResults)
-
 }
 
 // TODO Organization - what should be in Equity Service vs SimBoardState
 sealed trait SimBoardState {
-  def allHands(sim: SimSetup[Option]): List[(Position, Hand)] = {
+  def allHands(sim: SimSetup): List[(Position, Hand)] = {
     val boardCards: List[Card] = sim match {
       case SimSetup(_, card1, card2, card3, turn, river) =>
         List(card1, card2, card3, turn, river).collect { case Some(x) => x }
