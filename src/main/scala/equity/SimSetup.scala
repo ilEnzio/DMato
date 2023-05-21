@@ -17,7 +17,7 @@ final case class SimSetup private (
   // from the cards that are prepopulated by the sim
 //  deck: F[SimDeck],
   players: List[
-    SimPlayer[Option]
+    SimPlayer
   ],
   // TODO Should I type these to make subsequent code more expressive?
   card1: Option[Card],
@@ -40,7 +40,7 @@ object SimSetup {
   def validate[F[_]](simDeck: SimSetup): F[Unit] = ???
 //
 //  def applyK(
-//    players: List[SimPlayer[Option]],
+//    players: List[SimPlayer],
 //    card1: Option[Card],
 //    card2: Option[Card],
 //    card3: Option[Card],
@@ -51,10 +51,10 @@ object SimSetup {
 //  }
 }
 
-final case class SimPlayer[F[_]] private (
+final case class SimPlayer private (
   position: Position,
-  card1: F[Card],
-  card2: F[Card]
+  card1: Option[Card],
+  card2: Option[Card]
 ) {
 
   // TODO not sure how to use this yet.
@@ -69,7 +69,7 @@ object SimPlayer {
     position: Position,
     card1: Option[Card],
     card2: Option[Card]
-  )(deck: SimDeck): (SimPlayer[Option], SimDeck) = {
+  )(deck: SimDeck): (SimPlayer, SimDeck) = {
 
     val getOrDealPlayerCards = for {
       cardA <- getOrDeal(card1)
@@ -162,9 +162,8 @@ object EquityService extends EquityService[IO] {
       }
 
       // Player cards
-      val cardsFrom: SimPlayer[Option] => List[Card] = {
-        case SimPlayer(_, c1, c2) =>
-          List(c1, c2).collect { case Some(x) => x }
+      val cardsFrom: SimPlayer => List[Card] = { case SimPlayer(_, c1, c2) =>
+        List(c1, c2).collect { case Some(x) => x }
       }
 
       def allPlayerCards = simSetup.players.foldLeft(List.empty[Card]) {
@@ -197,15 +196,15 @@ object EquityService extends EquityService[IO] {
     equityFrom(simResult)
   }
 
-  private def hydratePlayer(player: SimPlayer[Option])(
+  private def hydratePlayer(player: SimPlayer)(
     deck: SimDeck
-  ): (SimPlayer[Option], SimDeck) =
+  ): (SimPlayer, SimDeck) =
     SimPlayer.applyK(player.position, player.card1, player.card2)(deck)
 
   private val stateAfterPreFlopCards: SimState[EquityCalculation] =
     State[(SimSetup, SimDeck), EquityCalculation] { case (sim, deck) =>
       val (allNewPlayers, finalDeck) = sim.players.foldLeft(
-        (List.empty[SimPlayer[Option]], deck)
+        (List.empty[SimPlayer], deck)
       ) { case ((allPlayers, deck), player) =>
         val (newPlayer, newDeck) = hydratePlayer(player)(deck)
         (allPlayers :+ newPlayer, newDeck)
