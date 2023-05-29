@@ -1,8 +1,12 @@
 package EquityTest
 
 import cats.effect.unsafe.implicits.global
-import org.scalacheck.Prop.{forAll, propBoolean}
+import equity.EquityService.deckFrom
+import equity.{SimDeck, SimSetup}
+import org.scalacheck.Prop.{forAll, propBoolean, AnyOperators}
 import org.scalacheck.Properties
+import poker.{Card, Rank, Suit}
+import poker.Deck.startingDeck
 import poker.OrderInstances._
 
 object EquityTest extends Properties("Equity Tests") {
@@ -29,5 +33,20 @@ object EquityTest extends Properties("Equity Tests") {
 //      underPairEqu._2 < .3
 //    }
 //  }
+  // in a hydrated sim, the number of cards in a SimDeck
+  // is 47 - (2 * num of players)
+  val freshDeck = SimDeck(for {
+    rank <- Rank.all
+    suit <- Suit.all
+  } yield Card(rank, suit))
 
+//  property(
+//    "SimDeck has correct number of cards left after the Simulation is hydrated."
+//  ) = forAll { sim: SimSetup[Option] =>
+//    val newDeck = deckFrom(sim)
+//    // p
+//    val totalUsedCards = sim.players.length * 2 + 5
+//    newDeck.cards.length =? 52 - totalUsedCards
+//
+//  }
 }

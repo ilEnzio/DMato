@@ -29,4 +29,8 @@ libraryDependencies ++= Seq(
   "org.http4s"        %% "http4s-circe"        % Http4sVersion,
   "org.http4s"        %% "http4s-dsl"          % Http4sVersion,
   "io.circe"          %% "circe-generic"       % CirceVersion
+//  "org.typelevel"     %% "kind-projector"      % "0.11.0"
+)
+addCompilerPlugin(
+  "org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full
 )
