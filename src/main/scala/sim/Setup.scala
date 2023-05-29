@@ -44,7 +44,6 @@ object Setup {
   //
   //  }
 }
-//white space
 
 final case class Player private (
   position: Position,
